@@ -22,6 +22,7 @@ export default function Home() {
   }
 
   const currentGroup = templateGroups.find((g) => g.id === activeGroup)
+  const currentGroupData = currentGroup // hex, light, dark, gradient 포함
   const filteredTemplates = currentGroup?.templates.filter((t) => {
     const matchSearch = !searchQuery || t.name.includes(searchQuery)
     const matchDevice = deviceFilter === '전체' || t.device === deviceFilter || t.device === '공통'
@@ -46,14 +47,14 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary-600 via-primary-500 to-purple-400">
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #9F48CE 0%, #C084FC 100%)' }}>
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-10 left-20 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
           <div className="absolute bottom-5 right-40 w-48 h-48 rounded-full bg-purple-300/30 blur-3xl" />
           <div className="absolute top-5 right-20 w-24 h-24 rounded-full bg-pink-300/20 blur-2xl" />
         </div>
         <div className="relative max-w-6xl mx-auto px-8 py-10">
-          <p className="inline-block px-3 py-1 mb-3 text-xs font-bold text-primary-700 bg-white/90 rounded-full">
+          <p className="inline-block px-3 py-1 mb-3 text-xs font-bold bg-white/90 rounded-full" style={{ color: '#7B2FA8' }}>
             AI-POWERED
           </p>
           <h1 className="text-3xl font-extrabold text-white leading-tight mb-2">
@@ -72,11 +73,12 @@ export default function Home() {
             <div key={label} className="flex items-center gap-2">
               {i > 0 && <ChevronDown className="w-4 h-4 text-gray-300 -rotate-90" />}
               <span
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium ${
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all"
+                style={
                   i === 0
-                    ? 'bg-primary-600 text-white shadow-md shadow-primary-200'
-                    : 'bg-gray-100 text-gray-400'
-                }`}
+                    ? { backgroundColor: '#9F48CE', color: '#fff', boxShadow: '0 4px 12px rgba(159,72,206,0.35)' }
+                    : { backgroundColor: '#f3f4f6', color: '#9ca3af' }
+                }
               >
                 {i + 1}. {label}
                 {i === 0 && selectedTemplates.length > 0 && (
@@ -107,11 +109,12 @@ export default function Home() {
             <button
               key={d}
               onClick={() => setDeviceFilter(d)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={
                 deviceFilter === d
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
-              }`}
+                  ? { backgroundColor: '#9F48CE', color: '#fff', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }
+                  : { backgroundColor: '#fff', color: '#4b5563', border: '1px solid #e5e7eb' }
+              }
             >
               {d === 'PC' && <Monitor className="w-3.5 h-3.5 inline mr-1" />}
               {d === 'MO' && <Smartphone className="w-3.5 h-3.5 inline mr-1" />}
@@ -130,18 +133,24 @@ export default function Home() {
               <button
                 key={g.id}
                 onClick={() => setActiveGroup(g.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={
                   activeGroup === g.id
-                    ? 'bg-gradient-to-r ' + g.color + ' text-white shadow-lg shadow-primary-200/50'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
-                }`}
+                    ? { background: g.gradient, color: '#fff', boxShadow: `0 4px 16px ${g.hex}44` }
+                    : { backgroundColor: '#fff', color: '#4b5563', border: '1px solid #e5e7eb' }
+                }
               >
                 <Icon className="w-4 h-4" />
                 {g.label}
                 {count > 0 && (
-                  <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
-                    activeGroup === g.id ? 'bg-white/20' : 'bg-primary-100 text-primary-700'
-                  }`}>
+                  <span
+                    className="w-5 h-5 rounded-full text-xs flex items-center justify-center"
+                    style={
+                      activeGroup === g.id
+                        ? { backgroundColor: 'rgba(255,255,255,0.25)', color: '#fff' }
+                        : { backgroundColor: '#F3E8FF', color: '#9F48CE' }
+                    }
+                  >
                     {count}
                   </span>
                 )}
@@ -158,11 +167,12 @@ export default function Home() {
               <button
                 key={t.id}
                 onClick={() => toggleTemplate(t.id)}
-                className={`group relative rounded-2xl overflow-hidden border-2 transition-all text-left ${
+                className="group relative rounded-2xl overflow-hidden transition-all text-left"
+                style={
                   isSelected
-                    ? 'border-primary-500 shadow-lg shadow-primary-100 ring-2 ring-primary-200'
-                    : 'border-gray-200 hover:border-primary-300 hover:shadow-md'
-                }`}
+                    ? { border: `2px solid ${currentGroupData?.hex || '#9F48CE'}`, boxShadow: `0 4px 20px ${currentGroupData?.hex || '#9F48CE'}30, 0 0 0 3px ${currentGroupData?.hex || '#9F48CE'}20` }
+                    : { border: '2px solid #e5e7eb' }
+                }
               >
                 <div
                   className="aspect-[4/3] relative"
@@ -172,7 +182,10 @@ export default function Home() {
                     <span className="text-white/60 text-xs font-mono">{t.size}</span>
                   </div>
                   {isSelected && (
-                    <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center shadow-md">
+                    <div
+                      className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
+                      style={{ backgroundColor: currentGroupData?.hex || '#9F48CE' }}
+                    >
                       <Check className="w-3.5 h-3.5 text-white" />
                     </div>
                   )}
@@ -194,7 +207,8 @@ export default function Home() {
           <div className="sticky bottom-6 flex justify-center">
             <button
               onClick={() => setStep(1)}
-              className="flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white rounded-2xl font-semibold shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02]"
+              className="flex items-center gap-2 px-8 py-3.5 text-white rounded-2xl font-semibold transition-all hover:scale-[1.02]"
+              style={{ backgroundColor: currentGroupData?.hex || '#9F48CE', boxShadow: `0 8px 24px ${currentGroupData?.hex || '#9F48CE'}55` }}
             >
               {selectedTemplates.length}개 템플릿 선택 완료
               <ArrowRight className="w-4 h-4" />

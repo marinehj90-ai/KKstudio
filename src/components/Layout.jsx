@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink } from 'react-router-dom'
 import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight } from 'lucide-react'
 
 const navItems = [
@@ -8,16 +8,13 @@ const navItems = [
 ]
 
 const templateCategories = [
-  { icon: Layers, label: '배너', count: 15 },
-  { icon: Image, label: '상품이미지', count: 2 },
-  { icon: CalendarRange, label: '기획전', count: 3 },
-  { icon: Sparkles, label: '이벤트·상세', count: 3 },
+  { to: '/templates/banner', icon: Layers, label: '배너', count: 12 },
+  { to: '/templates/product', icon: Image, label: '상품이미지', count: 2 },
+  { to: '/templates/exhibition', icon: CalendarRange, label: '기획전', count: 3 },
+  { to: '/templates/event', icon: Sparkles, label: '이벤트·상세', count: 3 },
 ]
 
 export default function Layout() {
-  const location = useLocation()
-  const isHome = location.pathname === '/'
-
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -52,24 +49,29 @@ export default function Layout() {
           ))}
 
           {/* Template categories in LNB */}
-          {isHome && (
-            <div className="mt-6 pt-4 border-t border-gray-100">
-              <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                템플릿 카테고리
-              </p>
-              {templateCategories.map(({ icon: Icon, label, count }) => (
-                <button
-                  key={label}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-gray-600 hover:bg-primary-50 hover:text-primary-700 transition-all group"
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="flex-1 text-left">{label}</span>
-                  <span className="text-xs text-gray-400 group-hover:text-primary-500">{count}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-500" />
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="mt-6 pt-4 border-t border-gray-100">
+            <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              템플릿 카테고리
+            </p>
+            {templateCategories.map(({ to, icon: Icon, label, count }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all group ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-700 font-medium'
+                      : 'text-gray-600 hover:bg-primary-50 hover:text-primary-700'
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4" />
+                <span className="flex-1 text-left">{label}</span>
+                <span className="text-xs text-gray-400 group-hover:text-primary-500">{count}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-500" />
+              </NavLink>
+            ))}
+          </div>
         </nav>
 
         {/* Pro Status */}

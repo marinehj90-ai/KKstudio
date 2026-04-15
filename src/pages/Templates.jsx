@@ -1,17 +1,18 @@
 import { useState } from 'react'
-import {
-  Search, ArrowRight, Check,
-  Monitor, Smartphone, Globe, ChevronDown,
-} from 'lucide-react'
+import { useParams, NavLink } from 'react-router-dom'
+import { Search, Check, ArrowRight, Monitor, Smartphone, Globe } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
 
 const allTemplates = templateGroups.flatMap((g) => g.templates)
 
-export default function Home() {
-  const [step, setStep] = useState(0) // 0: 템플릿 선택, 1: ImageWorkflow
+export default function Templates() {
+  const { categoryId } = useParams()
+
+  const activeGroup = templateGroups.find((g) => g.id === categoryId) ?? templateGroups[0]
+
+  const [step, setStep] = useState(0) // 0: 템플릿 선택, 1~: ImageWorkflow
   const [selectedTemplates, setSelectedTemplates] = useState([])
-  const [activeGroup, setActiveGroup] = useState('banner')
   const [searchQuery, setSearchQuery] = useState('')
   const [deviceFilter, setDeviceFilter] = useState('전체')
 
@@ -21,14 +22,15 @@ export default function Home() {
     )
   }
 
-  const currentGroup = templateGroups.find((g) => g.id === activeGroup)
-  const filteredTemplates = currentGroup?.templates.filter((t) => {
+  const filteredTemplates = activeGroup.templates.filter((t) => {
     const matchSearch = !searchQuery || t.name.includes(searchQuery)
     const matchDevice = deviceFilter === '전체' || t.device === deviceFilter || t.device === '공통'
     return matchSearch && matchDevice
   })
 
-  // 스텝 1 이후: ImageWorkflow
+  const Icon = activeGroup.icon
+
+  // 스텝 1 이후: ImageWorkflow 렌더링
   if (step === 1) {
     return (
       <div className="min-h-screen">
@@ -46,21 +48,21 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary-600 via-primary-500 to-purple-400">
+      <div className={`relative overflow-hidden bg-gradient-to-r ${activeGroup.color}`}>
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-10 left-20 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
-          <div className="absolute bottom-5 right-40 w-48 h-48 rounded-full bg-purple-300/30 blur-3xl" />
-          <div className="absolute top-5 right-20 w-24 h-24 rounded-full bg-pink-300/20 blur-2xl" />
+          <div className="absolute bottom-5 right-40 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
         </div>
         <div className="relative max-w-6xl mx-auto px-8 py-10">
-          <p className="inline-block px-3 py-1 mb-3 text-xs font-bold text-primary-700 bg-white/90 rounded-full">
-            AI-POWERED
+          <p className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 text-xs font-bold text-gray-700 bg-white/90 rounded-full">
+            <Icon className="w-3 h-3" />
+            TEMPLATE
           </p>
           <h1 className="text-3xl font-extrabold text-white leading-tight mb-2">
-            신세계면세점 이미지 제작,<br />AI로 빠르게 만들어보세요
+            {activeGroup.label} 템플릿
           </h1>
-          <p className="text-primary-100 text-sm max-w-2xl">
-            사진을 업로드하시거나, URL 분석으로 배너, 기획전, 이벤트, 상세페이지까지 제작할 수 있어요.<br />템플릿을 선택하고 이미지를 올리면 끝!
+          <p className="text-white/80 text-sm">
+            원하는 템플릿을 선택하고, 이미지를 업로드하면 AI가 자동으로 생성해드려요.
           </p>
         </div>
       </div>
@@ -68,18 +70,26 @@ export default function Home() {
       {/* Step Indicator */}
       <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-8 py-3 flex items-center gap-2">
-          {['템플릿 선택', '이미지 입력', '에디터'].map((label, i) => (
+          {[
+            { label: '템플릿 선택', active: true },
+            { label: '이미지 입력', active: false },
+            { label: '에디터', active: false },
+          ].map(({ label, active }, i) => (
             <div key={label} className="flex items-center gap-2">
-              {i > 0 && <ChevronDown className="w-4 h-4 text-gray-300 -rotate-90" />}
+              {i > 0 && (
+                <svg className="w-4 h-4 text-gray-300 -rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              )}
               <span
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium ${
-                  i === 0
+                  active
                     ? 'bg-primary-600 text-white shadow-md shadow-primary-200'
                     : 'bg-gray-100 text-gray-400'
                 }`}
               >
                 {i + 1}. {label}
-                {i === 0 && selectedTemplates.length > 0 && (
+                {active && selectedTemplates.length > 0 && (
                   <span className="w-5 h-5 rounded-full bg-white/20 text-xs flex items-center justify-center">
                     {selectedTemplates.length}
                   </span>
@@ -91,6 +101,31 @@ export default function Home() {
       </div>
 
       <div className="max-w-6xl mx-auto px-8 py-6">
+        {/* Category Tabs */}
+        <div className="flex gap-2 mb-6">
+          {templateGroups.map((g) => {
+            const GIcon = g.icon
+            return (
+              <NavLink
+                key={g.id}
+                to={`/templates/${g.id}`}
+                onClick={() => { setSelectedTemplates([]); setStep(0) }}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    isActive
+                      ? `bg-gradient-to-r ${g.color} text-white shadow-lg`
+                      : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
+                  }`
+                }
+              >
+                <GIcon className="w-4 h-4" />
+                {g.label}
+                <span className="text-xs opacity-60">({g.templates.length})</span>
+              </NavLink>
+            )
+          })}
+        </div>
+
         {/* Search & Filters */}
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 relative">
@@ -121,38 +156,9 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Group Tabs */}
-        <div className="flex gap-2 mb-6">
-          {templateGroups.map((g) => {
-            const Icon = g.icon
-            const count = g.templates.filter((t) => selectedTemplates.includes(t.id)).length
-            return (
-              <button
-                key={g.id}
-                onClick={() => setActiveGroup(g.id)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  activeGroup === g.id
-                    ? 'bg-gradient-to-r ' + g.color + ' text-white shadow-lg shadow-primary-200/50'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {g.label}
-                {count > 0 && (
-                  <span className={`w-5 h-5 rounded-full text-xs flex items-center justify-center ${
-                    activeGroup === g.id ? 'bg-white/20' : 'bg-primary-100 text-primary-700'
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-
         {/* Template Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-          {filteredTemplates?.map((t) => {
+          {filteredTemplates.map((t) => {
             const isSelected = selectedTemplates.includes(t.id)
             return (
               <button
@@ -164,10 +170,7 @@ export default function Home() {
                     : 'border-gray-200 hover:border-primary-300 hover:shadow-md'
                 }`}
               >
-                <div
-                  className="aspect-[4/3] relative"
-                  style={{ background: t.preview }}
-                >
+                <div className="aspect-[4/3] relative" style={{ background: t.preview }}>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-white/60 text-xs font-mono">{t.size}</span>
                   </div>
@@ -189,19 +192,26 @@ export default function Home() {
           })}
         </div>
 
-        {/* Next Button */}
-        {selectedTemplates.length > 0 && (
-          <div className="sticky bottom-6 flex justify-center">
-            <button
-              onClick={() => setStep(1)}
-              className="flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white rounded-2xl font-semibold shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02]"
-            >
-              {selectedTemplates.length}개 템플릿 선택 완료
-              <ArrowRight className="w-4 h-4" />
-            </button>
+        {filteredTemplates.length === 0 && (
+          <div className="text-center py-16 text-gray-400">
+            <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">검색 결과가 없어요.</p>
           </div>
         )}
       </div>
+
+      {/* Sticky Bottom CTA */}
+      {selectedTemplates.length > 0 && (
+        <div className="sticky bottom-6 flex justify-center pointer-events-none">
+          <button
+            onClick={() => setStep(1)}
+            className="pointer-events-auto flex items-center gap-2 px-8 py-3.5 bg-primary-600 text-white rounded-2xl font-semibold shadow-xl shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02]"
+          >
+            {selectedTemplates.length}개 템플릿 선택 완료
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

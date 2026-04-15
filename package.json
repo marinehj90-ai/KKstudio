@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "export:figma": "node --env-file=.env scripts/export-to-figma.js"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,9 @@
     "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
+    "dotenv": "^17.4.2",
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^24.40.0",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.8"
   }

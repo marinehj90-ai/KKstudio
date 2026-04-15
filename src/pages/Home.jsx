@@ -133,10 +133,10 @@ export default function Home() {
             AI-POWERED
           </p>
           <h1 className="text-3xl font-extrabold text-white leading-tight mb-2">
-            온라인몰 이미지,<br />AI로 빠르게 만들어 보세요
+            신세계면세점 이미지 제작,<br />AI로 빠르게 만들어보세요
           </h1>
-          <p className="text-primary-100 text-sm max-w-lg">
-            상품 사진 하나로 배너, 기획전, 상세페이지까지. 템플릿을 선택하고 이미지를 올리면 끝.
+          <p className="text-primary-100 text-sm max-w-2xl">
+            사진을 업로드하시거나, URL 분석으로 배너, 기획전, 이벤트, 상세페이지까지 제작할 수 있어요.<br />템플릿을 선택하고 이미지를 올리면 끝!
           </p>
         </div>
       </div>
@@ -505,11 +505,34 @@ export default function Home() {
                     )}
                   </div>
                 ) : (
-                  <div className="aspect-video flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                      <Wand2 className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-400">생성 버튼을 눌러주세요</p>
-                    </div>
+                  <div className="bg-gray-50 flex items-center justify-center p-6">
+                    {(() => {
+                      const currentTemplate = selectedTemplateDetails[activePreviewTab]
+                      const [w, h] = currentTemplate?.size?.split('×').map(Number) || [16, 9]
+                      return (
+                        <div
+                          className="relative overflow-hidden rounded-xl shadow-inner border border-gray-200 bg-white"
+                          style={{ aspectRatio: `${w} / ${h}`, maxHeight: '480px', width: h >= w ? 'auto' : '100%', height: h >= w ? '480px' : 'auto' }}
+                        >
+                          {uploadedImage?.url ? (
+                            <img
+                              src={uploadedImage.url}
+                              alt="미리보기"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <Wand2 className="w-10 h-10 text-gray-300 mb-2" />
+                              <p className="text-sm text-gray-400">생성 버튼을 눌러주세요</p>
+                            </div>
+                          )}
+                          {/* 사이즈 표시 */}
+                          <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/40 text-white text-xs font-mono">
+                            {currentTemplate?.size}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
                 )}
               </div>

@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap');
 
 @theme {
   --color-primary-50: #faf5ff;
@@ -14,23 +16,32 @@
   --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
+@font-face {
+  font-family: 'GmarketSans';
+  src: url('./assets/fonts/GmarketSansTTFLight.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'GmarketSans';
+  src: url('./assets/fonts/GmarketSansTTFMedium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'GmarketSans';
+  src: url('./assets/fonts/GmarketSansTTFBold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: #f8f7fc;
   color: #1a1a2e;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #d4d0e0;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #a855f7;
-}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d4d0e0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a855f7; }

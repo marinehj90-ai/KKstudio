@@ -9,6 +9,7 @@ import {
   Bold, Underline,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { templateGroups } from '../data/templateData'
 
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
@@ -44,6 +45,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [selectedLayerId, setSelectedLayerId] = useState(null)
   const [dlFormat, setDlFormat] = useState('PNG')
   const [dlScale, setDlScale] = useState('x1')
+  const [dragLayerId, setDragLayerId] = useState(null)
+  const [dragOverLayerId, setDragOverLayerId] = useState(null)
+  const [showAddTemplatePopup, setShowAddTemplatePopup] = useState(false)
+  const [addTemplateTab, setAddTemplateTab] = useState(0)
   const activeRef = useRef(null)
 
   const selectedTemplateDetails = allTemplates.filter((t) => selectedTemplateIds.includes(t.id))
@@ -908,9 +913,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   )}
                 </div>
 
-                {/* 줌 컨트롤 - 우하단 플로팅 */}
+                {/* 줌 컨트롤 - 하단 중앙 플로팅 */}
                 <div onClick={(e) => e.stopPropagation()}
-                  style={{ position: 'absolute', bottom: 20, right: 20, background: 'rgba(255,255,255,0.95)', borderRadius: 999, border: '1px solid #e5e7eb', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', zIndex: 200 }}>
+                  style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'rgba(255,255,255,0.95)', borderRadius: 999, border: '1px solid #e5e7eb', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', zIndex: 200 }}>
                   <button onClick={() => setZoom((z) => Math.max(25, z - 25))} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-600 transition-all">
                     <ZoomOut className="w-4 h-4" />
                   </button>
@@ -919,13 +924,82 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <ZoomIn className="w-4 h-4" />
                   </button>
                 </div>
+
+                {/* 레이어 패널 - 우하단 플로팅 */}
+                <div onClick={(e) => e.stopPropagation()}
+                  style={{ position: 'absolute', bottom: 20, right: 20, zIndex: 200, width: 180 }}>
+                  {layers.length > 0 && (
+                    <div style={{ background: 'rgba(255,255,255,0.97)', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
+                      {/* 헤더 */}
+                      <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>레이어</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#9F48CE', background: '#f3e8ff', borderRadius: 99, padding: '1px 7px' }}>{layers.length}</span>
+                      </div>
+                      {/* 레이어 목록 (역순: 위쪽 레이어가 먼저) */}
+                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                        {[...layers].reverse().map((layer, i) => {
+                          const isSelected = layer.id === selectedLayerId
+                          const idx = layers.length - i
+                          const isDragOver = dragOverLayerId === layer.id && dragLayerId !== layer.id
+                          return (
+                            <div key={layer.id}
+                              draggable
+                              onDragStart={() => setDragLayerId(layer.id)}
+                              onDragOver={(e) => { e.preventDefault(); setDragOverLayerId(layer.id) }}
+                              onDragLeave={() => setDragOverLayerId(null)}
+                              onDrop={() => {
+                                if (!dragLayerId || dragLayerId === layer.id) return
+                                const newLayers = [...layers]
+                                const fromIdx = newLayers.findIndex(l => l.id === dragLayerId)
+                                // 역순 표시이므로 drop 대상의 실제 인덱스 계산
+                                const toIdx = newLayers.findIndex(l => l.id === layer.id)
+                                const [moved] = newLayers.splice(fromIdx, 1)
+                                newLayers.splice(toIdx, 0, moved)
+                                updateLayers(newLayers)
+                                setDragLayerId(null)
+                                setDragOverLayerId(null)
+                              }}
+                              onDragEnd={() => { setDragLayerId(null); setDragOverLayerId(null) }}
+                              onClick={() => setSelectedLayerId(layer.id)}
+                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : 1, transition: 'all 0.1s' }}>
+                              {/* 드래그 핸들 */}
+                              <span style={{ fontSize: 10, color: '#d1d5db', flexShrink: 0, cursor: 'grab' }}>⠿</span>
+                              {/* 썸네일 */}
+                              <div style={{ width: 28, height: 28, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                {layer.type === 'image'
+                                  ? <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
+                                }
+                              </div>
+                              {/* 레이어 정보 */}
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? '#7e22ce' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {layer.type === 'image' ? `이미지 ${idx}` : `텍스트 ${idx}`}
+                                </p>
+                                <p style={{ fontSize: 10, color: '#9ca3af' }}>{layer.width} × {layer.height}</p>
+                              </div>
+                              {/* 레이어 타입 아이콘 */}
+                              <span style={{ fontSize: 12, flexShrink: 0 }}>{layer.type === 'image' ? '🖼' : '✏️'}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 하단: 썸네일 */}
               <div className="shrink-0 border-t border-gray-200" style={{ background: '#ffffff' }}>
                 {/* 총 건수 */}
-                <div className="px-4 pt-2 pb-1">
+                <div className="px-4 pt-2 pb-1 flex items-center justify-between">
                   <span className="text-xs text-gray-400">총 <span className="font-semibold text-gray-700">{selectedTemplateDetails.length}</span>건</span>
+                  <button
+                    onClick={() => setShowAddTemplatePopup(true)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#9F48CE', background: '#f3e8ff', border: 'none', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}
+                  >
+                    <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> 템플릿 추가
+                  </button>
                 </div>
                 {/* 썸네일 목록 */}
                 <div className="px-4 pt-2 pb-3 flex items-start gap-3 overflow-x-auto">
@@ -966,6 +1040,65 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 })}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 템플릿 추가 팝업 */}
+      {showAddTemplatePopup && (
+        <div
+          onClick={() => setShowAddTemplatePopup(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 16, width: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}
+          >
+            {/* 헤더 */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>템플릿 추가</h2>
+              <button onClick={() => setShowAddTemplatePopup(false)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#6b7280' }}>✕</button>
+            </div>
+
+            {/* 탭 */}
+            <div style={{ display: 'flex', gap: 4, padding: '10px 16px', borderBottom: '1px solid #f3f4f6', overflowX: 'auto' }}>
+              {templateGroups.map((g, i) => (
+                <button key={g.id} onClick={() => setAddTemplateTab(i)}
+                  style={{ whiteSpace: 'nowrap', padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: addTemplateTab === i ? g.hex : '#f3f4f6', color: addTemplateTab === i ? '#fff' : '#6b7280', transition: 'all 0.1s' }}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 템플릿 그리드 */}
+            <div style={{ overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              {templateGroups[addTemplateTab]?.templates.map((t) => {
+                const alreadyAdded = selectedTemplateIds.includes(t.id)
+                const [w, h] = t.size.split('×').map(Number)
+                const cardW = 170, cardH = 100
+                const ratio = w / h
+                let bW = cardW, bH = Math.round(cardW / ratio)
+                if (bH > cardH) { bH = cardH; bW = Math.round(cardH * ratio) }
+                return (
+                  <button key={t.id}
+                    onClick={() => { if (!alreadyAdded) { toggleTemplate(t.id); setShowAddTemplatePopup(false) } }}
+                    style={{ border: alreadyAdded ? `2px solid ${templateGroups[addTemplateTab].hex}` : '2px solid #e5e7eb', borderRadius: 10, padding: 8, background: alreadyAdded ? templateGroups[addTemplateTab].light : '#fff', cursor: alreadyAdded ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                  >
+                    {/* 미리보기 */}
+                    <div style={{ width: '100%', height: cardH, borderRadius: 6, background: templateGroups[addTemplateTab].gradient || '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, overflow: 'hidden' }}>
+                      <div style={{ width: bW, height: bH, background: 'rgba(255,255,255,0.15)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{t.size}</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 10, color: '#9ca3af' }}>{t.size}</span>
+                      {alreadyAdded && <span style={{ fontSize: 10, fontWeight: 600, color: templateGroups[addTemplateTab].hex }}>추가됨</span>}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

@@ -165,37 +165,50 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
-    const file = e.dataTransfer?.files[0]
-    if (file && file.type.startsWith('image/')) setUploadedImage({ name: file.name, url: URL.createObjectURL(file) })
+    const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'))
+    if (files.length === 0) return
+    if (files.length === 1) {
+      setUploadedImage({ name: files[0].name, url: URL.createObjectURL(files[0]), extra: [] })
+    } else {
+      setUploadedImage({ name: `${files.length}개 파일`, url: URL.createObjectURL(files[0]), extra: files.slice(1).map(f => ({ name: f.name, url: URL.createObjectURL(f) })) })
+    }
   }, [])
 
   const handleFileInput = (e) => {
-    const file = e.target.files[0]
-    if (file) setUploadedImage({ name: file.name, url: URL.createObjectURL(file) })
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    if (files.length === 1) {
+      setUploadedImage({ name: files[0].name, url: URL.createObjectURL(files[0]), extra: [] })
+    } else {
+      setUploadedImage({ name: `${files.length}개 파일 선택됨`, url: URL.createObjectURL(files[0]), extra: files.slice(1).map(f => ({ name: f.name, url: URL.createObjectURL(f) })) })
+    }
   }
 
   useEffect(() => {
     if (step !== STEP_EDITOR || !uploadedImage?.url) return
-    const img = new Image()
-    img.onload = () => {
-      const ratio = img.naturalWidth / img.naturalHeight
+    const allImages = [{ url: uploadedImage.url }, ...(uploadedImage.extra || [])]
+    const loadImage = (url) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = url })
+    Promise.all(allImages.map(({ url }) => loadImage(url))).then((imgs) => {
       const initAllLayers = {}
       const initAllHistory = {}
       selectedTemplateDetails.forEach((t) => {
         const [w, h] = t.size.split('×').map(Number)
-        const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
-        let imgW, imgH
-        if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
-        else { imgH = maxH; imgW = Math.round(maxH * ratio) }
-        const init = [{ id: 'img-1', type: 'image', src: uploadedImage.url, x: Math.round((w - imgW) / 2), y: Math.round((h - imgH) / 2), width: imgW, height: imgH, rotation: 0 }]
+        const init = imgs.map((img, idx) => {
+          const ratio = img.naturalWidth / img.naturalHeight
+          const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
+          let imgW, imgH
+          if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
+          else { imgH = maxH; imgW = Math.round(maxH * ratio) }
+          const offset = idx * 20
+          return { id: `img-${idx + 1}`, type: 'image', src: allImages[idx].url, x: Math.round((w - imgW) / 2) + offset, y: Math.round((h - imgH) / 2) + offset, width: imgW, height: imgH, rotation: 0 }
+        })
         initAllLayers[t.id] = init
         initAllHistory[t.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
       setSelectedLayerId('img-1')
-    }
-    img.src = uploadedImage.url
+    })
   }, [step])
 
   const onMouseDownLayer = (e, id) => {
@@ -386,14 +399,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           </div>
           {inputMode === 'upload' && (
             <div onDrop={handleDrop} onDragOver={(e) => e.preventDefault()} className="relative border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-primary-400 hover:bg-primary-50/30 transition-all cursor-pointer">
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileInput} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleFileInput} className="absolute inset-0 opacity-0 cursor-pointer" />
               {uploadedImage ? (
                 <div>
-                  <div className="mx-auto mb-4 overflow-hidden shadow-lg max-h-64 max-w-full inline-block">
-                    <img src={uploadedImage.url} alt="" className="max-h-64 max-w-full w-auto h-auto object-contain" />
-                  </div>
+                  {/* 여러 장일 때 썸네일 그리드, 한 장이면 단일 */}
+                  {uploadedImage.extra?.length > 0 ? (
+                    <div className="flex flex-wrap justify-center gap-2 mb-4">
+                      {[uploadedImage, ...uploadedImage.extra].map((f, i) => (
+                        <img key={i} src={f.url} alt="" className="h-24 w-auto object-contain rounded-lg shadow-md border border-gray-100" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mx-auto mb-4 overflow-hidden shadow-lg max-h-64 max-w-full inline-block">
+                      <img src={uploadedImage.url} alt="" className="max-h-64 max-w-full w-auto h-auto object-contain" />
+                    </div>
+                  )}
                   <p className="text-sm font-medium text-gray-700">{uploadedImage.name}</p>
-                  <p className="text-xs text-primary-600 mt-1">클릭하여 다른 파일 선택</p>
+                  <p className="text-xs text-primary-600 mt-1">클릭하여 다시 선택</p>
                 </div>
               ) : (
                 <div>
@@ -401,7 +423,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <Upload className="w-7 h-7 text-primary-500" />
                   </div>
                   <p className="text-base font-semibold text-gray-700 mb-1">상품 이미지를 드래그하세요</p>
-                  <p className="text-sm text-gray-400">또는 클릭하여 파일 선택 · JPG, PNG, WEBP (최대 20MB)</p>
+                  <p className="text-sm text-gray-400">또는 클릭하여 파일 선택 · 여러 장 동시 선택 가능 · JPG, PNG, WEBP</p>
                 </div>
               )}
             </div>

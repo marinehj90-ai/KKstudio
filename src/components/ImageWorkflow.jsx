@@ -42,6 +42,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [isExtractingColors, setIsExtractingColors] = useState(false)
   const [editingTextId, setEditingTextId] = useState(null)
   const [selectedLayerId, setSelectedLayerId] = useState(null)
+  const [dlFormat, setDlFormat] = useState('PNG')
+  const [dlScale, setDlScale] = useState('x1')
   const activeRef = useRef(null)
 
   const selectedTemplateDetails = allTemplates.filter((t) => selectedTemplateIds.includes(t.id))
@@ -88,6 +90,73 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const { index: histIdx, history: hist } = getHistory()
+
+  /* ── 다운로드 ── */
+  const handleDownload = async (templateId) => {
+    const t = allTemplates.find((t) => t.id === templateId)
+    if (!t) return
+    const [w, h] = t.size.split('×').map(Number)
+    const multiplier = dlScale === 'x2' ? 2 : 1
+    const canvas = document.createElement('canvas')
+    canvas.width = w * multiplier
+    canvas.height = h * multiplier
+    const ctx = canvas.getContext('2d')
+
+    // 배경색
+    ctx.fillStyle = allBgColors[templateId] || '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // 레이어 그리기
+    const layerList = allLayers[templateId] || []
+    for (const layer of layerList) {
+      ctx.save()
+      const cx = (layer.x + layer.width / 2) * multiplier
+      const cy = (layer.y + layer.height / 2) * multiplier
+      ctx.translate(cx, cy)
+      ctx.rotate(((layer.rotation || 0) * Math.PI) / 180)
+      if (layer.type === 'image') {
+        await new Promise((resolve) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
+            resolve()
+          }
+          img.onerror = resolve
+          img.src = layer.src
+        })
+      } else if (layer.type === 'text') {
+        const fontSize = (layer.fontSize || 24) * multiplier
+        ctx.font = `${layer.fontWeight || 'normal'} ${fontSize}px ${layer.fontFamily || 'Pretendard'}`
+        ctx.fillStyle = layer.color || '#000000'
+        ctx.textAlign = layer.align || 'left'
+        ctx.textBaseline = 'top'
+        ctx.fillText(layer.text || '', 0, -layer.height * multiplier / 2)
+      }
+      ctx.restore()
+    }
+
+    if (dlFormat === 'ZIP') {
+      // ZIP: 각 탭별로 개별 다운로드 (JSZip 미포함 시 PNG 다운로드로 대체)
+      const link = document.createElement('a')
+      link.download = `${t.name}.png`
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } else {
+      const mimeType = dlFormat === 'JPG' ? 'image/jpeg' : 'image/png'
+      const ext = dlFormat === 'JPG' ? 'jpg' : 'png'
+      const link = document.createElement('a')
+      link.download = `${t.name}_${dlScale}.${ext}`
+      link.href = canvas.toDataURL(mimeType, 0.95)
+      link.click()
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    for (const t of selectedTemplateDetails) {
+      await handleDownload(t.id)
+    }
+  }
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
@@ -287,7 +356,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
       {/* STEP 2 */}
       {step === STEP_IMAGE && (
-        <div className="px-8 py-6 max-w-2xl">
+        <div className="px-8 py-10 max-w-2xl mx-auto">
           <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-4">
             <ArrowLeft className="w-4 h-4" /> 템플릿 다시 선택
           </button>
@@ -389,8 +458,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 <Type className="w-4 h-4" /> 텍스트 추가
               </button>
             </div>
-            <button className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
-              <Download className="w-4 h-4" /> 다운로드
+            <button onClick={handleDownloadAll} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+              <Download className="w-4 h-4" /> 이미지 다운로드
             </button>
           </div>
 
@@ -562,12 +631,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">다운로드 옵션</h3>
                   <div className="flex gap-2 mb-2">
                     {['JPG','PNG','ZIP'].map((fmt) => (
-                      <button key={fmt} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${fmt === 'PNG' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{fmt}</button>
+                      <button key={fmt} onClick={() => setDlFormat(fmt)} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${dlFormat === fmt ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{fmt}</button>
                     ))}
                   </div>
                   <div className="flex gap-2">
                     {['x1','x2'].map((sc) => (
-                      <button key={sc} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${sc === 'x1' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{sc}</button>
+                      <button key={sc} onClick={() => setDlScale(sc)} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${dlScale === sc ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{sc}</button>
                     ))}
                   </div>
                 </div>
@@ -588,7 +657,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               </div>
 
               {/* 캔버스 스크롤 영역 */}
-              <div className="flex-1 overflow-auto flex items-start justify-center pt-16 pb-12 px-12"
+              <div className="flex-1 overflow-auto flex items-center justify-center p-12"
                 style={{ position: 'relative' }}
                 onClick={() => { setSelectedLayerId(null); setEditingTextId(null) }}
               >

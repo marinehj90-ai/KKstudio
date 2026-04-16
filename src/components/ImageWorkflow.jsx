@@ -646,16 +646,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             {/* 오른쪽: 캔버스 */}
             <div className="flex-1 flex flex-col overflow-hidden">
 
-              {/* 상단 템플릿 탭 */}
-              <div className="shrink-0 bg-white border-b border-gray-200 px-4 py-2 flex gap-2 overflow-x-auto">
-                {selectedTemplateDetails.map((t, i) => (
-                  <button key={t.id} onClick={() => { setActivePreviewTab(i); setSelectedLayerId(null) }}
-                    className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-medium transition-all ${activePreviewTab === i ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                    {t.name} <span className={`ml-1 text-xs ${activePreviewTab === i ? 'text-white/70' : 'text-gray-400'}`}>{t.size}</span>
-                  </button>
-                ))}
-              </div>
-
               {/* 캔버스 스크롤 영역 */}
               <div className="flex-1 overflow-auto flex items-center justify-center p-12"
                 style={{ position: 'relative' }}
@@ -717,7 +707,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         )}
                       </div>
                     ))}
-                    <div style={{ position: 'absolute', bottom: 6, right: 8, background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: 11, padding: '2px 6px', borderRadius: 4, fontFamily: 'monospace', pointerEvents: 'none', zIndex: 30 }}>{currentTemplate?.size}</div>
                   </div>
 
                   {/* 투명 클릭 레이어: 프레임 밖 선택 가능 */}
@@ -939,13 +928,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   <span className="text-xs text-gray-400">총 <span className="font-semibold text-gray-700">{selectedTemplateDetails.length}</span>건</span>
                 </div>
                 {/* 썸네일 목록 */}
-                <div className="px-4 pb-3 flex items-start gap-3 overflow-x-auto">
+                <div className="px-4 pt-2 pb-3 flex items-start gap-3 overflow-x-auto">
                 {selectedTemplateDetails.map((t, i) => {
                   const tLayers = allLayers[t.id] || []
                   const tBg = allBgColors[t.id] || '#ffffff'
                   const [tw, th] = t.size.split('×').map(Number)
-                  const CARD_W = 120
-                  const CARD_H = 80
+                  const CARD_W = 140
+                  const CARD_H = 100
                   const ratio = tw / th
                   let bW = CARD_W, bH = Math.round(CARD_W / ratio)
                   if (bH > CARD_H) { bH = CARD_H; bW = Math.round(CARD_H * ratio) }
@@ -968,7 +957,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             ))}
                         </div>
                       </div>
-                      <div style={{ width: CARD_W }}>
+                      <div style={{ width: CARD_W, marginTop: 4 }}>
                         <p className="text-xs font-medium text-gray-700 truncate">{i + 1}.{t.name}</p>
                         <p className="text-xs text-gray-400">{t.size.replace('×', ' × ')}</p>
                       </div>

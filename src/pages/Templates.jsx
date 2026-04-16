@@ -18,6 +18,7 @@ export default function Templates() {
   const [deviceFilter, setDeviceFilter] = useState('전체')
 
   const toggleTemplate = (id) => {
+    // Templates.jsx는 이미 단일 카테고리 페이지이므로 같은 그룹 내 다중선택만 허용
     setSelectedTemplates((prev) =>
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     )

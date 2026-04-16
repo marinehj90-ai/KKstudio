@@ -16,9 +16,17 @@ export default function Home() {
   const [deviceFilter, setDeviceFilter] = useState('전체')
 
   const toggleTemplate = (id) => {
-    setSelectedTemplates((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    )
+    // 선택하려는 템플릿의 그룹 찾기
+    const targetGroup = templateGroups.find(g => g.templates.some(t => t.id === id))
+    // 현재 선택된 템플릿들의 그룹과 다르면 → 해당 그룹으로 초기화 후 선택
+    setSelectedTemplates((prev) => {
+      if (prev.includes(id)) return prev.filter((t) => t !== id)
+      const prevGroup = templateGroups.find(g => g.templates.some(t => t.id === prev[0]))
+      if (prev.length > 0 && prevGroup?.id !== targetGroup?.id) return [id]
+      return [...prev, id]
+    })
+    // 탭도 해당 그룹으로 이동
+    if (targetGroup) setActiveGroup(targetGroup.id)
   }
 
   const currentGroup = templateGroups.find((g) => g.id === activeGroup)
@@ -132,7 +140,7 @@ export default function Home() {
             return (
               <button
                 key={g.id}
-                onClick={() => setActiveGroup(g.id)}
+                onClick={() => { setActiveGroup(g.id); setSelectedTemplates([]) }}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
                 style={
                   activeGroup === g.id

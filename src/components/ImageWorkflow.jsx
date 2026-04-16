@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { templateGroups } from '../data/templateData'
+import jsPDF from 'jspdf'
 
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
@@ -48,7 +49,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [dragLayerId, setDragLayerId] = useState(null)
   const [dragOverLayerId, setDragOverLayerId] = useState(null)
   const [showAddTemplatePopup, setShowAddTemplatePopup] = useState(false)
-  const [addTemplateTab, setAddTemplateTab] = useState(0)
   const activeRef = useRef(null)
 
   const selectedTemplateDetails = allTemplates.filter((t) => selectedTemplateIds.includes(t.id))
@@ -96,22 +96,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
   const { index: histIdx, history: hist } = getHistory()
 
-  /* ── 다운로드 ── */
-  const handleDownload = async (templateId) => {
+  /* ── 캔버스 렌더링 공통 함수 ── */
+  const renderToCanvas = async (templateId, multiplier) => {
     const t = allTemplates.find((t) => t.id === templateId)
-    if (!t) return
+    if (!t) return null
     const [w, h] = t.size.split('×').map(Number)
-    const multiplier = dlScale === 'x2' ? 2 : 1
     const canvas = document.createElement('canvas')
     canvas.width = w * multiplier
     canvas.height = h * multiplier
     const ctx = canvas.getContext('2d')
-
-    // 배경색
     ctx.fillStyle = allBgColors[templateId] || '#ffffff'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-    // 레이어 그리기
     const layerList = allLayers[templateId] || []
     for (const layer of layerList) {
       ctx.save()
@@ -123,10 +118,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         await new Promise((resolve) => {
           const img = new Image()
           img.crossOrigin = 'anonymous'
-          img.onload = () => {
-            ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
-            resolve()
-          }
+          img.onload = () => { ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier); resolve() }
           img.onerror = resolve
           img.src = layer.src
         })
@@ -140,14 +132,31 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       }
       ctx.restore()
     }
+    return canvas
+  }
 
-    if (dlFormat === 'ZIP') {
-      // ZIP: 각 탭별로 개별 다운로드 (JSZip 미포함 시 PNG 다운로드로 대체)
-      const link = document.createElement('a')
-      link.download = `${t.name}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
+  /* ── 다운로드 ── */
+  const handleDownload = async (templateId) => {
+    const t = allTemplates.find((t) => t.id === templateId)
+    if (!t) return
+    const [w, h] = t.size.split('×').map(Number)
+
+    if (dlFormat === 'PDF') {
+      // 300dpi = 픽셀 × (300/72) ≈ 4.17배 → 정수 4배로 렌더링
+      const DPI_SCALE = 4
+      const canvas = await renderToCanvas(templateId, DPI_SCALE)
+      if (!canvas) return
+      // jsPDF: mm 단위 (1px = 25.4/300 mm at 300dpi)
+      const mmW = (w * 25.4) / 300
+      const mmH = (h * 25.4) / 300
+      const orientation = w >= h ? 'landscape' : 'portrait'
+      const pdf = new jsPDF({ orientation, unit: 'mm', format: [mmW, mmH] })
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, mmW, mmH)
+      pdf.save(`${t.name}_300dpi.pdf`)
     } else {
+      const multiplier = dlScale === 'x2' ? 2 : 1
+      const canvas = await renderToCanvas(templateId, multiplier)
+      if (!canvas) return
       const mimeType = dlFormat === 'JPG' ? 'image/jpeg' : 'image/png'
       const ext = dlFormat === 'JPG' ? 'jpg' : 'png'
       const link = document.createElement('a')
@@ -161,6 +170,48 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     for (const t of selectedTemplateDetails) {
       await handleDownload(t.id)
     }
+  }
+
+  // 기획전/이벤트 여부 판별
+  const exhibitionEventGroupIds = ['exhibition', 'event']
+  const exhibitionEventTemplateIds = new Set(
+    templateGroups
+      .filter(g => exhibitionEventGroupIds.includes(g.id))
+      .flatMap(g => g.templates.map(t => t.id))
+  )
+  const showMergeButton = selectedTemplateDetails.some(t => exhibitionEventTemplateIds.has(t.id))
+
+  // 한장으로 합치기 (세로 스택)
+  const handleDownloadMerged = async () => {
+    const multiplier = dlScale === 'x2' ? 2 : 1
+    const canvases = []
+    for (const t of selectedTemplateDetails) {
+      const c = await renderToCanvas(t.id, multiplier)
+      if (c) canvases.push(c)
+    }
+    if (canvases.length === 0) return
+
+    // 가장 넓은 너비 기준, 세로로 쌓기
+    const totalW = Math.max(...canvases.map(c => c.width))
+    const totalH = canvases.reduce((sum, c) => sum + c.height, 0)
+    const merged = document.createElement('canvas')
+    merged.width = totalW
+    merged.height = totalH
+    const ctx = merged.getContext('2d')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, totalW, totalH)
+    let y = 0
+    for (const c of canvases) {
+      const x = Math.round((totalW - c.width) / 2)
+      ctx.drawImage(c, x, y)
+      y += c.height
+    }
+    const mimeType = dlFormat === 'JPG' ? 'image/jpeg' : 'image/png'
+    const ext = dlFormat === 'JPG' ? 'jpg' : 'png'
+    const link = document.createElement('a')
+    link.download = `합본_${dlScale}.${ext}`
+    link.href = merged.toDataURL(mimeType, 0.95)
+    link.click()
   }
 
   const handleDrop = useCallback((e) => {
@@ -485,9 +536,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 <Type className="w-4 h-4" /> 텍스트 추가
               </button>
             </div>
-            <button onClick={handleDownloadAll} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
-              <Download className="w-4 h-4" /> 이미지 다운로드
-            </button>
+            <div className="flex items-center gap-2">
+              {showMergeButton && (
+                <button onClick={handleDownloadMerged} className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 transition-all">
+                  <Download className="w-4 h-4" /> 한장으로 다운로드
+                </button>
+              )}
+              <button onClick={handleDownloadAll} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+                <Download className="w-4 h-4" /> 이미지 다운로드
+              </button>
+            </div>
           </div>
 
           {/* 본문 */}
@@ -657,15 +715,20 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 <div className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">다운로드 옵션</h3>
                   <div className="flex gap-2 mb-2">
-                    {['JPG','PNG','ZIP'].map((fmt) => (
+                    {['JPG','PNG','PDF'].map((fmt) => (
                       <button key={fmt} onClick={() => setDlFormat(fmt)} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${dlFormat === fmt ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{fmt}</button>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    {['x1','x2'].map((sc) => (
-                      <button key={sc} onClick={() => setDlScale(sc)} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${dlScale === sc ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{sc}</button>
-                    ))}
-                  </div>
+                  {dlFormat === 'PDF' && (
+                    <p className="text-xs text-primary-600 mt-1 text-center">300dpi 고화질 출력</p>
+                  )}
+                  {dlFormat !== 'PDF' && (
+                    <div className="flex gap-2 mt-2">
+                      {['x1','x2'].map((sc) => (
+                        <button key={sc} onClick={() => setDlScale(sc)} className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${dlScale === sc ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{sc}</button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1068,63 +1131,59 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       )}
 
       {/* 템플릿 추가 팝업 */}
-      {showAddTemplatePopup && (
-        <div
-          onClick={() => setShowAddTemplatePopup(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
+      {showAddTemplatePopup && (() => {
+        // 현재 선택된 템플릿이 속한 그룹 찾기
+        const currentGroup = templateGroups.find(g => g.templates.some(t => selectedTemplateIds.includes(t.id))) || templateGroups[0]
+        return (
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ background: '#fff', borderRadius: 16, width: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}
+            onClick={() => setShowAddTemplatePopup(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            {/* 헤더 */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>템플릿 추가</h2>
-              <button onClick={() => setShowAddTemplatePopup(false)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#6b7280' }}>✕</button>
-            </div>
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 16, width: 640, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}
+            >
+              {/* 헤더 */}
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>템플릿 추가</h2>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: currentGroup.hex, background: currentGroup.light, borderRadius: 99, padding: '2px 10px' }}>{currentGroup.label}</span>
+                </div>
+                <button onClick={() => setShowAddTemplatePopup(false)} style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: '#f3f4f6', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#6b7280' }}>✕</button>
+              </div>
 
-            {/* 탭 */}
-            <div style={{ display: 'flex', gap: 4, padding: '10px 16px', borderBottom: '1px solid #f3f4f6', overflowX: 'auto' }}>
-              {templateGroups.map((g, i) => (
-                <button key={g.id} onClick={() => setAddTemplateTab(i)}
-                  style={{ whiteSpace: 'nowrap', padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer', background: addTemplateTab === i ? g.hex : '#f3f4f6', color: addTemplateTab === i ? '#fff' : '#6b7280', transition: 'all 0.1s' }}>
-                  {g.label}
-                </button>
-              ))}
-            </div>
-
-            {/* 템플릿 그리드 */}
-            <div style={{ overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              {templateGroups[addTemplateTab]?.templates.map((t) => {
-                const alreadyAdded = selectedTemplateIds.includes(t.id)
-                const [w, h] = t.size.split('×').map(Number)
-                const cardW = 170, cardH = 100
-                const ratio = w / h
-                let bW = cardW, bH = Math.round(cardW / ratio)
-                if (bH > cardH) { bH = cardH; bW = Math.round(cardH * ratio) }
-                return (
-                  <button key={t.id}
-                    onClick={() => { if (!alreadyAdded) { toggleTemplate(t.id); setShowAddTemplatePopup(false) } }}
-                    style={{ border: alreadyAdded ? `2px solid ${templateGroups[addTemplateTab].hex}` : '2px solid #e5e7eb', borderRadius: 10, padding: 8, background: alreadyAdded ? templateGroups[addTemplateTab].light : '#fff', cursor: alreadyAdded ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
-                  >
-                    {/* 미리보기 */}
-                    <div style={{ width: '100%', height: cardH, borderRadius: 6, background: templateGroups[addTemplateTab].gradient || '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, overflow: 'hidden' }}>
-                      <div style={{ width: bW, height: bH, background: 'rgba(255,255,255,0.15)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{t.size}</span>
+              {/* 템플릿 그리드 */}
+              <div style={{ overflowY: 'auto', padding: 16, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {currentGroup.templates.map((t) => {
+                  const alreadyAdded = selectedTemplateIds.includes(t.id)
+                  const [w, h] = t.size.split('×').map(Number)
+                  const cardW = 170, cardH = 100
+                  const ratio = w / h
+                  let bW = cardW, bH = Math.round(cardW / ratio)
+                  if (bH > cardH) { bH = cardH; bW = Math.round(cardH * ratio) }
+                  return (
+                    <button key={t.id}
+                      onClick={() => { if (!alreadyAdded) { toggleTemplate(t.id); setShowAddTemplatePopup(false) } }}
+                      style={{ border: alreadyAdded ? `2px solid ${currentGroup.hex}` : '2px solid #e5e7eb', borderRadius: 10, padding: 8, background: alreadyAdded ? currentGroup.light : '#fff', cursor: alreadyAdded ? 'default' : 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                    >
+                      <div style={{ width: '100%', height: cardH, borderRadius: 6, background: currentGroup.gradient || '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, overflow: 'hidden' }}>
+                        <div style={{ width: bW, height: bH, background: 'rgba(255,255,255,0.15)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{t.size}</span>
+                        </div>
                       </div>
-                    </div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 10, color: '#9ca3af' }}>{t.size}</span>
-                      {alreadyAdded && <span style={{ fontSize: 10, fontWeight: 600, color: templateGroups[addTemplateTab].hex }}>추가됨</span>}
-                    </div>
-                  </button>
-                )
-              })}
+                      <p style={{ fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.name}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 10, color: '#9ca3af' }}>{t.size}</span>
+                        {alreadyAdded && <span style={{ fontSize: 10, fontWeight: 600, color: currentGroup.hex }}>추가됨</span>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

@@ -254,7 +254,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               </div>
 
               {/* Preview Canvas */}
-              <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+              <div className="relative overflow-hidden border border-gray-200 bg-white shadow-sm">
                 {isGenerating ? (
                   <div className="aspect-video flex flex-col items-center justify-center bg-gradient-to-br from-primary-50 to-purple-50">
                     <div className="relative w-16 h-16 mb-4">
@@ -296,7 +296,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       const [w, h] = currentTemplate?.size?.split('×').map(Number) || [16, 9]
                       return (
                         <div
-                          className="relative overflow-hidden rounded-xl shadow-inner border border-gray-200 bg-white"
+                          className="relative overflow-hidden shadow-inner border border-gray-200 bg-white"
                           style={{
                             aspectRatio: `${w} / ${h}`,
                             maxHeight: '480px',

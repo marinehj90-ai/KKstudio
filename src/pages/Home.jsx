@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Search, ArrowRight, Check,
   Monitor, Smartphone, Globe, ChevronDown,
@@ -12,6 +12,21 @@ export default function Home() {
   const [step, setStep] = useState(0) // 0: 템플릿 선택, 1: ImageWorkflow
   const [selectedTemplates, setSelectedTemplates] = useState([])
   const [activeGroup, setActiveGroup] = useState('banner')
+
+  // 영역 찾기에서 넘어온 경우 템플릿 자동 선택
+  useEffect(() => {
+    const preSelected = sessionStorage.getItem('preSelectedTemplate')
+    if (preSelected) {
+      sessionStorage.removeItem('preSelectedTemplate')
+      const t = allTemplates.find((t) => t.id === preSelected)
+      if (t) {
+        const group = templateGroups.find((g) => g.templates.some((tmpl) => tmpl.id === t.id))
+        if (group) setActiveGroup(group.id)
+        setSelectedTemplates([t.id])
+        setStep(1) // 바로 에디터 진입
+      }
+    }
+  }, [])
   const [searchQuery, setSearchQuery] = useState('')
   const [deviceFilter, setDeviceFilter] = useState('전체')
 
@@ -182,25 +197,28 @@ export default function Home() {
                     : { border: '2px solid #e5e7eb' }
                 }
               >
-                <div
-                  className="aspect-[4/3] relative"
-                  style={{ background: t.preview }}
-                >
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white/60 text-xs font-mono">{t.size}</span>
-                  </div>
-                  {isSelected && (
-                    <div
-                      className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
-                      style={{ backgroundColor: currentGroupData?.hex || '#9F48CE' }}
-                    >
-                      <Check className="w-3.5 h-3.5 text-white" />
+                {(() => {
+                  const [tw, th] = t.size.split('×').map(Number)
+                  const ratio = tw / th
+                  const cW = 260, cH = 160
+                  let boxW = ratio > cW / cH ? cW * 0.88 : cH * 0.82 * ratio
+                  let boxH = ratio > cW / cH ? boxW / ratio : cH * 0.82
+                  boxH = Math.max(boxH, cH * 0.12)
+                  boxW = Math.max(boxW, cW * 0.10)
+                  return (
+                    <div className="relative h-40 flex items-center justify-center" style={{ background: t.preview }}>
+                      <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: currentGroupData?.hex || '#9F48CE' }}>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">{t.device}</div>
                     </div>
-                  )}
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">
-                    {t.device}
-                  </div>
-                </div>
+                  )
+                })()}
                 <div className="p-3 bg-white">
                   <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{t.size}</p>

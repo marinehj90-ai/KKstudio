@@ -173,22 +173,28 @@ export default function Templates() {
                     : { border: '2px solid #e5e7eb' }
                 }
               >
-                <div className="aspect-[4/3] relative" style={{ background: t.preview }}>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-white/60 text-xs font-mono">{t.size}</span>
-                  </div>
-                  {isSelected && (
-                    <div
-                      className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md"
-                      style={{ backgroundColor: c.hex }}
-                    >
-                      <Check className="w-3.5 h-3.5 text-white" />
+                {(() => {
+                  const [tw, th] = t.size.split('×').map(Number)
+                  const ratio = tw / th
+                  const cW = 260, cH = 160
+                  let boxW = ratio > cW / cH ? cW * 0.88 : cH * 0.82 * ratio
+                  let boxH = ratio > cW / cH ? boxW / ratio : cH * 0.82
+                  boxH = Math.max(boxH, cH * 0.12)
+                  boxW = Math.max(boxW, cW * 0.10)
+                  return (
+                    <div className="relative h-40 flex items-center justify-center" style={{ background: t.preview }}>
+                      <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                      </div>
+                      {isSelected && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: c.hex }}>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">{t.device}</div>
                     </div>
-                  )}
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">
-                    {t.device}
-                  </div>
-                </div>
+                  )
+                })()}
                 <div className="p-3 bg-white">
                   <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{t.size}</p>

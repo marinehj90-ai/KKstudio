@@ -1,8 +1,9 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight } from 'lucide-react'
+import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin } from 'lucide-react'
 
 const navItems = [
   { to: '/', icon: Home, label: '홈' },
+  { to: '/sitemap', icon: MapPin, label: '영역 찾기' },
   { to: '/my', icon: FolderOpen, label: '내 콘텐츠' },
   { to: '/settings', icon: Settings, label: '설정' },
 ]

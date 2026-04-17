@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
+import JSZip from 'jszip'
 
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
@@ -49,7 +50,19 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [dragLayerId, setDragLayerId] = useState(null)
   const [dragOverLayerId, setDragOverLayerId] = useState(null)
   const [showAddTemplatePopup, setShowAddTemplatePopup] = useState(false)
+  const [dlSelectedIds, setDlSelectedIds] = useState(() => new Set(selectedTemplateIds))
+  const [guides, setGuides] = useState({ x: [], y: [] })
   const activeRef = useRef(null)
+
+  // selectedTemplateIds 변경 시 dlSelectedIds 동기화
+  useEffect(() => {
+    setDlSelectedIds((prev) => {
+      const next = new Set(prev)
+      selectedTemplateIds.forEach((id) => { if (!next.has(id)) next.add(id) })
+      for (const id of next) { if (!selectedTemplateIds.includes(id)) next.delete(id) }
+      return next
+    })
+  }, [selectedTemplateIds.join(',')])
 
   const selectedTemplateDetails = allTemplates.filter((t) => selectedTemplateIds.includes(t.id))
   const currentTemplate = selectedTemplateDetails[activePreviewTab]
@@ -166,10 +179,47 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     }
   }
 
-  const handleDownloadAll = async () => {
-    for (const t of selectedTemplateDetails) {
-      await handleDownload(t.id)
+  const handleDownloadZip = async () => {
+    const toDownload = selectedTemplateDetails.filter((t) => dlSelectedIds.has(t.id))
+    if (toDownload.length === 0) return
+
+    // 1건이면 ZIP 없이 바로 다운로드
+    if (toDownload.length === 1) {
+      await handleDownload(toDownload[0].id)
+      return
     }
+
+    const zip = new JSZip()
+    const multiplier = dlScale === 'x2' ? 2 : 1
+
+    for (const t of toDownload) {
+      if (dlFormat === 'PDF') {
+        const DPI_SCALE = 4
+        const canvas = await renderToCanvas(t.id, DPI_SCALE)
+        if (!canvas) continue
+        const [w, h] = t.size.split('×').map(Number)
+        const mmW = (w * 25.4) / 300
+        const mmH = (h * 25.4) / 300
+        const orientation = w >= h ? 'landscape' : 'portrait'
+        const pdf = new jsPDF({ orientation, unit: 'mm', format: [mmW, mmH] })
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', 0, 0, mmW, mmH)
+        zip.file(`${t.name}_300dpi.pdf`, pdf.output('blob'))
+      } else {
+        const canvas = await renderToCanvas(t.id, multiplier)
+        if (!canvas) continue
+        const mimeType = dlFormat === 'JPG' ? 'image/jpeg' : 'image/png'
+        const ext = dlFormat === 'JPG' ? 'jpg' : 'png'
+        const base64 = canvas.toDataURL(mimeType, 0.95).split(',')[1]
+        zip.file(`${t.name}_${dlScale}.${ext}`, base64, { base64: true })
+      }
+    }
+
+    const blob = await zip.generateAsync({ type: 'blob' })
+    const link = document.createElement('a')
+    link.download = `KKStudio_${new Date().toISOString().slice(0, 10)}.zip`
+    link.href = URL.createObjectURL(blob)
+    link.click()
+    URL.revokeObjectURL(link.href)
   }
 
   // 기획전/이벤트 여부 판별
@@ -266,16 +316,60 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     e.stopPropagation()
     setSelectedLayerId(id)
     const layer = layers.find((l) => l.id === id)
-    const { x: origX, y: origY } = layer
+    const { x: origX, y: origY, width: lW, height: lH } = layer
     const startX = e.clientX, startY = e.clientY
+    const SNAP = 6
+
     const onMove = (ev) => {
-      const nx = Math.round(origX + (ev.clientX - startX) / s)
-      const ny = Math.round(origY + (ev.clientY - startY) / s)
+      let nx = Math.round(origX + (ev.clientX - startX) / s)
+      let ny = Math.round(origY + (ev.clientY - startY) / s)
+      const others = (allLayers[currentTemplateId] || []).filter((l) => l.id !== id)
+
+      // ── X 스냅 대상 (세로 가이드선) ──
+      const xTargets = [
+        0, Math.round(canvasW / 2), canvasW,
+        ...others.flatMap((l) => [l.x, Math.round(l.x + l.width / 2), l.x + l.width]),
+      ]
+      const xEdges = [
+        { val: nx,                      offset: 0 },
+        { val: Math.round(nx + lW / 2), offset: -Math.round(lW / 2) },
+        { val: nx + lW,                 offset: -lW },
+      ]
+      const newGuidesX = []
+      let bestX = SNAP + 1
+      for (const t of xTargets) {
+        for (const edge of xEdges) {
+          const d = Math.abs(edge.val - t)
+          if (d < bestX) { bestX = d; nx = t + edge.offset; newGuidesX.length = 0; newGuidesX.push(t) }
+        }
+      }
+
+      // ── Y 스냅 대상 (가로 가이드선) ──
+      const yTargets = [
+        0, Math.round(canvasH / 2), canvasH,
+        ...others.flatMap((l) => [l.y, Math.round(l.y + l.height / 2), l.y + l.height]),
+      ]
+      const yEdges = [
+        { val: ny,                      offset: 0 },
+        { val: Math.round(ny + lH / 2), offset: -Math.round(lH / 2) },
+        { val: ny + lH,                 offset: -lH },
+      ]
+      const newGuidesY = []
+      let bestY = SNAP + 1
+      for (const t of yTargets) {
+        for (const edge of yEdges) {
+          const d = Math.abs(edge.val - t)
+          if (d < bestY) { bestY = d; ny = t + edge.offset; newGuidesY.length = 0; newGuidesY.push(t) }
+        }
+      }
+
+      setGuides({ x: newGuidesX, y: newGuidesY })
       setLayers(layers.map((l) => l.id === id ? { ...l, x: nx, y: ny } : l))
     }
     const onUp = () => {
       const cur = allLayers[currentTemplateId] || []
       commitHistory(cur)
+      setGuides({ x: [], y: [] })
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -542,8 +636,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   <Download className="w-4 h-4" /> 한장으로 다운로드
                 </button>
               )}
-              <button onClick={handleDownloadAll} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
-                <Download className="w-4 h-4" /> 이미지 다운로드
+              <button onClick={handleDownloadZip} disabled={dlSelectedIds.size === 0} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+                <Download className="w-4 h-4" />
+                {dlSelectedIds.size <= 1 ? '이미지 다운로드' : `${dlSelectedIds.size}개 ZIP 다운로드`}
               </button>
             </div>
           </div>
@@ -798,6 +893,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     ))}
                   </div>
+
+                  {/* 스마트 가이드선 */}
+                  {(guides.x.length > 0 || guides.y.length > 0) && (
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW * s, height: canvasH * s, pointerEvents: 'none', zIndex: 80, overflow: 'visible' }}>
+                      {guides.x.map((gx, i) => (
+                        <div key={`gx-${i}`} style={{ position: 'absolute', left: gx * s - 0.5, top: 0, width: 1, height: canvasH * s, background: '#9F48CE', opacity: 0.85 }} />
+                      ))}
+                      {guides.y.map((gy, i) => (
+                        <div key={`gy-${i}`} style={{ position: 'absolute', top: gy * s - 0.5, left: 0, height: 1, width: canvasW * s, background: '#9F48CE', opacity: 0.85 }} />
+                      ))}
+                    </div>
+                  )}
 
                   {/* 투명 클릭 레이어: 프레임 밖 선택 가능 */}
                   <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW * s, height: canvasH * s, overflow: 'visible', pointerEvents: 'none', zIndex: 50 }}>
@@ -1099,15 +1206,26 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   if (bH > CARD_H) { bH = CARD_H; bW = Math.round(CARD_H * ratio) }
                   const tScaleX = bW / tw, tScaleY = bH / th
                   const isActive = activePreviewTab === i
+                  const isDlChecked = dlSelectedIds.has(t.id)
                   return (
                     <button key={t.id} onClick={() => { setActivePreviewTab(i); setSelectedLayerId(null) }} className="shrink-0 flex flex-col items-start gap-1">
                       <div style={{ width: CARD_W, height: CARD_H, borderRadius: 4, outline: isActive ? '2.5px solid #9F48CE' : '2.5px solid transparent', outlineOffset: '2px', background: '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', boxShadow: isActive ? '0 0 0 4px #C084FC22' : 'none' }}>
-                        {isActive && (
-                          <div style={{ position: 'absolute', top: -1, left: -1, width: 18, height: 18, background: '#9F48CE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, border: '2px solid #fff' }}>
-                            <Check style={{ width: 9, height: 9, color: '#fff' }} />
-                          </div>
-                        )}
-                        <div style={{ width: bW, height: bH, background: tBg, position: 'relative', overflow: 'hidden', borderRadius: 2 }}>
+                        {/* 다운로드 선택 체크박스 (우상단) */}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDlSelectedIds((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(t.id)) next.delete(t.id)
+                              else next.add(t.id)
+                              return next
+                            })
+                          }}
+                          style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 4, border: isDlChecked ? '2px solid #9F48CE' : '2px solid #d1d5db', background: isDlChecked ? '#9F48CE' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', transition: 'all 0.15s' }}
+                        >
+                          {isDlChecked && <Check style={{ width: 10, height: 10, color: '#fff' }} />}
+                        </div>
+                        <div style={{ width: bW, height: bH, background: tBg, position: 'relative', overflow: 'hidden', borderRadius: 2, opacity: isDlChecked ? 1 : 0.4, transition: 'opacity 0.15s' }}>
                             {tLayers.map((layer) => (
                               <div key={layer.id} style={{ position: 'absolute', left: layer.x * tScaleX, top: layer.y * tScaleY, width: layer.width * tScaleX, height: layer.height * tScaleY, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center' }}>
                                 {layer.type === 'image' && <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />}

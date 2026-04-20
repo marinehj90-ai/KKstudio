@@ -60,6 +60,7 @@ export default function Home() {
           selectedTemplateIds={selectedTemplates}
           allTemplates={allTemplates}
           onBack={() => setStep(0)}
+          onGoHome={() => setStep(0)}
           toggleTemplate={toggleTemplate}
         />
       </div>

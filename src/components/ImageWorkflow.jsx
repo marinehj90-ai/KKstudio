@@ -8,7 +8,6 @@ import {
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
   Bold, Underline,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
 import JSZip from 'jszip'
@@ -16,6 +15,9 @@ import JSZip from 'jszip'
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
 const HS = 10
+const B4_MARGIN = 120
+const B4_TEXT_W = 445
+const B4_IMG_X = B4_MARGIN + B4_TEXT_W + 40  // 605
 
 const RESIZE_HANDLES = [
   { id: 'nw', cx: 0,   cy: 0,   cursor: 'nw-resize', corner: true  },
@@ -30,8 +32,26 @@ const RESIZE_HANDLES = [
 
 function deg(r) { return (r * 180) / Math.PI }
 
-export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, toggleTemplate }) {
-  const navigate = useNavigate()
+function hexToRgb(hex) {
+  const h = hex.replace('#', '')
+  if (h.length < 6) return [0, 0, 0]
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+}
+function relativeLuminance(hex) {
+  const [r,g,b] = hexToRgb(hex).map(c => { const s = c/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4) })
+  return 0.2126*r + 0.7152*g + 0.0722*b
+}
+function contrastRatio(hex1, hex2) {
+  const l1 = relativeLuminance(hex1), l2 = relativeLuminance(hex2)
+  const lighter = Math.max(l1,l2), darker = Math.min(l1,l2)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+function bestTextColor(bgHex) {
+  const cW = contrastRatio(bgHex, '#ffffff'), cB = contrastRatio(bgHex, '#1E2023')
+  return cW >= cB ? '#ffffff' : '#1E2023'
+}
+
+export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, onGoHome, toggleTemplate }) {
   const [step, setStep] = useState(STEP_IMAGE)
   const [inputMode, setInputMode] = useState('upload')
   const [urlInput, setUrlInput] = useState('')
@@ -65,15 +85,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [editingNameId, setEditingNameId] = useState(null)
   const [bgChanged, setBgChanged] = useState(false)
   const [toast, setToast] = useState('')
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  // 다국어 복사본: [{ id: 'b4-en', name: 'PC 와이드 대배너 (English)', size: '1440×480', lang: 'English' }, ...]
+  const [langCopies, setLangCopies] = useState([])
+  const [langSuggestions, setLangSuggestions] = useState({}) // { [langId]: [{ layerId, original, suggestions: [str] }] }
+  const [guideTextColor, setGuideTextColor] = useState('#1E2023')
   const canvasAreaRef = useRef(null)
 
   useEffect(() => {
+    const validIds = new Set([...selectedTemplateIds, ...langCopies.map(lc => lc.id)])
     setDlSelectedIds((prev) => {
       const next = new Set(prev)
-      for (const id of next) { if (!selectedTemplateIds.includes(id)) next.delete(id) }
+      for (const id of next) { if (!validIds.has(id)) next.delete(id) }
       return next
     })
-  }, [selectedTemplateIds.join(',')])
+  }, [selectedTemplateIds.join(','), langCopies.map(lc => lc.id).join(',')])
 
   const selectedTemplateDetails = [...allTemplates.filter((t) => selectedTemplateIds.includes(t.id))].sort((a, b) => {
     const ai = templateOrder.indexOf(a.id)
@@ -82,7 +110,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     if (bi === -1) return -1
     return ai - bi
   })
-  const currentTemplate = selectedTemplateDetails[activePreviewTab]
+  const b4Base = selectedTemplateDetails.find(t => t.id === 'b4')
+  const allDisplayTemplates = [
+    ...selectedTemplateDetails,
+    ...langCopies.map(lc => ({ id: lc.id, name: lc.name, size: lc.size, device: b4Base?.device || 'PC', preview: b4Base?.preview || '', lang: lc.lang }))
+  ]
+  const currentTemplate = allDisplayTemplates[activePreviewTab]
   const currentTemplateId = currentTemplate?.id || ''
   const [canvasW, canvasH] = currentTemplate?.size?.split('\u00d7').map(Number) || [750, 750]
   const scale = zoom / 100
@@ -92,11 +125,31 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const bgLayer = layers.find(l => l.id === 'background')
   const bgColor = bgLayer?.color || allBgColors[currentTemplateId] || '#ffffff'
   const setBgColor = (color) => {
+    setSelectedLayerId('background')
     setAllBgColors((prev) => ({ ...prev, [currentTemplateId]: color }))
-    // 배경 레이어 color도 동기화
     setAllLayers((prev) => {
       const cur = prev[currentTemplateId] || []
-      const updated = cur.map(l => l.id === 'background' ? { ...l, color } : l)
+      const recommended = bestTextColor(color)
+      const updated = cur.map(l => {
+        if (l.id === 'background') return { ...l, color }
+        // 텍스트 레이어: 흑/백 계열이면 자동 전환
+        if (l.type === 'text') {
+          const c = (l.color || '').toLowerCase().replace(/\s/g, '')
+          const isDark = c === '#1e2023' || c.startsWith('rgba(30,32,35') || c === '#000000' || c === '#1e1e1e'
+          const isLight = c === '#ffffff' || c.startsWith('rgba(255,255,255') || c === '#fff'
+          if (isDark || isLight) {
+            // 불투명도 보존: rgba면 동일 알파로 추천색 적용
+            const alphaMatch = c.match(/rgba\([^,]+,[^,]+,[^,]+,([^)]+)\)/)
+            const alpha = alphaMatch ? parseFloat(alphaMatch[1]) : 1
+            if (alpha < 1) {
+              const rec = recommended === '#ffffff' ? `rgba(255,255,255,${alpha})` : `rgba(30,32,35,${alpha})`
+              return { ...l, color: rec }
+            }
+            return { ...l, color: recommended }
+          }
+        }
+        return l
+      })
       return { ...prev, [currentTemplateId]: updated }
     })
     setBgChanged(true)
@@ -137,7 +190,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const { index: histIdx, history: hist } = getHistory()
 
   const renderToCanvas = async (templateId, multiplier) => {
-    const tmpl = allTemplates.find((t) => t.id === templateId)
+    const tmpl = allTemplates.find((t) => t.id === templateId) || langCopies.find((lc) => lc.id === templateId)
     if (!tmpl) return null
     const [w, h] = tmpl.size.split('\u00d7').map(Number)
     const canvas = document.createElement('canvas')
@@ -177,7 +230,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const handleDownload = async (templateId) => {
-    const tmpl = allTemplates.find((t) => t.id === templateId)
+    const tmpl = allTemplates.find((t) => t.id === templateId) || langCopies.find((lc) => lc.id === templateId)
     if (!tmpl) return
     const fileName = customNames[templateId] || tmpl.name
     const [w, h] = tmpl.size.split('\u00d7').map(Number)
@@ -204,7 +257,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const handleDownloadZip = async () => {
-    const toDownload = selectedTemplateDetails.filter((t) => dlSelectedIds.has(t.id))
+    const toDownload = allDisplayTemplates.filter((t) => dlSelectedIds.has(t.id))
     if (toDownload.length === 0) return
     if (toDownload.length === 1) { await handleDownload(toDownload[0].id); return }
     const zip = new JSZip()
@@ -314,16 +367,44 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         const [w, h] = tmpl.size.split('\u00d7').map(Number)
         // 배경색 레이어 (최하단)
         const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        // b4 전용 레이아웃 상수는 파일 상단 전역 상수 사용
         const imgLayers = imgs.map((img, idx) => {
-          const ratio = img.naturalWidth / img.naturalHeight
-          const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
-          let imgW, imgH
-          if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
-          else { imgH = maxH; imgW = Math.round(maxH * ratio) }
-          const offset = idx * 20
-          return { id: `img-${idx + 1}`, type: 'image', src: allImages[idx].url, x: Math.round((w - imgW) / 2) + offset, y: Math.round((h - imgH) / 2) + offset, width: imgW, height: imgH, rotation: 0 }
+          let imgW, imgH, imgX, imgY
+          if (w === h) {
+            imgW = w; imgH = h; imgX = 0; imgY = 0
+          } else if (tmpl.id === 'b4') {
+            // 우측 이미지 영역에 세로 fit
+            const areaW = w - B4_IMG_X  // 835
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h; imgW = Math.round(h * ratio)
+            if (imgW > areaW) { imgW = areaW; imgH = Math.round(areaW / ratio) }
+            imgX = B4_IMG_X + Math.round((areaW - imgW) / 2)
+            imgY = Math.round((h - imgH) / 2)
+          } else {
+            const ratio = img.naturalWidth / img.naturalHeight
+            const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
+            if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
+            else { imgH = maxH; imgW = Math.round(maxH * ratio) }
+            const offset = idx * 20
+            imgX = Math.round((w - imgW) / 2) + offset; imgY = Math.round((h - imgH) / 2) + offset
+          }
+          return { id: `img-${idx + 1}`, type: 'image', src: allImages[idx].url, x: imgX ?? 0, y: imgY ?? 0, width: imgW, height: imgH, rotation: 0 }
         })
-        const init = [bgLayer, ...imgLayers]
+        // PC 와이드 대배너(b4) 전용 텍스트 레이어 초기화
+        const b4TextLayers = tmpl.id === 'b4' ? (() => {
+          const mainFontSize = 48, subFontSize = 28, lineHeight = 1.3
+          const mainH = Math.round(mainFontSize * lineHeight * 2)  // 125
+          const subH = Math.round(subFontSize * lineHeight)         // 36
+          const gap = 24
+          const totalH = mainH + gap + subH
+          const startY = Math.round((h - totalH) / 2)
+          return [
+            { id: 'b4-main', type: 'text', text: '설 연휴 쇼핑 #오쇼완\n최대 56% 오늘 하루만!', x: B4_MARGIN, y: startY, width: B4_TEXT_W, height: mainH, rotation: 0, fontSize: mainFontSize, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'left', letterSpacing: -2, lineHeight },
+            { id: 'b4-sub',  type: 'text', text: "Happy Valentine's 특별한 순간",              x: B4_MARGIN, y: startY + mainH + gap, width: B4_TEXT_W, height: subH, rotation: 0, fontSize: subFontSize, fontWeight: '400', color: 'rgba(30,32,35,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight },
+          ]
+        })() : []
+
+        const init = [bgLayer, ...imgLayers, ...b4TextLayers]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
@@ -341,7 +422,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const { x: origX, y: origY, width: lW, height: lH } = layer
     const startX = e.clientX, startY = e.clientY
     const SNAP = 6
+    let dragging = false
     const onMove = (ev) => {
+      if (!dragging) {
+        const dist = Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY)
+        if (dist < 4) return
+        dragging = true
+      }
       let nx = Math.round(origX + (ev.clientX - startX) / scale)
       let ny = Math.round(origY + (ev.clientY - startY) / scale)
       const others = (allLayers[currentTemplateId] || []).filter((l) => l.id !== id)
@@ -385,13 +472,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const { width: ow, height: oh, x: ox, y: oy } = layer
     const aspect = ow / oh
     const startX = e.clientX, startY = e.clientY
+    const isTextLayer = layer.type === 'text'
     const onMove = (ev) => {
       const dx = Math.round((ev.clientX - startX) / scale)
       const dy = Math.round((ev.clientY - startY) / scale)
       setLayers(layers.map((l) => {
         if (l.id !== id) return l
         let nw = ow, nh = oh, nx = ox, ny = oy
-        if (isCorner) {
+        if (isTextLayer) {
+          // 텍스트: 오른쪽 width만 조절
+          nw = Math.max(60, ow + dx)
+        } else if (isCorner) {
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
           else if (handle === 'sw') { nw = Math.max(20, ow - dx); nh = Math.round(nw / aspect); nx = ox + (ow - nw) }
           else if (handle === 'ne') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect); ny = oy + (oh - nh) }
@@ -444,10 +535,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const img = new Image()
     img.onload = () => {
       const ratio = img.naturalWidth / img.naturalHeight
-      const maxW = Math.round(canvasW * 0.5), maxH = Math.round(canvasH * 0.5)
       let imgW, imgH
-      if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
-      else { imgH = maxH; imgW = Math.round(maxH * ratio) }
+      if (canvasW === canvasH) {
+        // 정사각 캔버스: 캔버스 완전히 채우기 (cover fit)
+        imgW = canvasW; imgH = canvasH
+      } else {
+        const maxW = Math.round(canvasW * 0.5), maxH = Math.round(canvasH * 0.5)
+        if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }
+        else { imgH = maxH; imgW = Math.round(maxH * ratio) }
+      }
       const newLayer = { id, type: 'image', src: url, x: Math.round((canvasW - imgW) / 2), y: Math.round((canvasH - imgH) / 2), width: imgW, height: imgH, rotation: 0 }
       updateLayers([...layers, newLayer])
       setSelectedLayerId(id)
@@ -459,6 +555,53 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const id = `text-${Date.now()}`
     updateLayers([...layers, { id, type: 'text', text: '텍스트 입력', x: Math.round(canvasW * 0.1), y: Math.round(canvasH * 0.4), width: 220, height: 60, rotation: 0, fontSize: 24, color: '#000000', fontFamily: 'Pretendard', bold: false, underline: false, align: 'left', letterSpacing: 0, lineHeight: 1.4 }])
     setSelectedLayerId(id)
+  }
+
+  const toggleLangCopy = (lang) => {
+    if (!b4Base) return
+    const langIdMap = { 'English': 'b4-lang-en', '中文': 'b4-lang-zh', '日本語': 'b4-lang-ja' }
+    const langId = langIdMap[lang]
+    if (!langId) return
+    const isActive = langCopies.some(lc => lc.lang === lang)
+    if (isActive) {
+      const removedTabIdx = allDisplayTemplates.findIndex(t => t.id === langId)
+      setLangCopies(prev => prev.filter(lc => lc.lang !== lang))
+      setAllLayers(prev => { const n = { ...prev }; delete n[langId]; return n })
+      setAllHistory(prev => { const n = { ...prev }; delete n[langId]; return n })
+      if (activePreviewTab === removedTabIdx) setActivePreviewTab(0)
+      else if (activePreviewTab > removedTabIdx) setActivePreviewTab(prev => prev - 1)
+    } else {
+      if (langCopies.length >= 2) return
+      const sourceLayers = allLayers['b4'] ? JSON.parse(JSON.stringify(allLayers['b4'])) : []
+      const newCopy = { lang, id: langId, name: `PC 와이드 대배너 (${lang})`, size: b4Base.size }
+      const newTabIdx = allDisplayTemplates.length
+      setLangCopies(prev => [...prev, newCopy])
+      setAllLayers(prev => ({ ...prev, [langId]: sourceLayers }))
+      setAllHistory(prev => ({ ...prev, [langId]: { history: [JSON.parse(JSON.stringify(sourceLayers))], index: 0 } }))
+      setActivePreviewTab(newTabIdx)
+      // 번역 제안 생성
+      const textLayers = sourceLayers.filter(l => l.type === 'text')
+      const SUGGESTIONS = {
+        'English': {
+          'b4-main': ["Lunar New Year Shopping\nUp to 56% OFF — Today Only!", "Spring Sale Event #SSGsale\nExclusive 56% Discount Today!"],
+          'b4-sub':  ["Happy Valentine's — A Special Moment", "A Truly Special Valentine's Moment"],
+        },
+        '中文': {
+          'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选商品低至56折 今日截止"],
+          'b4-sub':  ["情人节 特别的时刻", "幸福情人节 · 专属礼遇"],
+        },
+        '日本語': {
+          'b4-main': ["お正月セール #SSG\n最大56%OFF 本日限り！", "新春ショッピング\n最大56%引き・本日のみ"],
+          'b4-sub':  ["バレンタインの特別な瞬間", "ハッピーバレンタイン 特別なひととき"],
+        },
+      }
+      const suggestions = textLayers.map(l => ({
+        layerId: l.id,
+        original: l.text,
+        suggestions: SUGGESTIONS[lang]?.[l.id] || [l.text],
+      }))
+      setLangSuggestions(prev => ({ ...prev, [langId]: suggestions }))
+    }
   }
 
   const extractColors = () => {
@@ -584,6 +727,38 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
   return (
     <div>
+      {/* 애니메이션 keyframes */}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+        @keyframes syncPulse { 0%,100% { background-position: 0% 50% } 50% { background-position: 100% 50% } }
+      `}</style>
+
+      {/* 메인으로 나가기 확인 다이얼로그 */}
+      {showGoHomeConfirm && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: '28px 28px 24px', width: 320, boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginBottom: 8 }}>메인으로 나가시겠어요?</div>
+            <div style={{ fontSize: 13, color: '#6B7280', marginBottom: 24, lineHeight: 1.6 }}>
+              현재 작업 중인 내용은 저장되지 않으며<br />나가면 사라집니다.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowGoHomeConfirm(false)}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid #E5E7EB', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { setShowGoHomeConfirm(false); onGoHome ? onGoHome() : onBack() }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#9F48CE,#C084FC)', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
+              >
+                나가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 토스트 메시지 */}
       {toast && (
         <div style={{ position: 'fixed', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, background: '#111827', color: '#fff', fontSize: 13, fontWeight: 500, padding: '10px 20px', borderRadius: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
@@ -705,7 +880,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           {/* 상단 툴바 */}
           <div className="shrink-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
-              <button onClick={() => navigate('/')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all">
+              <button onClick={() => setShowGoHomeConfirm(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all">
                 <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
@@ -745,6 +920,26 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               </button>
             </div>
             <div className="flex items-center gap-2">
+              {/* 가이드 보기 토글 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  onClick={() => setShowGuide(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${showGuide ? '#9F48CE' : '#e5e7eb'}`, background: showGuide ? '#F3E8FF' : '#fff', color: showGuide ? '#9F48CE' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
+                  </svg>
+                  가이드 보기
+                </button>
+                {showGuide && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b7280', cursor: 'pointer', position: 'relative' }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
+                    <input type="color" value={guideTextColor} onChange={e => setGuideTextColor(e.target.value)} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                    폰트색
+                  </label>
+                )}
+              </div>
+              <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
               {showMergeButton && (
                 <button onClick={handleDownloadMerged} className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 transition-all">
                   <Download className="w-4 h-4" /> 한장으로 다운로드
@@ -786,45 +981,79 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                       <button
                         onClick={() => {
-                          if (!currentTemplateId) return
-                          const newAllLayers = { ...allLayers }
-                          const newAllHistory = { ...allHistory }
-                          const [sw, sh] = (currentTemplate?.size || '750\u00d7750').split('\u00d7').map(Number)
-                          selectedTemplateDetails.forEach((tmpl) => {
-                            if (tmpl.id === currentTemplateId) return
-                            const [tw, th] = tmpl.size.split('\u00d7').map(Number)
-                            const scaleX = tw / sw, scaleY = th / sh
-                            const targetLayers = [...(allLayers[tmpl.id] || [])]
-                            if (type === 'image') {
-                              const r = selectedLayer.width / selectedLayer.height
-                              const mW = Math.round(tw * 0.7), mH = Math.round(th * 0.7)
-                              let nW, nH
-                              if (r > mW / mH) { nW = mW; nH = Math.round(mW / r) } else { nH = mH; nW = Math.round(mH * r) }
-                              const sl = { ...selectedLayer, x: Math.round((tw - nW) / 2), y: Math.round((th - nH) / 2), width: nW, height: nH }
-                              const idx = targetLayers.findIndex(l => l.id === selectedLayer.id)
-                              if (idx >= 0) targetLayers[idx] = sl; else targetLayers.push(sl)
-                            } else if (type === 'text') {
-                              const sl = { ...selectedLayer, x: Math.round(selectedLayer.x * scaleX), y: Math.round(selectedLayer.y * scaleY), width: Math.round(selectedLayer.width * scaleX), height: Math.round(selectedLayer.height * scaleY), fontSize: selectedLayer.fontSize ? Math.round(selectedLayer.fontSize * Math.min(scaleX, scaleY)) : selectedLayer.fontSize }
-                              const idx = targetLayers.findIndex(l => l.id === selectedLayer.id)
-                              if (idx >= 0) targetLayers[idx] = sl; else targetLayers.push(sl)
-                            } else if (type === 'background') {
-                              const bi = targetLayers.findIndex(l => l.id === 'background')
-                              if (bi >= 0) targetLayers[bi] = { ...targetLayers[bi], color: selectedLayer.color }
-                              else targetLayers.unshift({ id: 'background', type: 'background', color: selectedLayer.color, x: 0, y: 0, width: tw, height: th, rotation: 0 })
-                            }
-                            newAllLayers[tmpl.id] = targetLayers
-                            newAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(targetLayers))], index: 0 }
-                          })
-                          setAllLayers(newAllLayers)
-                          setAllHistory(newAllHistory)
+                          if (!currentTemplateId || isSyncing) return
+                          setIsSyncing(true)
+                          setTimeout(() => {
+                            const newAllLayers = { ...allLayers }
+                            const newAllHistory = { ...allHistory }
+                            const newAllBgColors = { ...allBgColors }
+                            const [sw, sh] = (currentTemplate?.size || '750\u00d7750').split('\u00d7').map(Number)
+                            allDisplayTemplates.forEach((tmpl) => {
+                              if (tmpl.id === currentTemplateId) return
+                              const [tw, th] = tmpl.size.split('\u00d7').map(Number)
+                              const scaleX = tw / sw, scaleY = th / sh
+                              const targetLayers = [...(allLayers[tmpl.id] || [])]
+                              if (type === 'image') {
+                                let nW, nH
+                                if (tw === th) {
+                                  nW = tw; nH = th
+                                } else {
+                                  const r = selectedLayer.width / selectedLayer.height
+                                  const mW = Math.round(tw * 0.7), mH = Math.round(th * 0.7)
+                                  if (r > mW / mH) { nW = mW; nH = Math.round(mW / r) } else { nH = mH; nW = Math.round(mH * r) }
+                                }
+                                const sl = { ...selectedLayer, x: Math.round((tw - nW) / 2), y: Math.round((th - nH) / 2), width: nW, height: nH }
+                                const idx = targetLayers.findIndex(l => l.id === selectedLayer.id)
+                                if (idx >= 0) targetLayers[idx] = sl; else targetLayers.push(sl)
+                              } else if (type === 'text') {
+                                const sl = { ...selectedLayer, x: Math.round(selectedLayer.x * scaleX), y: Math.round(selectedLayer.y * scaleY), width: Math.round(selectedLayer.width * scaleX), height: Math.round(selectedLayer.height * scaleY), fontSize: selectedLayer.fontSize ? Math.round(selectedLayer.fontSize * Math.min(scaleX, scaleY)) : selectedLayer.fontSize }
+                                const idx = targetLayers.findIndex(l => l.id === selectedLayer.id)
+                                if (idx >= 0) targetLayers[idx] = sl; else targetLayers.push(sl)
+                              } else if (type === 'background') {
+                                const bi = targetLayers.findIndex(l => l.id === 'background')
+                                if (bi >= 0) targetLayers[bi] = { ...targetLayers[bi], color: selectedLayer.color }
+                                else targetLayers.unshift({ id: 'background', type: 'background', color: selectedLayer.color, x: 0, y: 0, width: tw, height: th, rotation: 0 })
+                                newAllBgColors[tmpl.id] = selectedLayer.color
+                              }
+                              newAllLayers[tmpl.id] = targetLayers
+                              newAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(targetLayers))], index: 0 }
+                            })
+                            setAllLayers(newAllLayers)
+                            setAllHistory(newAllHistory)
+                            if (type === 'background') setAllBgColors(newAllBgColors)
+                            setIsSyncing(false)
+                            setToast('전체 사이즈에 적용되었습니다!')
+                            setTimeout(() => setToast(''), 2000)
+                          }, 50)
                         }}
-                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff' }}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                        style={{
+                          background: isSyncing
+                            ? 'linear-gradient(270deg, #9F48CE, #C084FC, #9F48CE)'
+                            : 'linear-gradient(135deg,#9F48CE,#C084FC)',
+                          backgroundSize: isSyncing ? '200% 200%' : '100%',
+                          animation: isSyncing ? 'syncPulse 1s ease infinite' : 'none',
+                          color: '#fff',
+                          opacity: isSyncing ? 0.85 : 1,
+                          cursor: isSyncing ? 'not-allowed' : 'pointer',
+                        }}
                       >
-                        <span style={{ fontSize: 14 }}>⇄</span>
-                        {type === 'image' && '이미지 스타일 전체 적용'}
-                        {type === 'text' && '텍스트 전체 적용'}
-                        {type === 'background' && '배경색 전체 적용'}
+                        {isSyncing ? (
+                          <>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                              style={{ animation: 'spin 0.8s linear infinite' }}>
+                              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
+                            적용 중...
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: 14 }}>⇄</span>
+                            {type === 'image' && '이미지 스타일 전체 적용'}
+                            {type === 'text' && '텍스트 전체 적용'}
+                            {type === 'background' && '배경색 전체 적용'}
+                          </>
+                        )}
                       </button>
                     </div>
                   ) : null
@@ -898,47 +1127,88 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   const selectedObj = (selectedLayer && type !== 'background') ? (
                     <div key="obj" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">선택 객체</h3>
-                      <p className="text-xs text-gray-400 mb-1.5">정렬</p>
-                      <div className="flex gap-1 mb-3">
-                        {[
-                          { Icon: AlignStartVertical,    title: '왼쪽 정렬',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: 0 } : l)) },
-                          { Icon: AlignCenterVertical,   title: '가로 중앙',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: Math.round((canvasW - l.width) / 2) } : l)) },
-                          { Icon: AlignEndVertical,      title: '오른쪽 정렬', action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: canvasW - l.width } : l)) },
-                          { Icon: AlignStartHorizontal,  title: '위 정렬',    action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: 0 } : l)) },
-                          { Icon: AlignCenterHorizontal, title: '세로 중앙',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: Math.round((canvasH - l.height) / 2) } : l)) },
-                          { Icon: AlignEndHorizontal,    title: '아래 정렬',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: canvasH - l.height } : l)) },
-                        ].map((btn, i) => (
-                          <button key={i} onClick={btn.action} title={btn.title}
-                            className="flex-1 py-2 rounded-lg bg-white border border-gray-200 hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700 transition-all text-gray-500 flex items-center justify-center">
-                            <btn.Icon className="w-4 h-4" />
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <RotateCw className="w-4 h-4 text-gray-400 shrink-0" />
-                        <input type="range" min={0} max={359} value={selectedLayer.rotation || 0}
-                          onChange={(e) => setLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, rotation: Number(e.target.value) } : l))}
-                          onMouseUp={() => commitHistory(layers)} className="flex-1" />
-                        <span className="text-xs font-mono text-gray-600 w-8 shrink-0">{selectedLayer.rotation || 0}°</span>
-                      </div>
-                      {type === 'text' && (
-                        <div className="space-y-2 mt-2">
-                          <textarea value={selectedLayer.text}
-                            onChange={(e) => setLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, text: e.target.value } : l))}
-                            onBlur={() => commitHistory(layers)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none resize-none" rows={2} />
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">크기</span>
-                            <input type="number" value={selectedLayer.fontSize} min={8} max={200}
-                              onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontSize: Number(e.target.value) } : l))}
-                              className="w-16 px-2 py-1 text-xs rounded-lg border border-gray-200 bg-white" />
-                            <span className="text-xs text-gray-500">색</span>
-                            <input type="color" value={selectedLayer.color}
-                              onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))}
-                              className="w-8 h-7 rounded border border-gray-200 cursor-pointer" />
+                      {type !== 'text' && (
+                        <>
+                          <p className="text-xs text-gray-400 mb-1.5">정렬</p>
+                          <div className="flex gap-1 mb-3">
+                            {[
+                              { Icon: AlignStartVertical,    title: '왼쪽 정렬',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: 0 } : l)) },
+                              { Icon: AlignCenterVertical,   title: '가로 중앙',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: Math.round((canvasW - l.width) / 2) } : l)) },
+                              { Icon: AlignEndVertical,      title: '오른쪽 정렬', action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, x: canvasW - l.width } : l)) },
+                              { Icon: AlignStartHorizontal,  title: '위 정렬',    action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: 0 } : l)) },
+                              { Icon: AlignCenterHorizontal, title: '세로 중앙',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: Math.round((canvasH - l.height) / 2) } : l)) },
+                              { Icon: AlignEndHorizontal,    title: '아래 정렬',  action: () => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, y: canvasH - l.height } : l)) },
+                            ].map((btn, i) => (
+                              <button key={i} onClick={btn.action} title={btn.title}
+                                className="flex-1 py-2 rounded-lg bg-white border border-gray-200 hover:border-primary-400 hover:bg-primary-50 hover:text-primary-700 transition-all text-gray-500 flex items-center justify-center">
+                                <btn.Icon className="w-4 h-4" />
+                              </button>
+                            ))}
                           </div>
-                        </div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <RotateCw className="w-4 h-4 text-gray-400 shrink-0" />
+                            <input type="range" min={0} max={359} value={selectedLayer.rotation || 0}
+                              onChange={(e) => setLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, rotation: Number(e.target.value) } : l))}
+                              onMouseUp={() => commitHistory(layers)} className="flex-1" />
+                            <span className="text-xs font-mono text-gray-600 w-8 shrink-0">{selectedLayer.rotation || 0}°</span>
+                          </div>
+                        </>
                       )}
+                      {type === 'text' && (() => {
+                        const ratio = contrastRatio(bgColor, selectedLayer.color || '#1E2023')
+                        const ratioFixed = ratio.toFixed(1)
+                        const passAA = ratio >= 4.5
+                        const passAALarge = ratio >= 3
+                        const recommended = bestTextColor(bgColor)
+                        const isAlreadyBest = selectedLayer.color?.toLowerCase() === recommended.toLowerCase()
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 shrink-0">크기</span>
+                              <input type="number" value={selectedLayer.fontSize} min={8} max={200}
+                                onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontSize: Number(e.target.value) } : l))}
+                                className="w-16 px-2 py-1 text-xs rounded-lg border border-gray-200 bg-white" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 shrink-0">색상</span>
+                              <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: '#1E2023' } : l))}
+                                style={{ width: 28, height: 28, borderRadius: 6, background: '#1E2023', border: selectedLayer.color === '#1E2023' || selectedLayer.color === '#1e2023' ? '2.5px solid #9F48CE' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="블랙" />
+                              <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: '#ffffff' } : l))}
+                                style={{ width: 28, height: 28, borderRadius: 6, background: '#ffffff', border: selectedLayer.color === '#ffffff' ? '2.5px solid #9F48CE' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="화이트" />
+                              <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                                <div style={{ width: 28, height: 28, borderRadius: 6, background: selectedLayer.color, border: '2px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#9ca3af' }}>+</div>
+                                <input type="color" value={selectedLayer.color} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
+                              </label>
+                            </div>
+                            {/* 명도대비 */}
+                            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 10px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: '#6b7280' }}>웹 접근성 명도대비</span>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: passAA ? '#16a34a' : passAALarge ? '#d97706' : '#dc2626' }}>
+                                  {ratioFixed}:1
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: passAA ? '#dcfce7' : '#f3f4f6', color: passAA ? '#16a34a' : '#9ca3af' }}>AA ✓ (4.5:1)</span>
+                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: passAALarge ? '#dcfce7' : '#f3f4f6', color: passAALarge ? '#16a34a' : '#9ca3af' }}>AA Large ✓ (3:1)</span>
+                              </div>
+                              {!isAlreadyBest && (
+                                <button
+                                  onClick={() => {
+                                    const textLayers = layers.filter(l => l.type === 'text')
+                                    updateLayers(layers.map(l => textLayers.some(t => t.id === l.id) ? { ...l, color: recommended } : l))
+                                  }}
+                                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '6px 0', borderRadius: 6, border: 'none', background: recommended === '#ffffff' ? '#1E2023' : '#f3f4f6', color: recommended === '#ffffff' ? '#fff' : '#1E2023', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+                                >
+                                  <div style={{ width: 12, height: 12, borderRadius: 3, background: recommended, border: '1.5px solid rgba(0,0,0,0.15)', flexShrink: 0 }} />
+                                  텍스트 전체 → {recommended === '#ffffff' ? '흰색' : '검정'} 자동 적용
+                                </button>
+                              )}
+                              {isAlreadyBest && <p style={{ fontSize: 10, color: '#16a34a', textAlign: 'center' }}>✓ 최적 대비색 사용 중</p>}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                   ) : null
 
@@ -983,16 +1253,41 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     </div>
                   )
 
+                  // 현재 탭이 언어 복사본인 경우 번역 제안 패널
+                  const currentLangCopy = langCopies.find(lc => lc.id === currentTemplateId)
+                  const currentSuggestions = langSuggestions[currentTemplateId] || []
+                  const translationPanel = currentLangCopy && currentSuggestions.length > 0 ? (
+                    <div key="trans" style={{ background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)', borderRadius: 12, border: '1.5px solid #C084FC', padding: '12px 12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: 6, background: 'linear-gradient(135deg,#9F48CE,#C084FC)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Sparkles style={{ width: 11, height: 11, color: '#fff' }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#7e22ce' }}>{currentLangCopy.lang} 번역 제안</span>
+                      </div>
+                      {currentSuggestions.map((item) => (
+                        <div key={item.layerId} style={{ marginBottom: 10 }}>
+                          <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4 }}>
+                            {item.layerId === 'b4-main' ? '메인카피' : '서브카피'}
+                          </p>
+                          {item.suggestions.map((sug, si) => {
+                            const isApplied = (layers.find(l => l.id === item.layerId)?.text || '') === sug
+                            return (
+                              <button key={si}
+                                onClick={() => updateLayers(layers.map(l => l.id === item.layerId ? { ...l, text: sug } : l))}
+                                style={{ width: '100%', textAlign: 'left', padding: '7px 10px', marginBottom: 4, borderRadius: 8, border: isApplied ? '1.5px solid #9F48CE' : '1.5px solid #e9d5ff', background: isApplied ? '#ede9fe' : '#fff', cursor: 'pointer', fontSize: 11, color: isApplied ? '#7e22ce' : '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: 'flex', alignItems: 'flex-start', gap: 6 }}
+                              >
+                                {isApplied && <span style={{ color: '#9F48CE', flexShrink: 0, marginTop: 1 }}>✓</span>}
+                                <span>{sug}</span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null
+
                   const bottomPanels = (
                     <>
-                      <div key="copy" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">카피 자동 삽입</h3>
-                        <label className="flex items-center justify-between cursor-pointer mb-2">
-                          <span className="text-sm text-gray-600">카피 텍스트 ON/OFF</span>
-                          <div className="w-10 h-6 bg-primary-500 rounded-full relative"><div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow" /></div>
-                        </label>
-                        <input type="text" placeholder="카피 문구 입력..." className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 bg-white focus:outline-none" />
-                      </div>
                       <div key="brand" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">브랜드 설정</h3>
                         <div className="flex gap-2 mb-3">
@@ -1005,11 +1300,30 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                       <div key="lang" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">다국어 동시 제작</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {['한국어','English','日本語','中文'].map((lang) => (
-                            <button key={lang} className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${lang === '한국어' ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}>{lang}</button>
-                          ))}
-                        </div>
+                        {!b4Base ? (
+                          <p style={{ fontSize: 11, color: '#9ca3af' }}>PC 와이드 대배너 선택 시 사용 가능</p>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap gap-2">
+                              <button className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary-50 border-primary-300 text-primary-700">한국어 ✓</button>
+                              {['English', '日本語', '中文'].map((lang) => {
+                                const isActive = langCopies.some(lc => lc.lang === lang)
+                                const isDisabled = !isActive && langCopies.length >= 2
+                                return (
+                                  <button key={lang}
+                                    onClick={() => toggleLangCopy(lang)}
+                                    disabled={isDisabled}
+                                    style={{ opacity: isDisabled ? 0.4 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}
+                                  >
+                                    {lang}{isActive ? ' ✓' : ''}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            {langCopies.length > 0 && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 6 }}>최대 3개(한+2개국어) 동시 편집</p>}
+                          </>
+                        )}
                       </div>
                       <div key="dl" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">다운로드 옵션</h3>
@@ -1030,10 +1344,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     </>
                   )
 
-                  if (type === 'background') return <>{styleSync}{bgPanel}{fileStorage}{quickEdit}{selectedObj}{bottomPanels}</>
-                  if (type === 'image') return <>{styleSync}{fileStorage}{quickEdit}{selectedObj}{bgPanel}{bottomPanels}</>
-                  if (type === 'text') return <>{styleSync}{selectedObj}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
-                  return <>{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
+                  if (type === 'background') return <>{styleSync}{bgPanel}{translationPanel}{fileStorage}{quickEdit}{selectedObj}{bottomPanels}</>
+                  if (type === 'image') return <>{styleSync}{fileStorage}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{bottomPanels}</>
+                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
+                  return <>{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
                 })()}
               </div>
             </div>
@@ -1104,16 +1418,28 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         return (
                         <div key={layer.id}
                           onMouseDown={(e) => {
+                            if (layer.type === 'text') {
+                              e.stopPropagation()
+                              setSelectedLayerId(layer.id)
+                              return  // 싱글클릭은 선택만, 더블클릭에서 편집
+                            }
                             if (editingTextId === layer.id) { e.stopPropagation(); return }
                             onMouseDownLayer(e, layer.id)
                           }}
-                          onClick={(e) => e.stopPropagation()}
                           onDoubleClick={(e) => {
                             e.stopPropagation()
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: editingTextId === layer.id ? 'text' : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.id === selectedLayerId ? 10 : 1 }}>
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.type === 'text' ? (layer.id === selectedLayerId ? 20 : 5) : (layer.id === selectedLayerId ? 10 : 1) }}>
                           {layer.type === 'image' && <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none' }} />}
+                          {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
+                            <>
+                              <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
+                              <div onMouseDown={(e) => onMouseDownResize(e, layer.id, 'e', false)}
+                                style={{ position: 'absolute', right: -HS / 2 - 1, top: '50%', transform: 'translateY(-50%)', width: HS, height: HS, background: '#fff', border: '2px solid #9F48CE', borderRadius: '50%', cursor: 'e-resize', pointerEvents: 'all', zIndex: 120 }} />
+                            </>
+                          )}
                           {layer.type === 'text' && (
                             editingTextId === layer.id ? (
                               <textarea autoFocus value={layer.text}
@@ -1125,7 +1451,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, background: 'rgba(255,255,255,0.15)', border: '1px dashed #9F48CE', outline: 'none', resize: 'none', padding: 4, boxSizing: 'border-box', cursor: 'text' }}
                               />
                             ) : (
-                              <div style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, display: 'flex', alignItems: 'center', whiteSpace: 'pre-wrap', wordBreak: 'break-all', pointerEvents: 'none' }}>{layer.text}</div>
+                              <div style={{ width: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}>{layer.text}</div>
                             )
                           )}
                         </div>
@@ -1143,12 +1469,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
                     {/* 투명 클릭 레이어 */}
                     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 50 }}>
-                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background').map((layer) => (
+                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background' && layer.type !== 'text').map((layer, idx) => (
                         <div key={`hit-${layer.id}`}
                           onMouseDown={(e) => onMouseDownLayer(e, layer.id)}
                           onClick={(e) => e.stopPropagation()}
                           onDoubleClick={(e) => { e.stopPropagation(); if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) } }}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent' }} />
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent', zIndex: layer.type === 'text' ? 60 + idx : 51 + idx }} />
                       ))}
                     </div>
 
@@ -1161,62 +1487,131 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
+                    {/* 이미지 사이즈 뱃지 */}
+                    {selectedLayer?.type === 'image' && (
+                      <div style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y + selectedLayer.height + 10, transform: 'translateX(-50%)', zIndex: 200, pointerEvents: 'none' }}>
+                        <div style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 6, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }}>
+                          {selectedLayer.width} × {selectedLayer.height}
+                        </div>
+                      </div>
+                    )}
+
                     {/* 텍스트 툴바 */}
                     {selectedLayer?.type === 'text' && (
-                      <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: Math.max(0, selectedLayer.x + selectedLayer.width / 2), top: selectedLayer.y - 48, transform: 'translateX(-50%)', zIndex: 200, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 2, padding: '4px 8px', pointerEvents: 'all', whiteSpace: 'nowrap' }}>
-                        <select value={selectedLayer.fontFamily || 'Pretendard'} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontFamily: e.target.value } : l))} style={{ fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px', background: '#fff', cursor: 'pointer', maxWidth: 110 }}>
+                      <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: Math.max(0, selectedLayer.x + selectedLayer.width / 2), top: selectedLayer.y - 58, transform: 'translateX(-50%)', zIndex: 200, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', pointerEvents: 'all', whiteSpace: 'nowrap' }}>
+                        <select value={selectedLayer.fontFamily || 'Pretendard'} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontFamily: e.target.value } : l))} style={{ fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', background: '#fff', cursor: 'pointer', maxWidth: 130 }}>
                           <option value="Pretendard">Pretendard</option>
                           <option value="Noto Sans KR">Noto Sans KR</option>
                           <option value="GmarketSans">Gmarket Sans</option>
                         </select>
-                        <select value={selectedLayer.fontWeight || '400'} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontWeight: e.target.value } : l))} style={{ fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px', background: '#fff', cursor: 'pointer', width: 72 }}>
+                        <select value={selectedLayer.fontWeight || '400'} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontWeight: e.target.value } : l))} style={{ fontSize: 13, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', background: '#fff', cursor: 'pointer', width: 90 }}>
                           {selectedLayer.fontFamily === 'GmarketSans' ? (
                             <><option value="300">Light</option><option value="500">Medium</option><option value="700">Bold</option></>
                           ) : (
                             <><option value="300">Light</option><option value="400">Regular</option><option value="500">Medium</option><option value="600">SemiBold</option><option value="700">Bold</option><option value="800">ExtraBold</option></>
                           )}
                         </select>
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
-                        <input type="number" value={selectedLayer.fontSize} min={8} max={200} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontSize: Number(e.target.value) } : l))} style={{ width: 40, fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px', textAlign: 'center' }} />
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
-                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, bold: !l.bold } : l))} style={{ width: 26, height: 26, borderRadius: 6, border: selectedLayer.bold ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.bold ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.bold ? '#9F48CE' : '#4b5563' }}>
-                          <Bold style={{ width: 13, height: 13 }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
+                        <input type="number" value={selectedLayer.fontSize} min={8} max={200} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontSize: Number(e.target.value) } : l))} style={{ width: 54, fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', textAlign: 'center' }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, bold: !l.bold } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.bold ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.bold ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.bold ? '#9F48CE' : '#4b5563' }}>
+                          <Bold style={{ width: 15, height: 15 }} />
                         </button>
-                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, underline: !l.underline } : l))} style={{ width: 26, height: 26, borderRadius: 6, border: selectedLayer.underline ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.underline ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.underline ? '#9F48CE' : '#4b5563' }}>
-                          <Underline style={{ width: 13, height: 13 }} />
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, underline: !l.underline } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.underline ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.underline ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.underline ? '#9F48CE' : '#4b5563' }}>
+                          <Underline style={{ width: 15, height: 15 }} />
                         </button>
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
                         {[{ v: 'left', Icon: AlignLeft }, { v: 'center', Icon: AlignCenter }, { v: 'right', Icon: AlignRight }].map(({ v, Icon }) => (
-                          <button key={v} onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, align: v } : l))} style={{ width: 26, height: 26, borderRadius: 6, border: (selectedLayer.align || 'left') === v ? '1.5px solid #9F48CE' : '1px solid transparent', background: (selectedLayer.align || 'left') === v ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (selectedLayer.align || 'left') === v ? '#9F48CE' : '#4b5563' }}>
-                            <Icon style={{ width: 13, height: 13 }} />
+                          <button key={v} onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, align: v } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: (selectedLayer.align || 'left') === v ? '1.5px solid #9F48CE' : '1px solid transparent', background: (selectedLayer.align || 'left') === v ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (selectedLayer.align || 'left') === v ? '#9F48CE' : '#4b5563' }}>
+                            <Icon style={{ width: 15, height: 15 }} />
                           </button>
                         ))}
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
                         <label style={{ position: 'relative', cursor: 'pointer' }}>
-                          <div style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
-                            <span style={{ fontSize: 12, fontWeight: 'bold', color: selectedLayer.color, lineHeight: 1 }}>A</span>
-                            <div style={{ width: 16, height: 3, borderRadius: 2, background: selectedLayer.color }} />
+                          <div style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
+                            <span style={{ fontSize: 14, fontWeight: 'bold', color: selectedLayer.color, lineHeight: 1 }}>A</span>
+                            <div style={{ width: 18, height: 3, borderRadius: 2, background: selectedLayer.color }} />
                           </div>
                           <input type="color" value={selectedLayer.color} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
                         </label>
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ fontSize: 10, color: '#9ca3af' }}>자간</span>
-                          <input type="number" value={selectedLayer.letterSpacing || 0} min={-10} max={50} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, letterSpacing: Number(e.target.value) } : l))} style={{ width: 36, fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px', textAlign: 'center' }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 13, color: '#9ca3af' }}>자간</span>
+                          <input type="number" value={selectedLayer.letterSpacing || 0} min={-10} max={50} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, letterSpacing: Number(e.target.value) } : l))} style={{ width: 48, fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', textAlign: 'center' }} />
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                          <span style={{ fontSize: 10, color: '#9ca3af' }}>행간</span>
-                          <input type="number" value={selectedLayer.lineHeight || 1.4} min={0.8} max={4} step={0.1} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, lineHeight: Number(e.target.value) } : l))} style={{ width: 46, fontSize: 11, border: '1px solid #e5e7eb', borderRadius: 6, padding: '2px 4px', textAlign: 'center' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 13, color: '#9ca3af' }}>행간</span>
+                          <input type="number" value={selectedLayer.lineHeight || 1.4} min={0.8} max={4} step={0.1} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, lineHeight: Number(e.target.value) } : l))} style={{ width: 58, fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', textAlign: 'center' }} />
                         </div>
-                        <div style={{ width: 1, height: 18, background: '#e5e7eb', margin: '0 4px' }} />
-                        <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                          <Trash2 style={{ width: 13, height: 13 }} />
+                        <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
+                        <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                          <Trash2 style={{ width: 15, height: 15 }} />
                         </button>
                       </div>
                     )}
 
+                    {/* 배너 가이드 오버레이 */}
+                    {showGuide && (() => {
+                      const marginX = B4_MARGIN        // 120 — 레이어와 동일
+                      const textW = B4_TEXT_W          // 445
+                      const mainFontSize = 48
+                      const subFontSize = 28
+                      const lineHeight = 1.3
+                      const mainH = Math.round(mainFontSize * lineHeight * 2)
+                      const subH = Math.round(subFontSize * lineHeight)
+                      const gap = 24
+                      const totalH = mainH + gap + subH
+                      const startY = Math.round((canvasH - totalH) / 2)
+                      const imageAreaX = marginX + textW + 40
+                      const imageAreaW = canvasW - imageAreaX
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+                          {/* 좌측 여백만 */}
+                          <div style={{ position: 'absolute', left: 0, top: 0, width: marginX, height: canvasH, background: 'rgba(159,72,206,0.1)', borderRight: '2px dashed rgba(159,72,206,0.6)' }} />
+                          <div style={{ position: 'absolute', left: 0, top: 10, width: marginX, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#9F48CE' }}>← 120px →</div>
+
+                          {/* 텍스트 영역 라벨 */}
+                          <div style={{ position: 'absolute', left: marginX, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#9F48CE', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #C084FC' }}>텍스트 영역 {textW}px</div>
+
+                          {/* 텍스트 영역 박스 */}
+                          <div style={{ position: 'absolute', left: marginX, top: startY, width: textW, height: totalH, border: '2px dashed #9F48CE', borderRadius: 4 }}>
+                            {/* 메인카피 */}
+                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: mainH, background: 'rgba(159,72,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>메인카피 (48px Bold · 최대 2줄)</span>
+                            </div>
+                            {/* 간격 */}
+                            <div style={{ position: 'absolute', left: 0, top: mainH, width: '100%', height: gap, background: 'rgba(159,72,206,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 10, color: '#9F48CE', fontWeight: 600 }}>gap {gap}px</span>
+                            </div>
+                            {/* 서브카피 */}
+                            <div style={{ position: 'absolute', left: 0, top: mainH + gap, width: '100%', height: subH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>서브카피 (28px Regular)</span>
+                            </div>
+                          </div>
+
+                          {/* 이미지 영역 - 강하게 */}
+                          <div style={{ position: 'absolute', left: imageAreaX, top: 0, width: imageAreaW, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', borderRadius: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+                            <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 8, padding: '10px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                              </svg>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>이미지 영역</span>
+                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>{imageAreaW} × {canvasH}px</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* 텍스트 선택 테두리 */}
+                    {selectedLayer?.type === 'text' && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 100 }}>
+                        <div style={{ position: 'absolute', left: selectedLayer.x - 2, top: selectedLayer.y - 2, width: selectedLayer.width + 4, height: selectedLayer.height + 4, border: '2px solid #9F48CE', borderRadius: 3, pointerEvents: 'none' }} />
+                      </div>
+                    )}
+
                     {/* 핸들 오버레이 */}
-                    {selectedLayer && selectedLayer.type !== 'background' && (
+                    {selectedLayer && selectedLayer.type !== 'background' && selectedLayer.type !== 'text' && (
                       <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', overflow: 'visible', zIndex: 100 }}>
                         <div style={{ position: 'absolute', left: selectedLayer.x, top: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height, transform: `rotate(${selectedLayer.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
                           <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none' }} />
@@ -1311,26 +1706,54 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               <div className="shrink-0 border-t border-gray-200" style={{ background: '#ffffff' }}>
                 <div className="px-4 pt-2 pb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">총 <span className="font-semibold text-gray-700">{selectedTemplateDetails.length}</span>건</span>
+                    <span className="text-xs text-gray-400">총 <span className="font-semibold text-gray-700">{allDisplayTemplates.length}</span>건</span>
                     <button
                       onClick={() => {
-                        if (dlSelectedIds.size === selectedTemplateDetails.length) {
+                        if (dlSelectedIds.size === allDisplayTemplates.length) {
                           setDlSelectedIds(new Set())
                         } else {
-                          setDlSelectedIds(new Set(selectedTemplateDetails.map(t => t.id)))
+                          setDlSelectedIds(new Set(allDisplayTemplates.map(t => t.id)))
                         }
                       }}
-                      style={{ fontSize: 11, fontWeight: 600, color: dlSelectedIds.size === selectedTemplateDetails.length ? '#9ca3af' : '#9F48CE', background: dlSelectedIds.size === selectedTemplateDetails.length ? '#f3f4f6' : '#f3e8ff', border: 'none', borderRadius: 99, padding: '2px 10px', cursor: 'pointer' }}
+                      style={{ fontSize: 11, fontWeight: 600, color: dlSelectedIds.size === allDisplayTemplates.length ? '#9ca3af' : '#9F48CE', background: dlSelectedIds.size === allDisplayTemplates.length ? '#f3f4f6' : '#f3e8ff', border: 'none', borderRadius: 99, padding: '2px 10px', cursor: 'pointer' }}
                     >
-                      {dlSelectedIds.size === selectedTemplateDetails.length ? '전체 해제' : '전체 선택'}
+                      {dlSelectedIds.size === allDisplayTemplates.length ? '전체 해제' : '전체 선택'}
                     </button>
+                    {dlSelectedIds.size > 0 && (
+                      <button
+                        onClick={() => {
+                          const toDelete = [...dlSelectedIds]
+                          // 실제 탭 인덱스 기준으로 activePreviewTab 보정
+                          const remainingTemplates = allDisplayTemplates.filter(t => !dlSelectedIds.has(t.id))
+                          const currentId = allDisplayTemplates[activePreviewTab]?.id
+                          // lang copies 삭제
+                          const langIdsToDelete = toDelete.filter(id => langCopies.some(lc => lc.id === id))
+                          if (langIdsToDelete.length > 0) {
+                            setLangCopies(prev => prev.filter(lc => !langIdsToDelete.includes(lc.id)))
+                            setAllLayers(prev => { const n = { ...prev }; langIdsToDelete.forEach(id => delete n[id]); return n })
+                            setAllHistory(prev => { const n = { ...prev }; langIdsToDelete.forEach(id => delete n[id]); return n })
+                          }
+                          // 실제 템플릿 삭제
+                          const realIdsToDelete = toDelete.filter(id => selectedTemplateIds.includes(id))
+                          realIdsToDelete.forEach(id => toggleTemplate(id))
+                          // activePreviewTab 보정
+                          const newIdx = remainingTemplates.findIndex(t => t.id === currentId)
+                          setActivePreviewTab(Math.max(0, newIdx === -1 ? 0 : newIdx))
+                          setDlSelectedIds(new Set())
+                        }}
+                        style={{ fontSize: 11, fontWeight: 600, color: '#ef4444', background: '#fef2f2', border: 'none', borderRadius: 99, padding: '2px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        {dlSelectedIds.size}개 삭제
+                      </button>
+                    )}
                   </div>
                   <button onClick={() => setShowAddTemplatePopup(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#9F48CE', background: '#f3e8ff', border: 'none', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                     <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> 템플릿 추가
                   </button>
                 </div>
                 <div className="px-4 pt-2 pb-3 flex items-start gap-3 overflow-x-auto">
-                  {selectedTemplateDetails.map((tmpl, i) => {
+                  {allDisplayTemplates.map((tmpl, i) => {
                     const tLayers = allLayers[tmpl.id] || []
                     const tBg = allBgColors[tmpl.id] || '#ffffff'
                     const [tw, th] = tmpl.size.split('\u00d7').map(Number)
@@ -1342,12 +1765,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     const isActive = activePreviewTab === i
                     const isDlChecked = dlSelectedIds.has(tmpl.id)
                     return (
-                      <div key={tmpl.id} draggable
-                        onDragStart={() => setDragTplId(tmpl.id)}
+                      <div key={tmpl.id} draggable={!tmpl.lang}
+                        onDragStart={tmpl.lang ? undefined : () => setDragTplId(tmpl.id)}
                         onDragOver={(e) => { e.preventDefault(); setDragOverTplId(tmpl.id) }}
                         onDragLeave={() => setDragOverTplId(null)}
                         onDrop={() => {
-                          if (!dragTplId || dragTplId === tmpl.id) return
+                          if (!dragTplId || dragTplId === tmpl.id || tmpl.lang) return
                           const ids = selectedTemplateDetails.map(t => t.id)
                           const fromIdx = ids.indexOf(dragTplId)
                           const toIdx = ids.indexOf(tmpl.id)
@@ -1373,13 +1796,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             {tLayers.map((layer) => (
                               <div key={layer.id} style={{ position: 'absolute', left: layer.x * tScaleX, top: layer.y * tScaleY, width: layer.width * tScaleX, height: layer.height * tScaleY, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center' }}>
                                 {layer.type === 'image' && <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />}
-                                {layer.type === 'text' && <div style={{ fontSize: layer.fontSize * Math.min(tScaleX, tScaleY), color: layer.color, overflow: 'hidden', whiteSpace: 'nowrap' }}>{layer.text}</div>}
+                                {layer.type === 'text' && <div style={{ fontSize: layer.fontSize * Math.min(tScaleX, tScaleY), fontWeight: layer.fontWeight || '400', color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', lineHeight: layer.lineHeight || 1.4, letterSpacing: `${(layer.letterSpacing || 0) * Math.min(tScaleX, tScaleY)}px`, overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-all', width: '100%', height: '100%' }}>{layer.text}</div>}
                               </div>
                             ))}
                           </div>
                         </div>
                         <div style={{ width: CARD_W, marginTop: 4 }}>
-                          <p className="text-xs font-medium text-gray-700 truncate">{i + 1}.{tmpl.name}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <p className="text-xs font-medium text-gray-700 truncate" style={{ flex: 1, minWidth: 0 }}>{i + 1}.{tmpl.name}</p>
+                            {tmpl.lang && <span style={{ fontSize: 9, fontWeight: 700, color: '#9F48CE', background: '#f3e8ff', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{tmpl.lang}</span>}
+                          </div>
                           <p className="text-xs text-gray-400">{tmpl.size.replace('\u00d7', ' \u00d7 ')}</p>
                         </div>
                       </div>

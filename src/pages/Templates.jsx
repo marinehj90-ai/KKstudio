@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, NavLink } from 'react-router-dom'
+import { useParams, NavLink, useNavigate } from 'react-router-dom'
 import { Search, Check, ArrowRight, Monitor, Smartphone, Globe } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
@@ -8,6 +8,7 @@ const allTemplates = templateGroups.flatMap((g) => g.templates)
 
 export default function Templates() {
   const { categoryId } = useParams()
+  const navigate = useNavigate()
 
   const activeGroup = templateGroups.find((g) => g.id === categoryId) ?? templateGroups[0]
   const c = activeGroup // 색상 쇼트컷: c.hex, c.light, c.dark
@@ -39,6 +40,7 @@ export default function Templates() {
           selectedTemplateIds={selectedTemplates}
           allTemplates={allTemplates}
           onBack={() => setStep(0)}
+          onGoHome={() => navigate('/')}
           toggleTemplate={toggleTemplate}
           color={c}
         />

@@ -226,29 +226,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           img.crossOrigin = 'anonymous'
           img.onload = () => {
             const tmpl = allTemplates.find(t => t.id === templateId) || langCopies.find(lc => lc.id === templateId)
-            if (tmpl?.id === 'b11') {
-              // b11: cover fit — 이미지 영역(520×560) 꽉 채우고 중앙 크롭
-              const areaW = B11_IMG_W * multiplier
-              const areaH = layer.height * multiplier
-              const imgRatio = img.naturalWidth / img.naturalHeight
-              const areaRatio = areaW / areaH
-              let drawW, drawH
-              if (imgRatio > areaRatio) {
-                drawH = areaH; drawW = areaH * imgRatio
-              } else {
-                drawW = areaW; drawH = areaW / imgRatio
-              }
-              const offsetX = -(drawW - areaW) / 2
-              const offsetY = -(drawH - areaH) / 2
-              ctx.save()
-              ctx.beginPath()
-              ctx.rect(-areaW / 2, -areaH / 2, areaW, areaH)
-              ctx.clip()
-              ctx.drawImage(img, -areaW / 2 + offsetX, -areaH / 2 + offsetY, drawW, drawH)
-              ctx.restore()
-            } else {
-              ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
-            }
+            ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
             resolve()
           }
           img.onerror = resolve
@@ -430,10 +408,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgX = B4_IMG_X + Math.round((areaW - imgW) / 2)
             imgY = Math.round((h - imgH) / 2)
           } else if (tmpl.id === 'b11') {
-            // 이미지 영역(520×560) cover fit — 높이 꽉 채우고 좌우 중앙 크롭
-            imgW = B11_IMG_W  // 520
-            imgH = h          // 560
-            imgX = B11_IMG_X  // 230
+            // 높이 = 템플릿 높이(560), 너비 = 원본 비율 유지 (크롭 없음)
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h                        // 560
+            imgW = Math.round(h * ratio)    // 비율 유지
+            imgX = B11_IMG_X               // 230
             imgY = 0
           } else {
             const ratio = img.naturalWidth / img.naturalHeight
@@ -650,28 +629,46 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       const baseLangCopies = langCopies.filter(lc => lc.baseId === baseTemplate.id)
       if (baseLangCopies.length >= 2) return
       const sourceLayers = allLayers[baseTemplate.id] ? JSON.parse(JSON.stringify(allLayers[baseTemplate.id])) : []
-      const newCopy = { lang, id: langId, name: `${baseTemplate.name} (${lang})`, size: baseTemplate.size, baseId: baseTemplate.id }
-      const newTabIdx = allDisplayTemplates.length
-      setLangCopies(prev => [...prev, newCopy])
-      setAllLayers(prev => ({ ...prev, [langId]: sourceLayers }))
-      setAllHistory(prev => ({ ...prev, [langId]: { history: [JSON.parse(JSON.stringify(sourceLayers))], index: 0 } }))
-      setActivePreviewTab(newTabIdx)
-      // 번역 제안 생성
-      const textLayers = sourceLayers.filter(l => l.type === 'text')
+      // 번역 제안 사전 (레이어 ID 기준)
       const SUGGESTIONS = {
         'English': {
+          // b4 (PC 와이드 대배너)
           'b4-main': ["Lunar New Year Shopping\nUp to 56% OFF — Today Only!", "Spring Sale Event #SSGsale\nExclusive 56% Discount Today!"],
           'b4-sub':  ["Happy Valentine's — A Special Moment", "A Truly Special Valentine's Moment"],
+          // b11 (메인 팝업 프로모션)
+          'b11-sub':    ["Exclusive Offer", "Special Promotion"],
+          'b11-title':  ["Limited Time\nSpecial Event", "Premium Brand\nExclusive Sale"],
+          'b11-detail': ["Shop now for exclusive deals", "Up to 56% OFF — Today Only"],
         },
         '中文': {
           'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选商品低至56折 今日截止"],
           'b4-sub':  ["情人节 特别的时刻", "幸福情人节 · 专属礼遇"],
+          'b11-sub':    ["专属优惠", "限时特卖"],
+          'b11-title':  ["限时特卖\n优惠活动", "精品品牌\n专属折扣"],
+          'b11-detail': ["立即购物 享受专属优惠", "最高56折 仅限今日"],
         },
         '日本語': {
           'b4-main': ["お正月セール #SSG\n最大56%OFF 本日限り！", "新春ショッピング\n最大56%引き・本日のみ"],
           'b4-sub':  ["バレンタインの特別な瞬間", "ハッピーバレンタイン 特別なひととき"],
+          'b11-sub':    ["特別オファー", "限定セール"],
+          'b11-title':  ["期間限定\nスペシャルイベント", "プレミアムブランド\n限定セール"],
+          'b11-detail': ["今すぐショッピング", "最大56%OFF 本日限り"],
         },
       }
+      // 첫 번째 번역 제안을 텍스트 레이어에 자동 적용
+      const translatedLayers = sourceLayers.map(l => {
+        if (l.type !== 'text') return l
+        const translated = SUGGESTIONS[lang]?.[l.id]?.[0]
+        return translated ? { ...l, text: translated } : l
+      })
+      const newCopy = { lang, id: langId, name: `${baseTemplate.name} (${lang})`, size: baseTemplate.size, baseId: baseTemplate.id }
+      const newTabIdx = allDisplayTemplates.length
+      setLangCopies(prev => [...prev, newCopy])
+      setAllLayers(prev => ({ ...prev, [langId]: translatedLayers }))
+      setAllHistory(prev => ({ ...prev, [langId]: { history: [JSON.parse(JSON.stringify(translatedLayers))], index: 0 } }))
+      setActivePreviewTab(newTabIdx)
+      // 번역 제안 패널용 데이터 생성
+      const textLayers = sourceLayers.filter(l => l.type === 'text')
       const suggestions = textLayers.map(l => ({
         layerId: l.id,
         original: l.text,
@@ -1512,15 +1509,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           }}
                           onClick={(e) => e.stopPropagation()}
                           style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.type === 'text' ? (layer.id === selectedLayerId ? 30 : 15) : layer.type === 'gradient' ? 10 : 1 }}>
-                          {layer.type === 'image' && (() => {
-                            // b11: 이미지를 오른쪽 영역(x=230~750)으로 클립
-                            if (currentTemplateId === 'b11') {
-                              const clipLeft  = Math.max(0, B11_IMG_X - layer.x)
-                              const clipRight = Math.max(0, (layer.x + layer.width) - (B11_IMG_X + B11_IMG_W))
-                              return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block', pointerEvents: 'none', clipPath: clipLeft > 0 || clipRight > 0 ? `inset(0px ${clipRight}px 0px ${clipLeft}px)` : undefined }} />
-                            }
-                            return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none' }} />
-                          })()}
+                          {layer.type === 'image' && (
+                            <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none' }} />
+                          )}
                           {layer.type === 'gradient' && (() => {
                             const [rr, gg, bb] = hexToRgb(bgColor)
                             return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />

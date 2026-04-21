@@ -118,13 +118,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     if (bi === -1) return -1
     return ai - bi
   })
-  const b4Base = selectedTemplateDetails.find(t => t.id === 'b4')
   const allDisplayTemplates = [
     ...selectedTemplateDetails,
-    ...langCopies.map(lc => ({ id: lc.id, name: lc.name, size: lc.size, device: b4Base?.device || 'PC', preview: b4Base?.preview || '', lang: lc.lang }))
+    ...langCopies.map(lc => {
+      const baseTmpl = selectedTemplateDetails.find(t => t.id === lc.baseId)
+      return { id: lc.id, name: lc.name, size: lc.size, device: baseTmpl?.device || 'PC', preview: baseTmpl?.preview || '', lang: lc.lang }
+    })
   ]
   const currentTemplate = allDisplayTemplates[activePreviewTab]
   const currentTemplateId = currentTemplate?.id || ''
+  // 현재 보고 있는 탭이 lang 복사본이 아닌 실제 템플릿인 경우에만 다국어 추가 가능
+  const langBase = currentTemplate && !currentTemplate.lang ? currentTemplate : null
   const [canvasW, canvasH] = currentTemplate?.size?.split('\u00d7').map(Number) || [750, 750]
   const scale = zoom / 100
 
@@ -630,22 +634,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const toggleLangCopy = (lang) => {
-    if (!b4Base) return
-    const langIdMap = { 'English': 'b4-lang-en', '中文': 'b4-lang-zh', '日本語': 'b4-lang-ja' }
-    const langId = langIdMap[lang]
-    if (!langId) return
-    const isActive = langCopies.some(lc => lc.lang === lang)
+    const baseTemplate = langBase
+    if (!baseTemplate) return
+    const langKey = lang === 'English' ? 'en' : lang === '中文' ? 'zh' : 'ja'
+    const langId = `${baseTemplate.id}-lang-${langKey}`
+    const isActive = langCopies.some(lc => lc.id === langId)
     if (isActive) {
       const removedTabIdx = allDisplayTemplates.findIndex(t => t.id === langId)
-      setLangCopies(prev => prev.filter(lc => lc.lang !== lang))
+      setLangCopies(prev => prev.filter(lc => lc.id !== langId))
       setAllLayers(prev => { const n = { ...prev }; delete n[langId]; return n })
       setAllHistory(prev => { const n = { ...prev }; delete n[langId]; return n })
       if (activePreviewTab === removedTabIdx) setActivePreviewTab(0)
       else if (activePreviewTab > removedTabIdx) setActivePreviewTab(prev => prev - 1)
     } else {
-      if (langCopies.length >= 2) return
-      const sourceLayers = allLayers['b4'] ? JSON.parse(JSON.stringify(allLayers['b4'])) : []
-      const newCopy = { lang, id: langId, name: `PC 와이드 대배너 (${lang})`, size: b4Base.size }
+      const baseLangCopies = langCopies.filter(lc => lc.baseId === baseTemplate.id)
+      if (baseLangCopies.length >= 2) return
+      const sourceLayers = allLayers[baseTemplate.id] ? JSON.parse(JSON.stringify(allLayers[baseTemplate.id])) : []
+      const newCopy = { lang, id: langId, name: `${baseTemplate.name} (${lang})`, size: baseTemplate.size, baseId: baseTemplate.id }
       const newTabIdx = allDisplayTemplates.length
       setLangCopies(prev => [...prev, newCopy])
       setAllLayers(prev => ({ ...prev, [langId]: sourceLayers }))
@@ -1372,15 +1377,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                       <div key="lang" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">다국어 동시 제작</h3>
-                        {!b4Base ? (
-                          <p style={{ fontSize: 11, color: '#9ca3af' }}>PC 와이드 대배너 선택 시 사용 가능</p>
+                        {!langBase ? (
+                          <p style={{ fontSize: 11, color: '#9ca3af' }}>언어 탭에서는 추가할 수 없어요</p>
                         ) : (
                           <>
                             <div className="flex flex-wrap gap-2">
                               <button className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary-50 border-primary-300 text-primary-700">한국어 ✓</button>
                               {['English', '日本語', '中文'].map((lang) => {
-                                const isActive = langCopies.some(lc => lc.lang === lang)
-                                const isDisabled = !isActive && langCopies.length >= 2
+                                const langKey = lang === 'English' ? 'en' : lang === '中文' ? 'zh' : 'ja'
+                                const langId = `${langBase.id}-lang-${langKey}`
+                                const isActive = langCopies.some(lc => lc.id === langId)
+                                const baseLangCount = langCopies.filter(lc => lc.baseId === langBase.id).length
+                                const isDisabled = !isActive && baseLangCount >= 2
                                 return (
                                   <button key={lang}
                                     onClick={() => toggleLangCopy(lang)}
@@ -1393,7 +1401,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 )
                               })}
                             </div>
-                            {langCopies.length > 0 && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 6 }}>최대 3개(한+2개국어) 동시 편집</p>}
+                            {langCopies.filter(lc => lc.baseId === langBase.id).length > 0 && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 6 }}>최대 3개(한+2개국어) 동시 편집</p>}
                           </>
                         )}
                       </div>

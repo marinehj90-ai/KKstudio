@@ -226,7 +226,24 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           img.crossOrigin = 'anonymous'
           img.onload = () => {
             const tmpl = allTemplates.find(t => t.id === templateId) || langCopies.find(lc => lc.id === templateId)
-            ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
+            const isB11Layout = tmpl?.id === 'b11' || tmpl?.baseId === 'b11'
+            if (isB11Layout) {
+              // b11 이미지 영역(x=230~750, y=0~560)으로 클립 — 이미지 자체는 크롭 없이 영역 밖만 숨김
+              const cx = (layer.x + layer.width / 2) * multiplier
+              const cy = (layer.y + layer.height / 2) * multiplier
+              const clipX = B11_IMG_X * multiplier - cx
+              const clipY = 0 - cy
+              const clipW = B11_IMG_W * multiplier
+              const clipH = B11_GRAD_H * multiplier
+              ctx.save()
+              ctx.beginPath()
+              ctx.rect(clipX, clipY, clipW, clipH)
+              ctx.clip()
+              ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
+              ctx.restore()
+            } else {
+              ctx.drawImage(img, -layer.width * multiplier / 2, -layer.height * multiplier / 2, layer.width * multiplier, layer.height * multiplier)
+            }
             resolve()
           }
           img.onerror = resolve
@@ -1509,9 +1526,21 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           }}
                           onClick={(e) => e.stopPropagation()}
                           style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.type === 'text' ? (layer.id === selectedLayerId ? 30 : 15) : layer.type === 'gradient' ? 10 : 1 }}>
-                          {layer.type === 'image' && (
-                            <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none' }} />
-                          )}
+                          {layer.type === 'image' && (() => {
+                            const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
+                            if (isB11Layout) {
+                              // b11 이미지 영역(x=230~750, y=0~560) 밖은 숨김 — 이미지 비율/사이즈는 유지
+                              const clipLeft   = Math.max(0, B11_IMG_X - layer.x)
+                              const clipRight  = Math.max(0, (layer.x + layer.width) - (B11_IMG_X + B11_IMG_W))
+                              const clipTop    = Math.max(0, -layer.y)
+                              const clipBottom = Math.max(0, (layer.y + layer.height) - B11_GRAD_H)
+                              const clip = clipLeft > 0 || clipRight > 0 || clipTop > 0 || clipBottom > 0
+                                ? `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`
+                                : undefined
+                              return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', clipPath: clip }} />
+                            }
+                            return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none' }} />
+                          })()}
                           {layer.type === 'gradient' && (() => {
                             const [rr, gg, bb] = hexToRgb(bgColor)
                             return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />

@@ -493,6 +493,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgW = Math.round(h * ratio)    // 비율 유지
             imgX = B11_IMG_X               // 230
             imgY = 0
+          } else if (tmpl.id === 'b9r') {
+            // 가로 1000px에 맞춰 fit, 세로 중앙 정렬
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgW = w                            // 1000
+            imgH = Math.round(w / ratio)
+            imgX = 0
+            imgY = Math.round((h - imgH) / 2)
           } else {
             const ratio = img.naturalWidth / img.naturalHeight
             const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
@@ -512,6 +519,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           const totalH = mainH + gap + subH
           const startY = Math.round((h - totalH) / 2)
           return [
+            { id: 'b4-gradient', type: 'gradient', direction: 'to-right', x: B4_IMG_X, y: 0, width: 160, height: h, rotation: 0 },
             { id: 'b4-main', type: 'text', text: '설 연휴 쇼핑 #오쇼완\n최대 56% 오늘 하루만!', x: B4_MARGIN, y: startY, width: B4_TEXT_W, height: mainH, rotation: 0, fontSize: mainFontSize, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'left', letterSpacing: -2, lineHeight },
             { id: 'b4-sub',  type: 'text', text: "Happy Valentine's 특별한 순간",              x: B4_MARGIN, y: startY + mainH + gap, width: B4_TEXT_W, height: subH, rotation: 0, fontSize: subFontSize, fontWeight: '400', color: 'rgba(30,32,35,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight },
           ]
@@ -548,11 +556,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           { id: 'b8-black', name: '브랜드 필수배너 (블랙)', variant: 'black', textColor: '#000000', size: b8Tmpl.size },
           { id: 'b8-white', name: '브랜드 필수배너 (화이트)', variant: 'white', textColor: '#ffffff', size: b8Tmpl.size },
         ]
-        pairs.forEach(({ id, textColor }) => {
-          if (!initAllLayers[id]) {
-            // 투명 배경 (color: null = transparent)
+        const buildLogoLayers = (srcUrls) => {
+          pairs.forEach(({ id, textColor }) => {
             const bgL = { id: 'background', type: 'background', color: 'transparent', x: 0, y: 0, width: bw, height: bh, rotation: 0 }
-            // 업로드 이미지를 margin 안쪽에 fit
             const imgLayers = imgs.map((img, idx) => {
               const maxW = bw - LOGO_MARGIN * 2
               const maxH = bh - LOGO_MARGIN * 2
@@ -562,14 +568,37 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               else { ih = maxH; iw = Math.round(maxH * ratio) }
               const ix = Math.round((bw - iw) / 2)
               const iy = Math.round((bh - ih) / 2)
-              return { id: `img-${idx + 1}`, type: 'image', src: allImages[idx].url, x: ix, y: iy, width: iw, height: ih, rotation: 0, logoTint: textColor }
+              return { id: `img-${idx + 1}`, type: 'image', src: srcUrls[idx], x: ix, y: iy, width: iw, height: ih, rotation: 0, logoTint: textColor }
             })
             const init = [bgL, ...imgLayers]
             initAllLayers[id] = init
             initAllHistory[id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
-          }
-        })
+          })
+        }
+        // 원본 URL로 우선 초기화
+        buildLogoLayers(allImages.map(f => f.url))
         setLogoPairs(pairs)
+
+        // 배경 제거 비동기 실행 후 레이어 src 업데이트
+        setIsRemovingBg(true)
+        Promise.all(allImages.map(f => removeBackground(f.url).then(blob => URL.createObjectURL(blob)).catch(() => f.url)))
+          .then(removedUrls => {
+            buildLogoLayers(removedUrls)
+            setAllLayers(prev => {
+              const next = { ...prev }
+              pairs.forEach(({ id }) => {
+                if (next[id]) {
+                  next[id] = next[id].map(l => {
+                    if (l.type !== 'image') return l
+                    const idx = parseInt(l.id.replace('img-', '')) - 1
+                    return { ...l, src: removedUrls[idx] ?? l.src }
+                  })
+                }
+              })
+              return next
+            })
+          })
+          .finally(() => setIsRemovingBg(false))
       }
 
       setAllLayers(initAllLayers)
@@ -1962,6 +1991,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         </div>
                       )
                     })()}
+
+                    {/* 배경 제거 중 로딩 오버레이 */}
+                    {isLogoTab && isRemovingBg && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 2 }}>
+                        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#C084FC', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>배경 제거 중…</span>
+                      </div>
+                    )}
 
                     {/* 로고 타입 가이드 오버레이 */}
                     {isLogoTab && logoGuide && <LogoGuideOverlay guide={logoGuide} canvasW={canvasW} canvasH={canvasH} margin={LOGO_MARGIN} onClose={() => setLogoGuide(null)} />}

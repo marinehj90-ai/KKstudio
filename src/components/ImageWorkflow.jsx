@@ -42,9 +42,12 @@ const RESIZE_HANDLES = [
 function deg(r) { return (r * 180) / Math.PI }
 
 function hexToRgb(hex) {
+  if (!hex || hex === 'transparent') return [255, 255, 255]
   const h = hex.replace('#', '')
-  if (h.length < 6) return [0, 0, 0]
-  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+  if (h.length < 6) return [255, 255, 255]
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16)
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return [255, 255, 255]
+  return [r, g, b]
 }
 function relativeLuminance(hex) {
   const [r,g,b] = hexToRgb(hex).map(c => { const s = c/255; return s <= 0.03928 ? s/12.92 : Math.pow((s+0.055)/1.055, 2.4) })
@@ -309,13 +312,25 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         })
       } else if (layer.type === 'text') {
         const fontSize = (layer.fontSize || 24) * multiplier
-        ctx.font = `${layer.fontWeight || 'normal'} ${fontSize}px ${layer.fontFamily || 'Pretendard'}`
+        const fontWeight = layer.fontWeight || (layer.bold ? '700' : '400')
+        ctx.font = `${fontWeight} ${fontSize}px ${layer.fontFamily || 'Pretendard'}`
         ctx.fillStyle = layer.color || '#000000'
-        ctx.textAlign = layer.align || 'left'
         ctx.textBaseline = 'top'
-        ctx.fillText(layer.text || '', 0, -layer.height * multiplier / 2)
+        // letterSpacing: 네이티브 Canvas API 사용 (Chrome 99+, Safari 16.4+)
+        if ('letterSpacing' in ctx) ctx.letterSpacing = `${(layer.letterSpacing || 0) * multiplier}px`
+        const align = layer.align || 'left'
+        ctx.textAlign = align
+        const lineH = fontSize * (layer.lineHeight || 1.4)
+        const boxW = layer.width * multiplier
+        const boxH = layer.height * multiplier
+        // textAlign 기준점: left=박스 왼쪽, center=중앙, right=오른쪽
+        const drawX = align === 'center' ? 0 : align === 'right' ? boxW / 2 : -boxW / 2
+        const lines = (layer.text || '').split('\n')
+        lines.forEach((line, li) => {
+          ctx.fillText(line, drawX, -boxH / 2 + li * lineH)
+        })
       } else if (layer.type === 'gradient') {
-        const bgC = (allLayers[templateId] || []).find(l => l.id === 'background')?.color || '#ffffff'
+        const bgC = bgLayerColor === 'transparent' ? '#ffffff' : bgLayerColor
         const [rr, gg, bb] = hexToRgb(bgC)
         const gW = layer.width * multiplier
         const gH = layer.height * multiplier
@@ -479,12 +494,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           if (w === h) {
             imgW = w; imgH = h; imgX = 0; imgY = 0
           } else if (tmpl.id === 'b4') {
-            // 우측 이미지 영역에 세로 fit
+            // 우측 이미지 영역 가로 835px 채우고 세로 중앙 정렬
             const areaW = w - B4_IMG_X  // 835
             const ratio = img.naturalWidth / img.naturalHeight
-            imgH = h; imgW = Math.round(h * ratio)
-            if (imgW > areaW) { imgW = areaW; imgH = Math.round(areaW / ratio) }
-            imgX = B4_IMG_X + Math.round((areaW - imgW) / 2)
+            imgW = areaW
+            imgH = Math.round(areaW / ratio)
+            imgX = B4_IMG_X
             imgY = Math.round((h - imgH) / 2)
           } else if (tmpl.id === 'b11') {
             // 높이 = 템플릿 높이(560), 너비 = 원본 비율 유지 (크롭 없음)
@@ -606,6 +621,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setSelectedLayerId('img-1')
       setPanOffset({ x: 0, y: 0 })
       setZoom(75)
+
     })
   }, [step])
 

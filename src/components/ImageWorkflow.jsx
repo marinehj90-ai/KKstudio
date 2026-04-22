@@ -19,6 +19,14 @@ const HS = 10
 const B4_MARGIN = 120
 const B4_TEXT_W = 445
 const B4_IMG_X = B4_MARGIN + B4_TEXT_W + 40  // 605
+const B11_IMG_X = 230
+const B11_IMG_W = 520
+const B11_GRAD_X = 230
+const B11_GRAD_Y = 0
+const B11_GRAD_W = 160
+const B11_GRAD_H = 560
+const B11_TEXT_X = 56
+const B11_TEXT_W = 460
 
 const RESIZE_HANDLES = [
   { id: 'nw', cx: 0,   cy: 0,   cursor: 'nw-resize', corner: true  },
@@ -153,12 +161,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       return logoPairs.map(lp => ({ id: lp.id, name: lp.name, size: t.size, device: t.device, preview: t.preview, logoPair: lp.variant }))
     }
     const copies = langCopies
-      .filter(lc => lc.id.startsWith(t.id + '-lang-'))
-      .map(lc => ({ id: lc.id, name: lc.name, size: lc.size, device: t.device || 'PC', preview: t.preview || '', lang: lc.lang }))
+      .filter(lc => lc.baseId === t.id)
+      .map(lc => {
+        const baseTmpl = selectedTemplateDetails.find(bt => bt.id === lc.baseId)
+        return { id: lc.id, name: lc.name, size: lc.size, device: baseTmpl?.device || 'PC', preview: baseTmpl?.preview || '', lang: lc.lang, baseId: lc.baseId }
+      })
     return [t, ...copies]
   })
   const currentTemplate = allDisplayTemplates[activePreviewTab]
   const currentTemplateId = currentTemplate?.id || ''
+  // 현재 보고 있는 탭이 lang 복사본이 아닌 실제 템플릿인 경우에만 다국어 추가 가능
+  const langBase = currentTemplate && !currentTemplate.lang ? currentTemplate : null
   const [canvasW, canvasH] = currentTemplate?.size?.split('\u00d7').map(Number) || [750, 750]
   const scale = zoom / 100
   const isLogoTab = !!currentTemplate?.logoPair // b8-black / b8-white 탭 여부
@@ -263,13 +276,31 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           const img = new Image()
           img.crossOrigin = 'anonymous'
           img.onload = () => {
+            const tmpl = allTemplates.find(t => t.id === templateId) || langCopies.find(lc => lc.id === templateId)
+            const isB11Layout = tmpl?.id === 'b11' || tmpl?.baseId === 'b11'
             const lw = layer.width * multiplier, lh = layer.height * multiplier
-            ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
-            if (logoPairInfo) {
-              ctx.globalCompositeOperation = 'source-atop'
-              ctx.fillStyle = logoPairInfo.variant === 'black' ? '#000000' : '#ffffff'
-              ctx.fillRect(-lw / 2, -lh / 2, lw, lh)
-              ctx.globalCompositeOperation = 'source-over'
+            if (isB11Layout) {
+              // b11 이미지 영역(x=230~750, y=0~560)으로 클립
+              const cx = (layer.x + layer.width / 2) * multiplier
+              const cy = (layer.y + layer.height / 2) * multiplier
+              const clipX = B11_IMG_X * multiplier - cx
+              const clipY = 0 - cy
+              const clipW = B11_IMG_W * multiplier
+              const clipH = B11_GRAD_H * multiplier
+              ctx.save()
+              ctx.beginPath()
+              ctx.rect(clipX, clipY, clipW, clipH)
+              ctx.clip()
+              ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
+              ctx.restore()
+            } else {
+              ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
+              if (logoPairInfo) {
+                ctx.globalCompositeOperation = 'source-atop'
+                ctx.fillStyle = logoPairInfo.variant === 'black' ? '#000000' : '#ffffff'
+                ctx.fillRect(-lw / 2, -lh / 2, lw, lh)
+                ctx.globalCompositeOperation = 'source-over'
+              }
             }
             resolve()
           }
@@ -283,6 +314,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         ctx.textAlign = layer.align || 'left'
         ctx.textBaseline = 'top'
         ctx.fillText(layer.text || '', 0, -layer.height * multiplier / 2)
+      } else if (layer.type === 'gradient') {
+        const bgC = (allLayers[templateId] || []).find(l => l.id === 'background')?.color || '#ffffff'
+        const [rr, gg, bb] = hexToRgb(bgC)
+        const gW = layer.width * multiplier
+        const gH = layer.height * multiplier
+        const grad = ctx.createLinearGradient(-gW / 2, 0, gW / 2, 0)
+        grad.addColorStop(0, `rgba(${rr},${gg},${bb},1)`)
+        grad.addColorStop(0.7, `rgba(${rr},${gg},${bb},0.7)`)
+        grad.addColorStop(1, `rgba(${rr},${gg},${bb},0)`)
+        ctx.fillStyle = grad
+        ctx.fillRect(-gW / 2, -gH / 2, gW, gH)
       }
       ctx.restore()
     }
@@ -444,6 +486,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             if (imgW > areaW) { imgW = areaW; imgH = Math.round(areaW / ratio) }
             imgX = B4_IMG_X + Math.round((areaW - imgW) / 2)
             imgY = Math.round((h - imgH) / 2)
+          } else if (tmpl.id === 'b11') {
+            // 높이 = 템플릿 높이(560), 너비 = 원본 비율 유지 (크롭 없음)
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h                        // 560
+            imgW = Math.round(h * ratio)    // 비율 유지
+            imgX = B11_IMG_X               // 230
+            imgY = 0
           } else {
             const ratio = img.naturalWidth / img.naturalHeight
             const maxW = Math.round(w * 0.7), maxH = Math.round(h * 0.7)
@@ -468,7 +517,25 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           ]
         })() : []
 
-        const init = [bgLayer, ...imgLayers, ...b4TextLayers]
+        // 메인 팝업 프로모션(b11) 전용 레이어 초기화
+        const b11Layers = tmpl.id === 'b11' ? (() => {
+          const lh = 1.3
+          const subFontSize = 34, titleFontSize = 56, detailFontSize = 32
+          const subH = Math.round(subFontSize * lh)           // 44
+          const titleH = Math.round(titleFontSize * lh * 2)   // 146
+          const detailH = Math.round(detailFontSize * lh)     // 42
+          const gap1 = 16, gap2 = 32
+          const totalH = subH + gap1 + titleH + gap2 + detailH  // 280
+          const startY = Math.round((h - totalH) / 2)         // 140
+          return [
+            { id: 'b11-gradient', type: 'gradient', direction: 'to-right', x: B11_GRAD_X, y: B11_GRAD_Y, width: B11_GRAD_W, height: B11_GRAD_H, rotation: 0 },
+            { id: 'b11-sub',    type: 'text', text: '서브타이틀 문구',              x: B11_TEXT_X, y: startY,                          width: B11_TEXT_W, height: subH,    rotation: 0, fontSize: subFontSize,    fontWeight: '400', color: '#1E2023',              fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: lh },
+            { id: 'b11-title',  type: 'text', text: '메인 타이틀\n두줄까지 입력 가능', x: B11_TEXT_X, y: startY + subH + gap1,            width: B11_TEXT_W, height: titleH,  rotation: 0, fontSize: titleFontSize,  fontWeight: '700', color: '#1E2023',              fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: lh },
+            { id: 'b11-detail', type: 'text', text: '상세 내용을 입력해 주세요',    x: B11_TEXT_X, y: startY + subH + gap1 + titleH + gap2, width: B11_TEXT_W, height: detailH, rotation: 0, fontSize: detailFontSize, fontWeight: '400', color: 'rgba(30,32,35,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: lh },
+          ]
+        })() : []
+
+        const init = [bgLayer, ...imgLayers, ...b4TextLayers, ...b11Layers]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
@@ -508,6 +575,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
       setSelectedLayerId('img-1')
+      setPanOffset({ x: 0, y: 0 })
+      setZoom(75)
     })
   }, [step])
 
@@ -516,6 +585,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     e.stopPropagation()
     setSelectedLayerId(id)
     const layer = layers.find((l) => l.id === id)
+    if (layer?.type === 'text') return  // 텍스트 위치 고정
     const { x: origX, y: origY, width: lW, height: lH } = layer
     const startX = e.clientX, startY = e.clientY
     const SNAP = 6
@@ -655,50 +725,62 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const toggleLangCopy = (lang) => {
-    if (!b4Base) return
-    const langIdMap = { 'English': 'b4-lang-en', '中文': 'b4-lang-zh', '日本語': 'b4-lang-ja' }
-    const langId = langIdMap[lang]
-    if (!langId) return
-    const isActive = langCopies.some(lc => lc.lang === lang)
+    const baseTemplate = langBase
+    if (!baseTemplate) return
+    const langKey = lang === 'English' ? 'en' : lang === '中文' ? 'zh' : 'ja'
+    const langId = `${baseTemplate.id}-lang-${langKey}`
+    const isActive = langCopies.some(lc => lc.id === langId)
     if (isActive) {
       const removedTabIdx = allDisplayTemplates.findIndex(t => t.id === langId)
-      setLangCopies(prev => prev.filter(lc => lc.lang !== lang))
+      setLangCopies(prev => prev.filter(lc => lc.id !== langId))
       setAllLayers(prev => { const n = { ...prev }; delete n[langId]; return n })
       setAllHistory(prev => { const n = { ...prev }; delete n[langId]; return n })
       if (activePreviewTab === removedTabIdx) setActivePreviewTab(0)
       else if (activePreviewTab > removedTabIdx) setActivePreviewTab(prev => prev - 1)
     } else {
-      if (langCopies.length >= 2) return
-      const sourceLayers = allLayers['b4'] ? JSON.parse(JSON.stringify(allLayers['b4'])) : []
-      // 중문 탭: Noto Sans KR(CJK) 폰트 적용
-      const initLayers = lang === '中文'
-        ? sourceLayers.map(l => l.type === 'text' ? { ...l, fontFamily: 'Noto Sans KR' } : l)
-        : sourceLayers
-      const newCopy = { lang, id: langId, name: `PC 와이드 대배너 (${lang})`, size: b4Base.size }
-      // 부모(b4) 바로 뒤 + 기존 copies 다음에 삽입
-      const b4Idx = allDisplayTemplates.findIndex(t => t.id === 'b4')
-      const existingCopiesCount = langCopies.filter(lc => lc.id.startsWith('b4-lang-')).length
-      const newTabIdx = b4Idx + existingCopiesCount + 1
-      setLangCopies(prev => [...prev, newCopy])
-      setAllLayers(prev => ({ ...prev, [langId]: initLayers }))
-      setAllHistory(prev => ({ ...prev, [langId]: { history: [JSON.parse(JSON.stringify(initLayers))], index: 0 } }))
-      setActivePreviewTab(newTabIdx)
-      // 번역 제안 생성
-      const textLayers = sourceLayers.filter(l => l.type === 'text')
+      const baseLangCopies = langCopies.filter(lc => lc.baseId === baseTemplate.id)
+      if (baseLangCopies.length >= 2) return
+      const sourceLayers = allLayers[baseTemplate.id] ? JSON.parse(JSON.stringify(allLayers[baseTemplate.id])) : []
+      // 번역 제안 사전 (레이어 ID 기준)
       const SUGGESTIONS = {
         'English': {
+          // b4 (PC 와이드 대배너)
           'b4-main': ["Lunar New Year Shopping\nUp to 56% OFF — Today Only!", "Spring Sale Event #SSGsale\nExclusive 56% Discount Today!"],
           'b4-sub':  ["Happy Valentine's — A Special Moment", "A Truly Special Valentine's Moment"],
+          // b11 (메인 팝업 프로모션)
+          'b11-sub':    ["Exclusive Offer", "Special Promotion"],
+          'b11-title':  ["Limited Time\nSpecial Event", "Premium Brand\nExclusive Sale"],
+          'b11-detail': ["Shop now for exclusive deals", "Up to 56% OFF — Today Only"],
         },
         '中文': {
-          'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选好货低至56折 今日截止"],
-          'b4-sub':  ["情人节 · 献给最特别的你", "幸福情人节 · 专属惊喜礼遇"],
+          'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选商品低至56折 今日截止"],
+          'b4-sub':  ["情人节 特别的时刻", "幸福情人节 · 专属礼遇"],
+          'b11-sub':    ["专属优惠", "限时特卖"],
+          'b11-title':  ["限时特卖\n优惠活动", "精品品牌\n专属折扣"],
+          'b11-detail': ["立即购物 享受专属优惠", "最高56折 仅限今日"],
         },
         '日本語': {
           'b4-main': ["お正月セール #SSG\n最大56%OFF 本日限り！", "新春ショッピング\n最大56%引き・本日のみ"],
           'b4-sub':  ["バレンタインの特別な瞬間", "ハッピーバレンタイン 特別なひととき"],
+          'b11-sub':    ["特別オファー", "限定セール"],
+          'b11-title':  ["期間限定\nスペシャルイベント", "プレミアムブランド\n限定セール"],
+          'b11-detail': ["今すぐショッピング", "最大56%OFF 本日限り"],
         },
       }
+      // 첫 번째 번역 제안을 텍스트 레이어에 자동 적용
+      const translatedLayers = sourceLayers.map(l => {
+        if (l.type !== 'text') return l
+        const translated = SUGGESTIONS[lang]?.[l.id]?.[0]
+        return translated ? { ...l, text: translated } : l
+      })
+      const newCopy = { lang, id: langId, name: `${baseTemplate.name} (${lang})`, size: baseTemplate.size, baseId: baseTemplate.id }
+      const newTabIdx = allDisplayTemplates.length
+      setLangCopies(prev => [...prev, newCopy])
+      setAllLayers(prev => ({ ...prev, [langId]: translatedLayers }))
+      setAllHistory(prev => ({ ...prev, [langId]: { history: [JSON.parse(JSON.stringify(translatedLayers))], index: 0 } }))
+      setActivePreviewTab(newTabIdx)
+      // 번역 제안 패널용 데이터 생성
+      const textLayers = sourceLayers.filter(l => l.type === 'text')
       const suggestions = textLayers.map(l => ({
         layerId: l.id,
         original: l.text,
@@ -1577,13 +1659,37 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
                   const bottomPanels = (
                     <>
-                      {!b4Base && (
-                        <div key="lang-disabled" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">다국어 동시 제작</h3>
-                          <p style={{ fontSize: 11, color: '#9ca3af' }}>PC 와이드 대배너 선택 시 사용 가능</p>
-                        </div>
-                      )}
-                      {b4Base && type !== 'text' && langPanel}
+                      <div key="lang" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">다국어 동시 제작</h3>
+                        {!langBase ? (
+                          <p style={{ fontSize: 11, color: '#9ca3af' }}>언어 탭에서는 추가할 수 없어요</p>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap gap-2">
+                              <button className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary-50 border-primary-300 text-primary-700">한국어 ✓</button>
+                              {['English', '日本語', '中文'].map((lang) => {
+                                const langKey = lang === 'English' ? 'en' : lang === '中文' ? 'zh' : 'ja'
+                                const langId = `${langBase.id}-lang-${langKey}`
+                                const isActive = langCopies.some(lc => lc.id === langId)
+                                const baseLangCount = langCopies.filter(lc => lc.baseId === langBase.id).length
+                                const isDisabled = !isActive && baseLangCount >= 2
+                                return (
+                                  <button key={lang}
+                                    onClick={() => toggleLangCopy(lang)}
+                                    disabled={isDisabled}
+                                    style={{ opacity: isDisabled ? 0.4 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}
+                                  >
+                                    {lang}{isActive ? ' ✓' : ''}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            {langCopies.filter(lc => lc.baseId === langBase.id).length > 0 && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 6 }}>최대 3개(한+2개국어) 동시 편집</p>}
+                          </>
+                        )}
+                      </div>
+                      {type !== 'text' && langPanel}
                     </>
                   )
 
@@ -1674,14 +1780,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.type === 'text' ? (layer.id === selectedLayerId ? 20 : 5) : (layer.id === selectedLayerId ? 10 : 1) }}>
-                          {layer.type === 'image' && <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />}
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layer.type === 'text' ? (layer.id === selectedLayerId ? 30 : 15) : layer.type === 'gradient' ? 10 : 1 }}>
+                          {layer.type === 'image' && (() => {
+                            const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
+                            if (isB11Layout) {
+                              const clipLeft   = Math.max(0, B11_IMG_X - layer.x)
+                              const clipRight  = Math.max(0, (layer.x + layer.width) - (B11_IMG_X + B11_IMG_W))
+                              const clipTop    = Math.max(0, -layer.y)
+                              const clipBottom = Math.max(0, (layer.y + layer.height) - B11_GRAD_H)
+                              const clip = clipLeft > 0 || clipRight > 0 || clipTop > 0 || clipBottom > 0
+                                ? `inset(${clipTop}px ${clipRight}px ${clipBottom}px ${clipLeft}px)`
+                                : undefined
+                              return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', clipPath: clip }} />
+                            }
+                            return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />
+                          })()}
+                          {layer.type === 'gradient' && (() => {
+                            const [rr, gg, bb] = hexToRgb(bgColor)
+                            return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />
+                          })()}
                           {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
-                            <>
-                              <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
-                              <div onMouseDown={(e) => onMouseDownResize(e, layer.id, 'e', false)}
-                                style={{ position: 'absolute', right: -HS / 2 - 1, top: '50%', transform: 'translateY(-50%)', width: HS, height: HS, background: '#fff', border: '2px solid #9F48CE', borderRadius: '50%', cursor: 'e-resize', pointerEvents: 'all', zIndex: 120 }} />
-                            </>
+                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
                           )}
                           {layer.type === 'text' && (
                             editingTextId === layer.id ? (
@@ -1694,7 +1813,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, background: 'rgba(255,255,255,0.15)', border: '1px dashed #9F48CE', outline: 'none', resize: 'none', padding: 4, boxSizing: 'border-box', cursor: 'text' }}
                               />
                             ) : (
-                              <div style={{ width: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}>{layer.text}</div>
+                              <div style={{ width: '100%', height: layer.height, overflow: 'hidden', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}>{layer.text}</div>
                             )
                           )}
                         </div>
@@ -1710,20 +1829,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
-                    {/* 투명 클릭 레이어 */}
+                    {/* 투명 클릭 레이어 (이미지 전용 — 그라디언트·텍스트 제외) */}
                     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 50 }}>
-                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background' && layer.type !== 'text').map((layer, idx) => (
+                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background' && layer.type !== 'text' && layer.type !== 'gradient').map((layer, idx) => (
                         <div key={`hit-${layer.id}`}
                           onMouseDown={(e) => onMouseDownLayer(e, layer.id)}
                           onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => { e.stopPropagation(); if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) } }}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent', zIndex: layer.type === 'text' ? 60 + idx : 51 + idx }} />
+                          onDoubleClick={(e) => e.stopPropagation()}
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent', zIndex: 51 + idx }} />
                       ))}
                     </div>
 
-                    {/* 이미지 툴바 */}
-                    {selectedLayer?.type === 'image' && (
+                    {/* 텍스트 전용 클릭 레이어 (항상 최상단 — 이미지·그라디언트 hit layer 위) */}
+                    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 90 }}>
+                      {layers.filter((layer) => layer.type === 'text' && layer.id !== editingTextId).map((layer) => (
+                        <div key={`text-hit-${layer.id}`}
+                          onMouseDown={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id) }}
+                          onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(layer.id); setSelectedLayerId(layer.id) }}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'default', pointerEvents: 'all', background: 'transparent' }} />
+                      ))}
+                    </div>
+
+                    {/* 이미지/그라디언트 툴바 */}
+                    {(selectedLayer?.type === 'image' || selectedLayer?.type === 'gradient') && (
                       <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y - 48, transform: 'translateX(-50%)', zIndex: 200, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 2, padding: '4px 8px', pointerEvents: 'all', whiteSpace: 'nowrap' }}>
+                        {selectedLayer?.type === 'gradient' && <span style={{ fontSize: 11, color: '#9ca3af', padding: '0 4px' }}>그라디언트</span>}
                         <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
                           <Trash2 style={{ width: 14, height: 14 }} />
                         </button>
@@ -1731,7 +1862,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     )}
 
                     {/* 이미지 사이즈 뱃지 */}
-                    {selectedLayer?.type === 'image' && (
+                    {selectedLayer?.type === 'image' && selectedLayer?.type !== 'gradient' && (
                       <div style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y + selectedLayer.height + 10, transform: 'translateX(-50%)', zIndex: 200, pointerEvents: 'none' }}>
                         <div style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 6, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }}>
                           {selectedLayer.width} × {selectedLayer.height}
@@ -1794,12 +1925,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     )}
 
                     {/* 배너 가이드 오버레이 */}
-                    {showGuide && !isLogoTab && (() => {
-                      const marginX = B4_MARGIN        // 120 — 레이어와 동일
+                    {showGuide && !isLogoTab && currentTemplateId === 'b4' && (() => {
+                      const marginX = B4_MARGIN        // 120
                       const textW = B4_TEXT_W          // 445
-                      const mainFontSize = 48
-                      const subFontSize = 28
-                      const lineHeight = 1.3
+                      const mainFontSize = 48, subFontSize = 28, lineHeight = 1.3
                       const mainH = Math.round(mainFontSize * lineHeight * 2)
                       const subH = Math.round(subFontSize * lineHeight)
                       const gap = 24
@@ -1809,35 +1938,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       const imageAreaW = canvasW - imageAreaX
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
-                          {/* 좌측 여백만 */}
                           <div style={{ position: 'absolute', left: 0, top: 0, width: marginX, height: canvasH, background: 'rgba(159,72,206,0.1)', borderRight: '2px dashed rgba(159,72,206,0.6)' }} />
                           <div style={{ position: 'absolute', left: 0, top: 10, width: marginX, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#9F48CE' }}>← 120px →</div>
-
-                          {/* 텍스트 영역 라벨 */}
                           <div style={{ position: 'absolute', left: marginX, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#9F48CE', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #C084FC' }}>텍스트 영역 {textW}px</div>
-
-                          {/* 텍스트 영역 박스 */}
                           <div style={{ position: 'absolute', left: marginX, top: startY, width: textW, height: totalH, border: '2px dashed #9F48CE', borderRadius: 4 }}>
-                            {/* 메인카피 */}
                             <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: mainH, background: 'rgba(159,72,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>메인카피 (48px Bold · 최대 2줄)</span>
                             </div>
-                            {/* 간격 */}
                             <div style={{ position: 'absolute', left: 0, top: mainH, width: '100%', height: gap, background: 'rgba(159,72,206,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ fontSize: 10, color: '#9F48CE', fontWeight: 600 }}>gap {gap}px</span>
                             </div>
-                            {/* 서브카피 */}
                             <div style={{ position: 'absolute', left: 0, top: mainH + gap, width: '100%', height: subH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>서브카피 (28px Regular)</span>
                             </div>
                           </div>
-
-                          {/* 이미지 영역 - 강하게 */}
-                          <div style={{ position: 'absolute', left: imageAreaX, top: 0, width: imageAreaW, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', borderRadius: 0, background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ position: 'absolute', left: imageAreaX, top: 0, width: imageAreaW, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
                             <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 8, padding: '10px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                              </svg>
+                              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                               <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>이미지 영역</span>
                               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>{imageAreaW} × {canvasH}px</span>
                             </div>
@@ -1848,6 +1965,56 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
                     {/* 로고 타입 가이드 오버레이 */}
                     {isLogoTab && logoGuide && <LogoGuideOverlay guide={logoGuide} canvasW={canvasW} canvasH={canvasH} margin={LOGO_MARGIN} onClose={() => setLogoGuide(null)} />}
+
+                    {/* b11 팝업 배너 가이드 오버레이 */}
+                    {showGuide && !isLogoTab && currentTemplateId === 'b11' && (() => {
+                      const lh = 1.3
+                      const subH = Math.round(34 * lh)        // 44
+                      const titleH = Math.round(56 * lh * 2)  // 146
+                      const detailH = Math.round(32 * lh)     // 42
+                      const gap1 = 16, gap2 = 32
+                      const totalH = subH + gap1 + titleH + gap2 + detailH  // 280
+                      const startY = Math.round((canvasH - totalH) / 2)     // 140
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+                          {/* 이미지 영역 */}
+                          <div style={{ position: 'absolute', left: B11_IMG_X, top: 0, width: B11_IMG_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
+                            <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 8, padding: '8px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>이미지 영역 {B11_IMG_W}×{canvasH}</span>
+                            </div>
+                          </div>
+                          {/* 그라디언트 영역 */}
+                          <div style={{ position: 'absolute', left: B11_GRAD_X, top: B11_GRAD_Y, width: B11_GRAD_W, height: B11_GRAD_H, border: '2px dashed rgba(234,179,8,0.8)', background: 'rgba(234,179,8,0.08)' }}>
+                            <div style={{ position: 'absolute', bottom: -20, left: 0, fontSize: 10, fontWeight: 700, color: '#b45309', whiteSpace: 'nowrap', background: 'rgba(254,243,199,0.95)', padding: '1px 6px', borderRadius: 3 }}>그라디언트 {B11_GRAD_W}px</div>
+                          </div>
+                          {/* 텍스트 영역 */}
+                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#9F48CE', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #C084FC' }}>텍스트 영역 {B11_TEXT_W}px</div>
+                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY, width: B11_TEXT_W, height: totalH, border: '2px dashed #9F48CE', borderRadius: 4 }}>
+                            {/* 서브타이틀 */}
+                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: subH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>서브타이틀 (34px · 선택)</span>
+                            </div>
+                            {/* gap1 */}
+                            <div style={{ position: 'absolute', left: 0, top: subH, width: '100%', height: gap1, background: 'rgba(159,72,206,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 9, color: '#9F48CE', fontWeight: 600 }}>{gap1}px</span>
+                            </div>
+                            {/* 타이틀 */}
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1, width: '100%', height: titleH, background: 'rgba(159,72,206,0.18)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>타이틀 (56px Bold · 최대 2줄 · 필수)</span>
+                            </div>
+                            {/* gap2 */}
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH, width: '100%', height: gap2, background: 'rgba(159,72,206,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 9, color: '#9F48CE', fontWeight: 600 }}>{gap2}px</span>
+                            </div>
+                            {/* 상세내용 */}
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH + gap2, width: '100%', height: detailH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>상세내용 (32px · opacity 80% · 선택)</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     {/* 텍스트 선택 테두리 */}
                     {selectedLayer?.type === 'text' && (
@@ -1929,16 +2096,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                   ? <div style={{ width: '100%', height: '100%', background: layer.color }} />
                                   : layer.type === 'image'
                                     ? <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
+                                    : layer.type === 'gradient'
+                                      ? <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, ${bgColor}, transparent)` }} />
+                                      : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
                                 }
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? '#7e22ce' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {layer.type === 'background' ? '배경색' : layer.type === 'image' ? `이미지 ${idx}` : `텍스트 ${idx}`}
+                                  {layer.type === 'background' ? '배경색' : layer.type === 'image' ? `이미지 ${idx}` : layer.type === 'gradient' ? '그라디언트' : `텍스트 ${idx}`}
                                 </p>
                                 <p style={{ fontSize: 10, color: '#9ca3af' }}>{layer.width} × {layer.height}</p>
                               </div>
-                              <span style={{ fontSize: 12, flexShrink: 0 }}>{layer.type === 'background' ? '🎨' : layer.type === 'image' ? '🖼' : '✏️'}</span>
+                              <span style={{ fontSize: 12, flexShrink: 0 }}>{layer.type === 'background' ? '🎨' : layer.type === 'image' ? '🖼' : layer.type === 'gradient' ? '🌅' : '✏️'}</span>
                             </div>
                           )
                         })}
@@ -2043,7 +2212,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           <div style={{ width: bW, height: bH, ...(tIsTransparent ? (tmpl.logoPair === 'white' ? { backgroundImage: 'linear-gradient(45deg,#555 25%,transparent 25%),linear-gradient(-45deg,#555 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#555 75%),linear-gradient(-45deg,transparent 75%,#555 75%)', backgroundSize: '8px 8px', backgroundPosition: '0 0,0 4px,4px -4px,-4px 0px', backgroundColor: '#3a3a3a' } : { backgroundImage: 'linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%)', backgroundSize: '8px 8px', backgroundPosition: '0 0,0 4px,4px -4px,-4px 0px', backgroundColor: '#f0f0f0' }) : { background: tBg }), position: 'relative', overflow: 'hidden', borderRadius: 2, opacity: isDlChecked ? 1 : 0.4, transition: 'opacity 0.15s' }}>
                             {tLayers.map((layer) => (
                               <div key={layer.id} style={{ position: 'absolute', left: layer.x * tScaleX, top: layer.y * tScaleY, width: layer.width * tScaleX, height: layer.height * tScaleY, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center' }}>
-                                {layer.type === 'image' && <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', filter: tmpl.logoPair ? (tmpl.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />}
+                                {layer.type === 'image' && (() => {
+                                  if (tmpl.id === 'b11') {
+                                    return <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }} />
+                                  }
+                                  return <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', filter: tmpl.logoPair ? (tmpl.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />
+                                })()}
+                                {layer.type === 'gradient' && (() => {
+                                  const [rr, gg, bb] = hexToRgb(tBg)
+                                  return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)` }} />
+                                })()}
                                 {layer.type === 'text' && <div style={{ fontSize: layer.fontSize * Math.min(tScaleX, tScaleY), fontWeight: layer.fontWeight || '400', color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', lineHeight: layer.lineHeight || 1.4, letterSpacing: `${(layer.letterSpacing || 0) * Math.min(tScaleX, tScaleY)}px`, overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-all', width: '100%', height: '100%' }}>{layer.text}</div>}
                               </div>
                             ))}

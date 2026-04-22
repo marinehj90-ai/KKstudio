@@ -841,26 +841,56 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
+      const SW = 200, SH = 200
       const canvas = document.createElement('canvas')
-      canvas.width = 80; canvas.height = 80
+      canvas.width = SW; canvas.height = SH
       const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, 0, 0, 80, 80)
-      const data = ctx.getImageData(0, 0, 80, 80).data
-      const colorMap = {}
-      for (let i = 0; i < data.length; i += 16) {
-        const r = Math.round(data[i] / 32) * 32
-        const g = Math.round(data[i+1] / 32) * 32
-        const b = Math.round(data[i+2] / 32) * 32
-        if (data[i+3] < 128) continue
-        const key = `${r},${g},${b}`
-        colorMap[key] = (colorMap[key] || 0) + 1
+      ctx.drawImage(img, 0, 0, SW, SH)
+      const full = ctx.getImageData(0, 0, SW, SH).data
+
+      const toHex = (r, g, b) => `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
+      const QUANT = 20
+
+      // 왼쪽 15% 영역 집중 샘플링 (배경색과 이미지가 맞닿는 부분)
+      const LEFT_W = Math.round(SW * 0.15)
+      const leftMap = {}
+      for (let y = 0; y < SH; y++) {
+        for (let x = 0; x < LEFT_W; x++) {
+          const idx = (y * SW + x) * 4
+          if (full[idx+3] < 128) continue
+          const r = Math.round(full[idx] / QUANT) * QUANT
+          const g = Math.round(full[idx+1] / QUANT) * QUANT
+          const b = Math.round(full[idx+2] / QUANT) * QUANT
+          const key = `${r},${g},${b}`
+          leftMap[key] = (leftMap[key] || 0) + 1
+        }
       }
-      const sorted = Object.entries(colorMap).sort((a, b) => b[1] - a[1]).slice(0, 8)
-      const hex = sorted.map(([key]) => {
-        const [r, g, b] = key.split(',').map(Number)
-        return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
+
+      // 전체 이미지 빈도 (나머지 추천색용)
+      const fullMap = {}
+      for (let i = 0; i < full.length; i += 4) {
+        if (full[i+3] < 128) continue
+        const r = Math.round(full[i] / QUANT) * QUANT
+        const g = Math.round(full[i+1] / QUANT) * QUANT
+        const b = Math.round(full[i+2] / QUANT) * QUANT
+        const key = `${r},${g},${b}`
+        fullMap[key] = (fullMap[key] || 0) + 1
+      }
+
+      // 왼쪽 영역 dominant를 첫 번째로, 나머지는 전체 빈도 순
+      const leftSorted = Object.entries(leftMap).sort((a, b) => b[1] - a[1])
+      const fullSorted = Object.entries(fullMap).sort((a, b) => b[1] - a[1])
+
+      const leftTopHex = leftSorted.slice(0, 3).map(([key]) => {
+        const [r, g, b] = key.split(',').map(Number); return toHex(r, g, b)
       })
-      setSuggestedColors(hex)
+      const fullTopHex = fullSorted.slice(0, 8).map(([key]) => {
+        const [r, g, b] = key.split(',').map(Number); return toHex(r, g, b)
+      })
+
+      // 왼쪽 상위색 앞에, 중복 제거 후 최대 8개
+      const merged = [...new Set([...leftTopHex, ...fullTopHex])].slice(0, 8)
+      setSuggestedColors(merged)
       setIsExtractingColors(false)
     }
     img.src = uploadedImage.url
@@ -1678,30 +1708,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     </div>
                   ) : null
 
-                  const langPanel = b4Base ? (
-                    <div key="lang" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">다국어 동시 제작</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <button className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary-50 border-primary-300 text-primary-700">한국어 ✓</button>
-                        {['English', '中文'].map((lang) => {
-                          const isActive = langCopies.some(lc => lc.lang === lang)
-                          const isDisabled = !isActive && langCopies.length >= 2
-                          return (
-                            <button key={lang}
-                              onClick={() => toggleLangCopy(lang)}
-                              disabled={isDisabled}
-                              style={{ opacity: isDisabled ? 0.4 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${isActive ? 'bg-primary-50 border-primary-300 text-primary-700' : 'bg-white border-gray-200 text-gray-500'}`}
-                            >
-                              {lang}{isActive ? ' ✓' : ''}
-                            </button>
-                          )
-                        })}
-                      </div>
-                      {langCopies.length > 0 && <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 6 }}>최대 3개(한+2개국어) 동시 편집</p>}
-                    </div>
-                  ) : null
-
                   const bottomPanels = (
                     <>
                       <div key="lang" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
@@ -1712,8 +1718,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           <>
                             <div className="flex flex-wrap gap-2">
                               <button className="px-3 py-1.5 rounded-lg text-xs font-medium border bg-primary-50 border-primary-300 text-primary-700">한국어 ✓</button>
-                              {['English', '日本語', '中文'].map((lang) => {
-                                const langKey = lang === 'English' ? 'en' : lang === '中文' ? 'zh' : 'ja'
+                              {['English', '中文'].map((lang) => {
+                                const langKey = lang === 'English' ? 'en' : 'zh'
                                 const langId = `${langBase.id}-lang-${langKey}`
                                 const isActive = langCopies.some(lc => lc.id === langId)
                                 const baseLangCount = langCopies.filter(lc => lc.baseId === langBase.id).length
@@ -1734,13 +1740,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           </>
                         )}
                       </div>
-                      {type !== 'text' && langPanel}
                     </>
                   )
 
                   if (type === 'background') return <>{styleSync}{bgPanel}{translationPanel}{fileStorage}{quickEdit}{selectedObj}{bottomPanels}</>
                   if (type === 'image') return <>{styleSync}{logoTypePanel}{fileStorage}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{bottomPanels}</>
-                  if (type === 'text') return <>{styleSync}{selectedObj}{langPanel}{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
+                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
                   return <>{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
                 })()}
               </div>

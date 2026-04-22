@@ -189,8 +189,8 @@ export default function Templates() {
                         <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
                       </div>
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: c.hex }}>
-                          <Check className="w-3.5 h-3.5 text-white" />
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${c.hex}` }}>
+                          <Check className="w-3.5 h-3.5" style={{ color: c.hex }} />
                         </div>
                       )}
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">{t.device}</div>

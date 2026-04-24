@@ -171,6 +171,92 @@ const B7TextPreviewOverlay = memo(function B7TextPreviewOverlay({ canvasW, canva
   )
 })
 
+// b3 메인 대배너 텍스트 미리보기 오버레이 (피그마 6154-195 기준, ×2 스케일)
+const B3TextPreviewOverlay = memo(function B3TextPreviewOverlay({ canvasW, canvasH }) {
+  const textRef  = useRef(null)
+  const flag1Ref = useRef(null)
+  const flag2Ref = useRef(null)
+
+  useEffect(() => {
+    if (textRef.current)  textRef.current.innerText  = '메인 카피를\n입력하세요'
+    if (flag1Ref.current) flag1Ref.current.innerText = '사은품'
+    if (flag2Ref.current) flag2Ref.current.innerText = '기간 한정'
+  }, [])
+
+  const stop = e => e.stopPropagation()
+  const sc = canvasW / 375  // 750/375 = 2
+
+  const PB       = Math.round(32 * sc)
+  const PX       = Math.round(24 * sc)
+  const FS_MAIN  = Math.round(28 * sc)
+  const FS_FLAG  = Math.round(12 * sc)
+  const FLAG_PX  = Math.round(6  * sc)
+  const FLAG_PY  = Math.round(4  * sc)
+  const FLAG_R   = Math.round(4  * sc)
+  const FLAG_GAP = Math.round(4  * sc)
+  const TXT_GAP  = Math.round(8  * sc)
+  const GRAD_H   = Math.round(canvasH * 0.32)
+  const IND_H    = Math.round(28 * sc)
+  const IND_PX   = Math.round(10 * sc)
+  const IND_GAP  = Math.round(8  * sc)
+  const IND_R    = Math.round(56 * sc)
+  const IND_RIGHT = Math.round(12 * sc)
+  const IND_TOP   = Math.round(12 * sc)
+  const IC        = Math.round(10 * sc)
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 91, overflow: 'hidden' }}>
+      {/* 하단 그라데이션 */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, width: canvasW, height: GRAD_H, background: 'linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.7))', pointerEvents: 'none' }} />
+      {/* dim */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.02)', pointerEvents: 'none' }} />
+
+      {/* 텍스트 + 플래그 영역 (하단) */}
+      <div style={{ position: 'absolute', bottom: PB, left: PX, right: PX, display: 'flex', flexDirection: 'column', gap: TXT_GAP, pointerEvents: 'none' }}>
+        {/* 플래그 2종 */}
+        <div style={{ display: 'flex', gap: FLAG_GAP, flexWrap: 'wrap' }}>
+          <div ref={flag1Ref} id="b3-preview-flag1" contentEditable suppressContentEditableWarning
+            onMouseDown={stop} onClick={stop} onKeyDown={stop}
+            style={{ background: '#4D6EE4', color: '#fff', fontSize: FS_FLAG, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', lineHeight: 1.3, padding: `${FLAG_PY}px ${FLAG_PX}px`, borderRadius: FLAG_R, outline: 'none', pointerEvents: 'all', cursor: 'text', whiteSpace: 'nowrap', display: 'inline-block' }}
+          />
+          <div ref={flag2Ref} id="b3-preview-flag2" contentEditable suppressContentEditableWarning
+            onMouseDown={stop} onClick={stop} onKeyDown={stop}
+            style={{ background: '#FE324B', color: '#fff', fontSize: FS_FLAG, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', lineHeight: 1.3, padding: `${FLAG_PY}px ${FLAG_PX}px`, borderRadius: FLAG_R, outline: 'none', pointerEvents: 'all', cursor: 'text', whiteSpace: 'nowrap', display: 'inline-block' }}
+          />
+        </div>
+        {/* 메인 텍스트 (Bold, White 고정, 2줄 제한) */}
+        <div ref={textRef} id="b3-preview-main" contentEditable suppressContentEditableWarning
+          onMouseDown={stop} onClick={stop}
+          onKeyDown={e => {
+            stop(e)
+            if (e.key === 'Enter') {
+              const text = textRef.current?.innerText || ''
+              if (text.includes('\n')) e.preventDefault()
+            }
+          }}
+          style={{ color: '#ffffff', fontSize: FS_MAIN, fontWeight: 700, fontFamily: 'Pretendard, sans-serif', lineHeight: 1.3, height: Math.round(FS_MAIN * 1.3 * 2), overflow: 'hidden', outline: 'none', pointerEvents: 'all', cursor: 'text', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+        />
+      </div>
+
+      {/* 상단 인디케이터 (우상단) */}
+      <div style={{ position: 'absolute', top: IND_TOP, right: IND_RIGHT, height: IND_H, background: 'rgba(30,32,35,0.5)', borderRadius: IND_R, display: 'flex', alignItems: 'center', gap: IND_GAP, padding: `0 ${IND_PX}px` }}>
+        {/* 일시정지 아이콘 */}
+        <svg width={IC * 0.75} height={IC} viewBox="0 0 8 10" fill="none">
+          <rect x="0"   y="0" width="2.5" height="10" rx="1" fill="white" />
+          <rect x="5.5" y="0" width="2.5" height="10" rx="1" fill="white" />
+        </svg>
+        {/* 1 / 3 */}
+        <span style={{ fontSize: Math.round(13 * sc), color: '#fff', fontFamily: 'Pretendard, sans-serif', fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' }}>1 / 3</span>
+        {/* Vector (피그마 원본) */}
+        <svg width={IC} height={IC} viewBox="0 0 10 10" fill="none" overflow="visible">
+          <path d="M6.25 0H0.625C0.279822 0 0 0.279822 0 0.625V6.25C0 6.59518 0.279822 6.875 0.625 6.875H6.25C6.59518 6.875 6.875 6.59518 6.875 6.25V0.625C6.875 0.279822 6.59518 0 6.25 0Z" fill="white" />
+          <path d="M2.5 9.375C2.5 9.54076 2.56586 9.69972 2.68307 9.81693C2.80028 9.93414 2.95924 10 3.125 10H9.375C9.54076 10 9.69972 9.93414 9.81693 9.81693C9.93414 9.69972 10 9.54076 10 9.375V2.5C10 2.33424 9.93414 2.17528 9.81693 2.05807C9.69972 1.94086 9.54076 1.875 9.375 1.875H8.125V7.5C8.125 7.66576 8.05914 7.82472 7.94193 7.94193C7.82472 8.05914 7.66576 8.125 7.5 8.125H2.5V9.375Z" fill="white" />
+        </svg>
+      </div>
+    </div>
+  )
+})
+
 function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   const isSymbol = guide === '심볼형'
   const SYMBOL_W = 160
@@ -236,6 +322,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [showGoHomeConfirm, setShowGoHomeConfirm] = useState(false)
   const [showGuide, setShowGuide] = useState(false)
   const [b6GuideMode, setB6GuideMode] = useState(null) // null | 'layout' | 'text'
+  const [b3WithPreview, setB3WithPreview] = useState(false)
   const [b6PreviewText, setB6PreviewText] = useState({ main: '메인 카피를 입력하세요', sub: '서브 카피를 입력하세요', color: '#1E2023' })
   const [b7PreviewColor, setB7PreviewColor] = useState('#1E2023')
   // 다국어 복사본: [{ id: 'b4-en', name: 'PC 와이드 대배너 (English)', size: '1440×480', lang: 'English' }, ...]
@@ -481,6 +568,97 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     return canvas
   }
 
+  const drawB3PreviewOverlay = (ctx, cw, ch) => {
+    const sc = cw / 375
+    const PB = Math.round(32 * sc), PX = Math.round(24 * sc)
+    const FS_MAIN = Math.round(28 * sc), FS_FLAG = Math.round(12 * sc)
+    const FLAG_PX = Math.round(6 * sc), FLAG_PY = Math.round(4 * sc)
+    const FLAG_R = Math.round(4 * sc), FLAG_GAP = Math.round(4 * sc)
+    const TXT_GAP = Math.round(8 * sc), LH = 1.3
+    const IND_H = Math.round(28 * sc), IND_PX = Math.round(10 * sc)
+    const IND_GAP = Math.round(8 * sc), IND_R = Math.round(56 * sc)
+    const IND_RIGHT = Math.round(12 * sc), IND_TOP = Math.round(12 * sc)
+    const IC = Math.round(10 * sc)
+
+    const mainText  = document.getElementById('b3-preview-main')?.innerText  || '메인 카피를\n입력하세요'
+    const flag1Text = document.getElementById('b3-preview-flag1')?.innerText || '사은품'
+    const flag2Text = document.getElementById('b3-preview-flag2')?.innerText || '기간 한정'
+
+    // 하단 그라디언트
+    const gradH = Math.round(ch * 0.32)
+    const grad = ctx.createLinearGradient(0, ch - gradH, 0, ch)
+    grad.addColorStop(0, 'rgba(0,0,0,0)')
+    grad.addColorStop(1, 'rgba(0,0,0,0.7)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, ch - gradH, cw, gradH)
+
+    // dim
+    ctx.fillStyle = 'rgba(0,0,0,0.02)'
+    ctx.fillRect(0, 0, cw, ch)
+
+    // 플래그 그리기 헬퍼
+    const drawFlag = (text, bg, x, y) => {
+      ctx.font = `700 ${FS_FLAG}px Pretendard, sans-serif`
+      const tw = ctx.measureText(text).width
+      const bw = tw + FLAG_PX * 2
+      const bh = Math.round(FS_FLAG * LH) + FLAG_PY * 2
+      ctx.fillStyle = bg
+      ctx.beginPath(); ctx.roundRect(x, y, bw, bh, FLAG_R); ctx.fill()
+      ctx.fillStyle = '#ffffff'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(text, x + FLAG_PX, y + bh / 2)
+      return bw
+    }
+
+    // 메인 텍스트 높이 계산
+    const mainLines = mainText.split('\n').slice(0, 2)
+    const lineH = Math.round(FS_MAIN * LH)
+    const mainH = mainLines.length * lineH
+    const flagH = Math.round(FS_FLAG * LH) + FLAG_PY * 2
+
+    // 플래그 (텍스트 위, bottom 기준)
+    const flagTop = ch - PB - mainH - TXT_GAP - flagH
+    let fx = PX
+    fx += drawFlag(flag1Text, '#4D6EE4', fx, flagTop) + FLAG_GAP
+    drawFlag(flag2Text, '#FE324B', fx, flagTop)
+
+    // 메인 텍스트
+    ctx.font = `700 ${FS_MAIN}px Pretendard, sans-serif`
+    ctx.fillStyle = '#ffffff'
+    ctx.textBaseline = 'top'
+    mainLines.forEach((line, i) => ctx.fillText(line, PX, ch - PB - mainH + i * lineH))
+
+    // 인디케이터
+    const IND_FS = Math.round(13 * sc)
+    ctx.font = `500 ${IND_FS}px Pretendard, sans-serif`
+    const numW = ctx.measureText('1 / 3').width
+    const pauseW = Math.round(IC * 0.75)
+    const vecW = IC
+    const indW = IND_PX * 2 + pauseW + IND_GAP + numW + IND_GAP + vecW
+    const indX = cw - IND_RIGHT - indW
+
+    ctx.fillStyle = 'rgba(30,32,35,0.5)'
+    ctx.beginPath(); ctx.roundRect(indX, IND_TOP, indW, IND_H, IND_R); ctx.fill()
+
+    // 일시정지 아이콘
+    const pX = indX + IND_PX, pY = IND_TOP + (IND_H - IC) / 2
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(pX, pY, Math.round(2.5 * sc), IC)
+    ctx.fillRect(pX + Math.round(5.5 * sc), pY, Math.round(2.5 * sc), IC)
+
+    // "1 / 3" 텍스트
+    ctx.font = `500 ${IND_FS}px Pretendard, sans-serif`
+    ctx.textBaseline = 'middle'
+    ctx.fillText('1 / 3', pX + pauseW + IND_GAP, IND_TOP + IND_H / 2)
+
+    // Vector 아이콘 (두 겹 사각형)
+    const vX = indX + indW - IND_PX - vecW, vY = IND_TOP + (IND_H - IC) / 2
+    const vS = IC * 0.6875, vR = Math.max(1, Math.round(0.625 * sc))
+    ctx.fillStyle = '#ffffff'
+    ctx.beginPath(); ctx.roundRect(vX, vY, vS, vS, vR); ctx.fill()
+    ctx.beginPath(); ctx.roundRect(vX + IC * 0.25, vY + IC * 0.25, vS, vS, vR); ctx.fill()
+  }
+
   const handleDownload = async (templateId) => {
     const tmpl = allTemplates.find((t) => t.id === templateId) || langCopies.find((lc) => lc.id === templateId) || logoPairs.find((lp) => lp.id === templateId)
     if (!tmpl) return
@@ -501,6 +679,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       const multiplier = dlScale === 'x2' ? 2 : 1
       const canvas = await renderToCanvas(templateId, multiplier)
       if (!canvas) return
+      if (b3WithPreview && templateId === 'b3') {
+        drawB3PreviewOverlay(canvas.getContext('2d'), canvas.width, canvas.height)
+      }
       const mimeType = fmt === 'JPG' ? 'image/jpeg' : 'image/png'
       const ext = fmt === 'JPG' ? 'jpg' : 'png'
       const link = document.createElement('a')
@@ -533,6 +714,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       } else {
         const canvas = await renderToCanvas(tmpl.id, multiplier)
         if (!canvas) continue
+        if (b3WithPreview && tmpl.id === 'b3') {
+          drawB3PreviewOverlay(canvas.getContext('2d'), canvas.width, canvas.height)
+        }
         const mimeType = fmt === 'JPG' ? 'image/jpeg' : 'image/png'
         const ext = fmt === 'JPG' ? 'jpg' : 'png'
         const base64 = canvas.toDataURL(mimeType, 0.95).split(',')[1]
@@ -1502,10 +1686,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2') && (
-                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 130 }}>
+                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2' || currentTemplateId === 'b3') && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150 }}>
                     {(currentTemplateId === 'b1' || currentTemplateId === 'b2'
                       ? [['layout', '레이아웃 가이드']]
+                      : currentTemplateId === 'b3'
+                      ? [['text', '메인배너 텍스트 미리보기']]
                       : [['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']]
                     ).map(([mode, label]) => (
                       <button key={mode} onClick={() => setB6GuideMode(m => m === mode ? null : mode)}
@@ -1515,7 +1701,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -1563,6 +1749,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </>
                     )}
                     {dlEffectiveFmt === 'PDF' && <p style={{ fontSize: 11, color: '#9F48CE', marginBottom: 12, textAlign: 'center' }}>300dpi 고화질 출력</p>}
+                    {currentTemplateId === 'b3' && dlSelectedIds.has('b3') && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 500 }}>
+                        <input type="checkbox" checked={b3WithPreview} onChange={e => setB3WithPreview(e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: '#9F48CE', cursor: 'pointer', flexShrink: 0 }} />
+                        메인배너 텍스트 미리보기 함께 다운로드
+                      </label>
+                    )}
                     <button onClick={() => { setShowDlPopup(false); handleDownloadZip() }} style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Download style={{ width: 14, height: 14 }} />
                       {dlSelectedIds.size <= 1 ? '다운로드' : `${dlSelectedIds.size}개 다운로드`}
@@ -2513,6 +2706,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         color={b7PreviewColor}
                         onColorChange={setB7PreviewColor}
                       />
+                    )}
+
+                    {/* b3 메인배너 텍스트 미리보기 */}
+                    {showGuide && !isLogoTab && currentTemplateId === 'b3' && b6GuideMode === 'text' && (
+                      <B3TextPreviewOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
 
                     {/* b7/b1/b2 띠배너 B 가이드 오버레이 */}

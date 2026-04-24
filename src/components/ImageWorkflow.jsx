@@ -622,26 +622,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         const [w, h] = tmpl.size.split('×').map(Number)
         const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
         const noImgLayers = tmpl.id === 'b10' ? (() => {
-          const mx = 60, cW = w - mx * 2, lh = 1.65
-          const bFS = 22, bH = 44, bW = 160
-          const bX = Math.round((w - bW) / 2)
-          const tFS = 36, tH = Math.round(tFS * lh * 2)
-          const bdFS = 20, bdH = Math.round(bdFS * lh * 4)
-          const cFS = 16, cH = Math.round(cFS * lh)
-          const g1 = 44, g2 = 28, grayPad = 24, g3 = 12
-          const total = bH + g1 + tH + g2 + grayPad + bdH + g3 + cH + grayPad
-          const sy = Math.round((h - total) / 2)
-          const bodyY = sy + bH + g1 + tH + g2 + grayPad
-          const contactY = bodyY + bdH + g3
-          const grayY = bodyY - grayPad
-          const grayH = grayPad + bdH + g3 + cH + grayPad
+          // Figma 1148:315 기준 (750×559)
           return [
-            { id: 'b10-gray-box', type: 'rect', color: '#F3F4F6', borderRadius: 0, x: 0, y: grayY, width: w, height: grayH, rotation: 0 },
-            { id: 'b10-badge-box', type: 'rect', color: '#000000', borderRadius: 6, x: bX, y: sy, width: bW, height: bH, rotation: 0 },
-            { id: 'b10-badge', type: 'text', text: '서비스 공지', x: bX, y: sy, width: bW, height: bH, fontSize: bFS, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
-            { id: 'b10-title', type: 'text', text: '인도장 혼잡 예상 안내', x: mx, y: sy + bH + g1, width: cW, height: tH, fontSize: tFS, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: -0.5, lineHeight: lh },
-            { id: 'b10-body', type: 'text', text: '성수기 연휴로 인한 공항 인도장이 혼잡이 예상되오니\n상품 수령에 불편함이 없으시도록 출국 3시간전\n공항에 방문 해 주시기 바랍니다.\n신세계면세점과 편안하고 즐거운 여행 되세요.', x: mx, y: bodyY, width: cW, height: bdH, fontSize: bdFS, fontWeight: '400', color: '#374151', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
-            { id: 'b10-contact', type: 'text', text: '문의 사항 안내 : 고객센터 ☎ 1661-8778', x: mx, y: contactY, width: cW, height: cH, fontSize: cFS, fontWeight: '400', color: '#9CA3AF', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
+            { id: 'b10-gray-box', type: 'rect', color: '#F3F3F3', borderRadius: 20, x: 36, y: 193, width: 678, height: 263, rotation: 0 },
+            { id: 'b10-badge-box', type: 'rect', color: '#1E2023', borderRadius: 8, x: 304, y: 48, width: 142, height: 43, rotation: 0 },
+            { id: 'b10-badge', type: 'text', text: '서비스 공지', x: 304, y: 48, width: 142, height: 43, fontSize: 24, fontWeight: '800', color: '#ffffff', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
+            { id: 'b10-title', type: 'text', text: '인도장 혼잡 예상 안내', x: 51, y: 111, width: 648, height: 53, fontSize: 44, fontWeight: '800', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
+            { id: 'b10-body', type: 'text', text: '성수기 연휴로 인도장 혼잡이 예상되오니\n상품 수령에 불편함이 없으시도록 출국 3시간전\n공항에 방문 해 주시기 바랍니다.', x: 111, y: 226, width: 529, height: 132, fontSize: 29, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 44 / 29 },
+            { id: 'b10-sub', type: 'text', text: '신세계면세점과 편안하고 즐거운 여행 되세요.', x: 36, y: 390, width: 678, height: 33, fontSize: 22, fontWeight: '500', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.5 },
+            { id: 'b10-contact', type: 'text', text: '문의 사항 안내  ☎ 고객센터 1661-8778', x: 0, y: 485, width: 750, height: 26, fontSize: 22, fontWeight: '500', color: '#373A3C', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
           ]
         })() : []
         const init = [bgLayer, ...noImgLayers]
@@ -2670,39 +2659,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     })()}
 
                     {showGuide && !isLogoTab && currentTemplateId === 'b10' && (() => {
-                      const mx = 60, cW = canvasW - mx * 2, lh = 1.65
-                      const bH = 44, bW = 160, bX = Math.round((canvasW - bW) / 2)
-                      const tFS = 36, tH = Math.round(tFS * lh * 2)
-                      const bdFS = 20, bdH = Math.round(bdFS * lh * 4)
-                      const cFS = 16, cH = Math.round(cFS * lh)
-                      const g1 = 44, g2 = 28, grayPad = 24, g3 = 12
-                      const total = bH + g1 + tH + g2 + grayPad + bdH + g3 + cH + grayPad
-                      const sy = Math.round((canvasH - total) / 2)
-                      const bodyY = sy + bH + g1 + tH + g2 + grayPad
-                      const contactY = bodyY + bdH + g3
-                      const grayY = bodyY - grayPad
-                      const grayH = grayPad + bdH + g3 + cH + grayPad
+                      // Figma 1148:315 기준 고정값
                       return (
                         <div style={{ position: 'absolute', left: 0, top: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 95 }}>
-                          {/* 회색 박스 영역 */}
-                          <div style={{ position: 'absolute', left: 0, top: grayY, width: canvasW, height: grayH, border: '2px dashed rgba(107,114,128,0.5)', background: 'rgba(107,114,128,0.05)' }}>
-                            <span style={{ position: 'absolute', left: 8, top: 3, fontSize: 9, fontWeight: 700, color: '#6b7280', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>회색 박스 배경 — 본문+문의</span>
+                          {/* 회색 박스 영역 x=36 y=193 678×263 r=20 */}
+                          <div style={{ position: 'absolute', left: 36, top: 193, width: 678, height: 263, border: '2px dashed rgba(107,114,128,0.5)', borderRadius: 20, background: 'rgba(107,114,128,0.04)' }}>
+                            <span style={{ position: 'absolute', left: 8, top: 3, fontSize: 9, fontWeight: 700, color: '#6b7280', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>회색 박스 #F3F3F3 · r=20 · 678×263</span>
                           </div>
-                          {/* 배지 영역 */}
-                          <div style={{ position: 'absolute', left: bX, top: sy, width: bW, height: bH, border: '2px dashed rgba(0,0,0,0.5)', borderRadius: 7 }}>
-                            <span style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 4px)', fontSize: 9, fontWeight: 700, color: '#1e2023', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>배지 22px · Bold</span>
+                          {/* 배지 x=304 y=48 142×43 r=8 */}
+                          <div style={{ position: 'absolute', left: 304, top: 48, width: 142, height: 43, border: '2px dashed rgba(0,0,0,0.55)', borderRadius: 8 }}>
+                            <span style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 4px)', fontSize: 9, fontWeight: 700, color: '#1e2023', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>배지 24px ExtraBold · 142×43</span>
                           </div>
-                          {/* 타이틀 영역 */}
-                          <div style={{ position: 'absolute', left: mx, top: sy + bH + g1, width: cW, height: tH, background: 'rgba(159,72,206,0.08)', border: '2px dashed rgba(159,72,206,0.5)', borderRadius: 3 }}>
-                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>타이틀 {tFS}px · Bold</span>
+                          {/* 타이틀 x=51 y=111 648×53 */}
+                          <div style={{ position: 'absolute', left: 51, top: 111, width: 648, height: 53, background: 'rgba(159,72,206,0.08)', border: '2px dashed rgba(159,72,206,0.5)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>타이틀 44px ExtraBold · 648×53</span>
                           </div>
-                          {/* 본문 영역 */}
-                          <div style={{ position: 'absolute', left: mx, top: bodyY, width: cW, height: bdH, background: 'rgba(55,65,81,0.07)', border: '1.5px dashed rgba(55,65,81,0.4)', borderRadius: 3 }}>
-                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#374151', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>본문 {bdFS}px</span>
+                          {/* 본문 x=111 y=226 529×132 */}
+                          <div style={{ position: 'absolute', left: 111, top: 226, width: 529, height: 132, background: 'rgba(55,65,81,0.07)', border: '1.5px dashed rgba(55,65,81,0.4)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#374151', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>본문 29px Bold · lh=44 · 529×132</span>
                           </div>
-                          {/* 문의 영역 */}
-                          <div style={{ position: 'absolute', left: mx, top: contactY, width: cW, height: cH, background: 'rgba(156,163,175,0.12)', border: '1.5px dashed rgba(156,163,175,0.6)', borderRadius: 3 }}>
-                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#9ca3af', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>문의 안내 {cFS}px</span>
+                          {/* 서브 x=36 y=390 678×33 */}
+                          <div style={{ position: 'absolute', left: 36, top: 390, width: 678, height: 33, background: 'rgba(55,65,81,0.05)', border: '1.5px dashed rgba(55,65,81,0.3)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#6b7280', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>서브 22px Medium · 678×33</span>
+                          </div>
+                          {/* 문의 y=485 750×26 */}
+                          <div style={{ position: 'absolute', left: 0, top: 485, width: 750, height: 26, background: 'rgba(156,163,175,0.10)', border: '1.5px dashed rgba(156,163,175,0.6)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 8, top: 1, fontSize: 9, fontWeight: 700, color: '#9ca3af', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>문의 22px Medium · 750×26</span>
                           </div>
                         </div>
                       )

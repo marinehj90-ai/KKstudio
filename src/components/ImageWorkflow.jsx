@@ -12,6 +12,9 @@ import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
 import JSZip from 'jszip'
 import { removeBackground } from '@imgly/background-removal'
+import btnCheckboxBg from '../assets/guide/btn-checkbox-bg.svg'
+import btnCheckIcon from '../assets/guide/btn-check-icon.svg'
+import btnCloseIcon from '../assets/guide/btn-close-icon.svg'
 
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
@@ -120,6 +123,54 @@ const B6TextPreviewOverlay = memo(function B6TextPreviewOverlay({ canvasW, canva
   )
 })
 
+// b7 텍스트 미리보기 오버레이
+const B7TextPreviewOverlay = memo(function B7TextPreviewOverlay({ canvasW, canvasH, color, onColorChange }) {
+  const mainRef = useRef(null)
+  const subRef  = useRef(null)
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.innerText = '메인 카피를 입력하세요'
+    if (subRef.current)  subRef.current.innerText  = '서브 카피를 입력하세요'
+  }, [])
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.style.color = color
+    if (subRef.current)  subRef.current.style.color  = color
+  }, [color])
+
+  // T 텍스트 영역: x=560, w=400, 중앙 정렬
+  const T_X = 560, T_W = 400
+  const MAIN_FS = 24, SUB_FS = 18, GAP = 14
+  const MAIN_H = Math.round(MAIN_FS * 1.4)  // 약 34px
+  const SUB_H  = Math.round(SUB_FS  * 1.4)  // 약 26px
+  const totalH = MAIN_H + GAP + SUB_H
+  const startY = Math.round((canvasH - totalH) / 2)
+
+  const stop = e => e.stopPropagation()
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90 }}>
+      {/* 메인카피 — 24px Bold, center */}
+      <div ref={mainRef} contentEditable suppressContentEditableWarning
+        onMouseDown={stop} onClick={stop} onKeyDown={stop}
+        style={{ position: 'absolute', left: T_X, top: startY, width: T_W, height: MAIN_H, fontSize: MAIN_FS, fontWeight: 700, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.5)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
+      />
+      {/* 서브카피 — 18px Regular, center */}
+      <div ref={subRef} contentEditable suppressContentEditableWarning
+        onMouseDown={stop} onClick={stop} onKeyDown={stop}
+        style={{ position: 'absolute', left: T_X, top: startY + MAIN_H + GAP, width: T_W, height: SUB_H, fontSize: SUB_FS, fontWeight: 400, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.3)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
+      />
+      {/* 컬러 토글 */}
+      <div style={{ position: 'absolute', left: T_X + T_W / 2 - 25, top: startY + totalH + 8, display: 'flex', gap: 5, pointerEvents: 'all' }}>
+        {['#ffffff', '#1E2023'].map(c => (
+          <button key={c} onMouseDown={stop} onClick={() => onColorChange(c)}
+            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: `2.5px solid ${color === c ? '#9F48CE' : '#d1d5db'}`, cursor: 'pointer', boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #e5e7eb' : 'none' }} />
+        ))}
+      </div>
+    </div>
+  )
+})
+
 function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   const isSymbol = guide === '심볼형'
   const SYMBOL_W = 160
@@ -184,6 +235,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [showGuide, setShowGuide] = useState(false)
   const [b6GuideMode, setB6GuideMode] = useState(null) // null | 'layout' | 'text'
   const [b6PreviewText, setB6PreviewText] = useState({ main: '메인 카피를 입력하세요', sub: '서브 카피를 입력하세요', color: '#1E2023' })
+  const [b7PreviewColor, setB7PreviewColor] = useState('#1E2023')
   // 다국어 복사본: [{ id: 'b4-en', name: 'PC 와이드 대배너 (English)', size: '1440×480', lang: 'English' }, ...]
   const [langCopies, setLangCopies] = useState([])
   // 로고 쌍: b8 선택 시 black/white 자동 생성
@@ -333,6 +385,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       ctx.translate(cx, cy)
       ctx.rotate(((layer.rotation || 0) * Math.PI) / 180)
       if (layer.type === 'image') {
+        if (!layer.src) { ctx.restore(); continue }
         const logoPairInfo = logoPairs.find(lp => lp.id === templateId)
         await new Promise((resolve) => {
           const img = new Image()
@@ -396,7 +449,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         const isLeft = layer.direction === 'to-left'
         const grad = ctx.createLinearGradient(isLeft ? gW / 2 : -gW / 2, 0, isLeft ? -gW / 2 : gW / 2, 0)
         grad.addColorStop(0, `rgba(${rr},${gg},${bb},1)`)
-        grad.addColorStop(0.7, `rgba(${rr},${gg},${bb},0.7)`)
+        grad.addColorStop(0.5, `rgba(${rr},${gg},${bb},1)`)
         grad.addColorStop(1, `rgba(${rr},${gg},${bb},0)`)
         ctx.fillStyle = grad
         ctx.fillRect(-gW / 2, -gH / 2, gW, gH)
@@ -547,7 +600,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       selectedTemplateDetails.forEach((tmpl) => {
         const [w, h] = tmpl.size.split('\u00d7').map(Number)
         // 배경색 레이어 (최하단)
-        const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        const bgLayer = { id: 'background', type: 'background', color: (tmpl.id === 'b1' || tmpl.id === 'b2') ? '#777777' : '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
         // b4 전용 레이아웃 상수는 파일 상단 전역 상수 사용
         const imgLayers = imgs.map((img, idx) => {
           let imgW, imgH, imgX, imgY
@@ -582,7 +635,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgH = Math.round(210 / ratio)
             imgX = w - imgW
             imgY = Math.round((h - imgH) / 2)
-          } else if (tmpl.id === 'b7') {
+          } else if (tmpl.id === 'b7' || tmpl.id === 'b1' || tmpl.id === 'b2') {
             // A2 영역(x=960, w=300)에 가로 300px 맞춰 세로 중앙 정렬
             const ratio = img.naturalWidth / img.naturalHeight
             imgW = 300
@@ -633,23 +686,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         })() : []
 
         // 통컨 띠배너 그라디언트
-        const b6b7GradLayer = (tmpl.id === 'b6' || tmpl.id === 'b7') && imgLayers[0] ? (() => {
+        // b7/b1/b2 A1 복사 이미지 레이어
+        const b7A1Layer = (tmpl.id === 'b7' || tmpl.id === 'b1' || tmpl.id === 'b2') && imgLayers[0] ? (() => {
+          const src = imgLayers[0]
+          const A1_X = 260, A1_W = 300
+          return [{ ...src, id: `${tmpl.id}-img-a1`, src: null, x: A1_X, y: src.y, width: A1_W, height: src.height, isB7A1: true }]
+        })() : []
+
+        const b6b7GradLayer = (tmpl.id === 'b6' || tmpl.id === 'b7' || tmpl.id === 'b1' || tmpl.id === 'b2') && imgLayers[0] ? (() => {
           if (tmpl.id === 'b6') {
             const gradX = (w - 210) - 10
             return [{ id: 'b6-gradient', type: 'gradient', direction: 'to-right', x: gradX, y: 0, width: 80, height: h, rotation: 0 }]
           } else {
-            // b7: A2 이미지(x=960, w=300) 양쪽 경계 중앙에 그라디언트
-            const A2_X = 960, A2_W = 300, GRAD_W = 140
+            const GRAD_W = 140
+            const A1_X = 260, A1_W = 300
+            const A2_X = 960, A2_W = 300
+            const tid = tmpl.id
             return [
-              // 왼쪽 그라디언트: 중앙이 A2 왼쪽 경계(x=960)에 위치
-              { id: 'b7-gradient-left',  type: 'gradient', direction: 'to-right',  x: A2_X - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
-              // 오른쪽 그라디언트: 중앙이 A2 오른쪽 경계(x=1260)에 위치
-              { id: 'b7-gradient-right', type: 'gradient', direction: 'to-left',   x: (A2_X + A2_W) - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
+              { id: `${tid}-grad-a1-left`,  type: 'gradient', direction: 'to-right', x: A1_X - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
+              { id: `${tid}-grad-a1-right`, type: 'gradient', direction: 'to-left',  x: (A1_X + A1_W) - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
+              { id: `${tid}-grad-a2-left`,  type: 'gradient', direction: 'to-right', x: A2_X - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
+              { id: `${tid}-grad-a2-right`, type: 'gradient', direction: 'to-left',  x: (A2_X + A2_W) - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
             ]
           }
         })() : []
 
-        const init = [bgLayer, ...imgLayers, ...b4TextLayers, ...b11Layers, ...b6b7GradLayer]
+        const init = [bgLayer, ...b7A1Layer, ...imgLayers, ...b4TextLayers, ...b11Layers, ...b6b7GradLayer]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
@@ -981,11 +1043,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       }
       if ((e.metaKey || e.ctrlKey) && (e.key === '+' || e.key === '=')) {
         e.preventDefault()
-        setZoom((z) => Math.min(200, z + 25))
+        setZoom((z) => { const steps = [10,25,50,75,100,150,200,300]; const i = steps.findIndex(s => s > z); return i === -1 ? steps[steps.length-1] : steps[i] })
       }
       if ((e.metaKey || e.ctrlKey) && e.key === '-') {
         e.preventDefault()
-        setZoom((z) => Math.max(25, z - 25))
+        setZoom((z) => { const steps = [10,25,50,75,100,150,200,300]; const i = steps.findLastIndex(s => s < z); return i === -1 ? steps[0] : steps[i] })
       }
       if ((e.metaKey || e.ctrlKey) && e.key === '0') {
         e.preventDefault()
@@ -1047,8 +1109,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     e.preventDefault()
     // Cmd/Ctrl + 휠 = 줌
     if (e.metaKey || e.ctrlKey) {
-      const delta = e.deltaY > 0 ? -25 : 25
-      setZoom((z) => Math.min(200, Math.max(25, z + delta)))
+      const steps = [10,25,50,75,100,150,200,300]
+      setZoom((z) => {
+        if (e.deltaY > 0) { const i = steps.findLastIndex(s => s < z); return i === -1 ? steps[0] : steps[i] }
+        else { const i = steps.findIndex(s => s > z); return i === -1 ? steps[steps.length-1] : steps[i] }
+      })
     } else {
       // 일반 휠 = 패닝 (Shift+휠 = 좌우)
       setPanOffset((prev) => ({
@@ -1089,9 +1154,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const fitZoom = Math.min(
       Math.floor((rect.width - padding * 2) / canvasW * 100),
       Math.floor((rect.height - padding * 2) / canvasH * 100),
-      200
+      300
     )
-    setZoom(Math.max(25, fitZoom))
+    const steps = [10,25,50,75,100,150,200,300]
+    const nearest = steps.reduce((a, b) => Math.abs(b - fitZoom) < Math.abs(a - fitZoom) ? b : a)
+    setZoom(Math.max(10, nearest))
     setPanOffset({ x: 0, y: 0 })
   }
 
@@ -1312,9 +1379,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7') && (
+                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2') && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 130 }}>
-                    {[['layout', '레이아웃 가이드'], ...(currentTemplateId === 'b6' ? [['text', '텍스트 미리보기']] : [])].map(([mode, label]) => (
+                    {[['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']].map(([mode, label]) => (
                       <button key={mode} onClick={() => setB6GuideMode(m => m === mode ? null : mode)}
                         style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${b6GuideMode === mode ? '#9F48CE' : 'transparent'}`, background: b6GuideMode === mode ? '#f3e8ff' : 'transparent', color: b6GuideMode === mode ? '#7c3aed' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {label}
@@ -1322,7 +1389,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -1513,7 +1580,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 {uploadedFiles.map((f, i) => (
                                   <div key={i} className="relative">
                                     <button
-                                      onClick={() => { if (selectedLayer?.type === 'image') { updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, src: f.url } : l)) } else { addImageLayer(f) } }}
+                                      onClick={() => { if (selectedLayer?.type === 'image') { updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, src: f.url, isB7A1: false } : l)) } else { addImageLayer(f) } }}
                                       onMouseEnter={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setTooltip({ file: f, x: rect.right + 8, y: rect.top }) }}
                                       onMouseLeave={() => setTooltip(null)}
                                       className="relative w-full aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-primary-400 transition-all"
@@ -1984,12 +2051,25 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 : undefined
                               return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', clipPath: clip }} />
                             }
-                            return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />
+                            return (
+                              <>
+                                {layer.src && <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />}
+                                {layer.isB7A1 && (
+                                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }}>
+                                    <div style={{ background: 'rgba(0,0,0,0.75)', borderRadius: 6, padding: '6px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>이 레이어를 선택 후</span>
+                                      <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>왼쪽에서 이미지를 교체하세요</span>
+                                      <span style={{ fontSize: 9, fontWeight: 400, color: 'rgba(255,200,200,0.9)', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>(좌우 동일 이미지 삽입 금지)</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )
                           })()}
                           {layer.type === 'gradient' && (() => {
                             const [rr, gg, bb] = hexToRgb(bgColor)
                             const dir = layer.direction === 'to-left' ? 'to left' : 'to right'
-                            return <div style={{ width: '100%', height: '100%', background: `linear-gradient(${dir}, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />
+                            return <div style={{ width: '100%', height: '100%', background: `linear-gradient(${dir}, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},1) 50%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />
                           })()}
                           {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
                             <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
@@ -2214,24 +2294,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       )
                     })()}
 
-                    {/* b7 띠배너 B 가이드 오버레이 */}
-                    {showGuide && !isLogoTab && currentTemplateId === 'b7' && b6GuideMode === 'layout' && (() => {
+                    {/* b7/b1/b2 텍스트 미리보기 */}
+                    {showGuide && !isLogoTab && (currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2') && b6GuideMode === 'text' && (
+                      <B7TextPreviewOverlay
+                        canvasW={canvasW}
+                        canvasH={canvasH}
+                        color={b7PreviewColor}
+                        onColorChange={setB7PreviewColor}
+                      />
+                    )}
+
+                    {/* b7/b1/b2 띠배너 B 가이드 오버레이 */}
+                    {showGuide && !isLogoTab && (currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2') && b6GuideMode === 'layout' && (() => {
                       const MARGIN = 260  // 양쪽 여백
                       const A1_W = 300, T_W = 400, A2_W = 300
                       const A1_X = MARGIN
                       const T_X  = MARGIN + A1_W
                       const A2_X = MARGIN + A1_W + T_W
-                      const VISIBLE_W = 1136
-                      const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2) // 192
+                      const VISIBLE_W = (currentTemplateId === 'b1' || currentTemplateId === 'b2') ? 840 : 1136
+                      const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
-                          {/* 노출 영역 외 좌우 어둠 */}
-                          <div style={{ position: 'absolute', left: 0, top: 0, width: VISIBLE_X, height: canvasH, background: 'rgba(0,0,0,0.35)' }} />
-                          <div style={{ position: 'absolute', left: VISIBLE_X + VISIBLE_W, top: 0, width: canvasW - (VISIBLE_X + VISIBLE_W), height: canvasH, background: 'rgba(0,0,0,0.35)' }} />
-                          {/* 노출 영역 테두리 + 라벨 */}
-                          <div style={{ position: 'absolute', left: VISIBLE_X, top: 0, width: VISIBLE_W, height: canvasH, border: '2px solid rgba(99,179,237,0.9)', boxSizing: 'border-box' }}>
+                          {/* 레이아웃 가이드 전용: 딤은 항상표시 오버레이와 중복이므로 생략 */}
+                          {/* 노출 영역 테두리 + 라벨 (파선) */}
+                          <div style={{ position: 'absolute', left: VISIBLE_X, top: 0, width: VISIBLE_W, height: canvasH, border: '2px dashed rgba(99,179,237,0.9)', boxSizing: 'border-box' }}>
                             <div style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', background: 'rgba(99,179,237,0.95)', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 4, whiteSpace: 'nowrap', fontFamily: 'system-ui, sans-serif' }}>
-                              실제 노출 영역 {VISIBLE_W}px
+                              노출영역 : {VISIBLE_W}px
                             </div>
                           </div>
                           {/* A1 이미지 영역 */}
@@ -2268,6 +2356,58 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         </div>
                       )
                     })()}
+
+                    {/* b7 항상 표시: 좌우 192px 딤+점선 */}
+                    {!isLogoTab && currentTemplateId === 'b7' && (() => {
+                      const VISIBLE_W = 1136
+                      const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 88, overflow: 'hidden' }}>
+                          {[
+                            { left: 0, width: VISIBLE_X },
+                            { left: VISIBLE_X + VISIBLE_W, width: canvasW - (VISIBLE_X + VISIBLE_W) }
+                          ].map((s, i) => (
+                            <div key={i} style={{ position: 'absolute', left: s.left, top: 0, width: s.width, height: canvasH, background: 'rgba(0,0,0,0.5)', backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 1px, transparent 1px, transparent 8px), repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 1px, transparent 1px, transparent 8px)' }} />
+                          ))}
+                          <div style={{ position: 'absolute', left: VISIBLE_X, top: 0, width: VISIBLE_W, height: canvasH, border: '2px dashed rgba(99,179,237,0.6)', boxSizing: 'border-box', pointerEvents: 'none' }} />
+                        </div>
+                      )
+                    })()}
+
+                    {/* b1/b2 항상 표시: 노출 영역 양쪽 선+딤 표시 */}
+                    {!isLogoTab && (currentTemplateId === 'b1' || currentTemplateId === 'b2') && (() => {
+                      const VISIBLE_W = currentTemplateId === 'b1' ? 1440 : 840
+                      const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
+                      const LABEL = currentTemplateId === 'b1' ? '가려지는 영역' : '디바이스에 따라 가려지는 영역'
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 88, overflow: 'hidden' }}>
+                          {[
+                            { left: 0, width: VISIBLE_X, side: 'right' },
+                            { left: VISIBLE_X + VISIBLE_W, width: canvasW - (VISIBLE_X + VISIBLE_W), side: 'left' }
+                          ].map((s, i) => (
+                            <div key={i} style={{ position: 'absolute', left: s.left, top: 0, width: s.width, height: canvasH, background: 'rgba(99,179,237,0.3)', borderRight: s.side === 'right' ? '2px dashed rgba(99,179,237,0.9)' : 'none', borderLeft: s.side === 'left' ? '2px dashed rgba(99,179,237,0.9)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(30,80,160,0.95)', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap', letterSpacing: '0.05em', textAlign: 'center', padding: '0 4px' }}>{LABEL}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+
+                    {/* b1 항상 표시: 피그마 BTN (오늘 그만볼래요 + 닫기) — export 제외 */}
+                    {!isLogoTab && currentTemplateId === 'b1' && (
+                      <div style={{ position: 'absolute', left: 1265, top: 28, width: 136, height: 24, display: 'flex', alignItems: 'center', gap: 14, pointerEvents: 'none', zIndex: 89 }}>
+                        {/* 체크박스 그룹 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <div style={{ position: 'relative', width: 20, height: 20, flexShrink: 0 }}>
+                            <img src={btnCheckboxBg} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+                            <img src={btnCheckIcon} alt="" style={{ position: 'absolute', left: 4, top: 4, width: 12, height: 12 }} />
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 400, color: '#fff', fontFamily: 'Pretendard, sans-serif', whiteSpace: 'nowrap', lineHeight: 1 }}>오늘 그만볼래요</span>
+                        </div>
+                        {/* 닫기 아이콘 */}
+                        <img src={btnCloseIcon} alt="" style={{ width: 24, height: 24, flexShrink: 0 }} />
+                      </div>
+                    )}
 
                     {/* b11 팝업 배너 가이드 오버레이 */}
                     {showGuide && !isLogoTab && currentTemplateId === 'b11' && (() => {
@@ -2347,11 +2487,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
                 {/* 줌 컨트롤 - 캔버스 영역 하단 중앙 */}
                 <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 200, background: 'rgba(255,255,255,0.97)', borderRadius: 999, border: '1px solid #e5e7eb', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 14px' }}>
-                  <button onClick={() => setZoom((z) => Math.max(25, z - 25))} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#6b7280' }} onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <button onClick={() => setZoom((z) => { const steps=[10,25,50,75,100,150,200,300]; const i=steps.findLastIndex(s=>s<z); return i===-1?steps[0]:steps[i] })} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#6b7280' }} onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                     <ZoomOut style={{ width: 16, height: 16 }} />
                   </button>
                   <span style={{ fontSize: 13, fontFamily: 'monospace', color: '#374151', width: 42, textAlign: 'center' }}>{zoom}%</span>
-                  <button onClick={() => setZoom((z) => Math.min(200, z + 25))} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#6b7280' }} onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <button onClick={() => setZoom((z) => { const steps=[10,25,50,75,100,150,200,300]; const i=steps.findIndex(s=>s>z); return i===-1?steps[steps.length-1]:steps[i] })} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#6b7280' }} onMouseEnter={e => e.currentTarget.style.background='#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                     <ZoomIn style={{ width: 16, height: 16 }} />
                   </button>
                   <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 2px' }} />
@@ -2523,7 +2663,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 })()}
                                 {layer.type === 'gradient' && (() => {
                                   const [rr, gg, bb] = hexToRgb(tBg)
-                                  return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},0.7) 70%, rgba(${rr},${gg},${bb},0) 100%)` }} />
+                                  return <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},1) 50%, rgba(${rr},${gg},${bb},0) 100%)` }} />
                                 })()}
                                 {layer.type === 'text' && <div style={{ fontSize: layer.fontSize * Math.min(tScaleX, tScaleY), fontWeight: layer.fontWeight || '400', color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', lineHeight: layer.lineHeight || 1.4, letterSpacing: `${(layer.letterSpacing || 0) * Math.min(tScaleX, tScaleY)}px`, overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-all', width: '100%', height: '100%' }}>{layer.text}</div>}
                               </div>

@@ -616,6 +616,51 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         } else {
           ctx.fillRect(-rW / 2, -rH / 2, rW, rH)
         }
+      } else if (layer.type === 'shape') {
+        const rW = layer.width * multiplier
+        const rH = layer.height * multiplier
+        const sw = (layer.strokeWidth || 3) * multiplier
+        const pts = layer.points || (layer.shapeType === 'star' ? 5 : 6)
+        const ir = layer.innerRadius ?? 0.4
+        ctx.fillStyle = layer.color || '#374151'
+        ctx.strokeStyle = layer.color || '#374151'
+        ctx.lineWidth = sw
+        ctx.lineCap = 'round'
+        if (layer.shapeType === 'ellipse') {
+          ctx.beginPath(); ctx.ellipse(0, 0, rW / 2, rH / 2, 0, 0, Math.PI * 2); ctx.fill()
+        } else if (layer.shapeType === 'line' || layer.shapeType === 'arrow') {
+          const pad = layer.shapeType === 'arrow' ? sw * 3 : 0
+          const x1 = -rW / 2 + (layer.arrowStart ? pad : 0)
+          const x2 =  rW / 2 - (layer.arrowEnd  ? pad : 0)
+          ctx.beginPath(); ctx.moveTo(x1, 0); ctx.lineTo(x2, 0); ctx.stroke()
+          const drawHead = (cx) => {
+            const sign = cx > 0 ? 1 : -1
+            ctx.beginPath()
+            ctx.moveTo(cx, 0)
+            ctx.lineTo(cx - sign * sw * 3, -sw * 2)
+            ctx.lineTo(cx - sign * sw * 3,  sw * 2)
+            ctx.closePath(); ctx.fill()
+          }
+          if (layer.arrowEnd)   drawHead( rW / 2)
+          if (layer.arrowStart) drawHead(-rW / 2)
+        } else if (layer.shapeType === 'polygon') {
+          ctx.beginPath()
+          for (let i = 0; i < pts; i++) {
+            const a = (i * 2 * Math.PI / pts) - Math.PI / 2
+            const x = rW / 2 * Math.cos(a), y = rH / 2 * Math.sin(a)
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+          }
+          ctx.closePath(); ctx.fill()
+        } else if (layer.shapeType === 'star') {
+          ctx.beginPath()
+          for (let i = 0; i < pts * 2; i++) {
+            const a = (i * Math.PI / pts) - Math.PI / 2
+            const r2 = i % 2 === 0 ? 1 : ir
+            const x = rW / 2 * r2 * Math.cos(a), y = rH / 2 * r2 * Math.sin(a)
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+          }
+          ctx.closePath(); ctx.fill()
+        }
       }
       ctx.restore()
     }
@@ -1247,7 +1292,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         if (isTextLayer && !isNoImageTemplate) {
           // 텍스트(b10 제외): 오른쪽 width만 조절
           nw = Math.max(60, ow + dx)
-        } else if (isCorner && layer.type !== 'rect') {
+        } else if (isCorner && layer.type !== 'rect' && layer.type !== 'shape') {
           // 이미지 등: 비율 고정 코너 리사이즈
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
           else if (handle === 'sw') { nw = Math.max(20, ow - dx); nh = Math.round(nw / aspect); nx = ox + (ow - nw) }
@@ -1331,11 +1376,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const id = `shape-${Date.now()}`
     const cx = Math.round(canvasW / 2), cy = Math.round(canvasH / 2)
     let newLayer
-    if (shapeType === 'rect')       newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 0,  x: cx - 150, y: cy - 75,  width: 300, height: 150, rotation: 0 }
-    if (shapeType === 'rect-round') newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 16, x: cx - 150, y: cy - 75,  width: 300, height: 150, rotation: 0 }
-    if (shapeType === 'circle')     newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 75, x: cx - 75,  y: cy - 75,  width: 150, height: 150, rotation: 0 }
-    if (shapeType === 'line-h')     newLayer = { id, type: 'rect', color: '#374151', borderRadius: 0,  x: Math.round(canvasW * 0.1), y: cy - 1, width: Math.round(canvasW * 0.8), height: 3, rotation: 0 }
-    if (shapeType === 'line-v')     newLayer = { id, type: 'rect', color: '#374151', borderRadius: 0,  x: cx - 1, y: Math.round(canvasH * 0.1), width: 3, height: Math.round(canvasH * 0.8), rotation: 0 }
+    if (shapeType === 'rect')    newLayer = { id, type: 'rect',  color: '#E5E7EB', borderRadius: 0, x: cx - 150, y: cy - 75, width: 300, height: 150, rotation: 0 }
+    if (shapeType === 'ellipse') newLayer = { id, type: 'shape', shapeType: 'ellipse', color: '#E5E7EB', x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
+    if (shapeType === 'line')    newLayer = { id, type: 'shape', shapeType: 'line',    color: '#374151', strokeWidth: 3, x: Math.round(canvasW * 0.1), y: cy - 2, width: Math.round(canvasW * 0.8), height: 4, rotation: 0 }
+    if (shapeType === 'arrow')   newLayer = { id, type: 'shape', shapeType: 'arrow',   color: '#374151', strokeWidth: 3, arrowEnd: true, arrowStart: false, x: Math.round(canvasW * 0.1), y: cy - 10, width: Math.round(canvasW * 0.8), height: 20, rotation: 0 }
+    if (shapeType === 'polygon') newLayer = { id, type: 'shape', shapeType: 'polygon', color: '#E5E7EB', points: 6, x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
+    if (shapeType === 'star')    newLayer = { id, type: 'shape', shapeType: 'star',    color: '#FBBA4B', points: 5, innerRadius: 0.4, x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
     if (newLayer) { updateLayers([...layers, newLayer]); setSelectedLayerId(id) }
   }
 
@@ -2080,13 +2126,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   const graphicsPanel = (
                     <div key="graphics" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">그래픽</h3>
-                      <div className="grid grid-cols-5 gap-1.5">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { id: 'rect', label: '사각형', svg: <svg width="20" height="14" viewBox="0 0 20 14"><rect x="1" y="1" width="18" height="12" rx="0" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
-                          { id: 'rect-round', label: '둥근박스', svg: <svg width="20" height="14" viewBox="0 0 20 14"><rect x="1" y="1" width="18" height="12" rx="4" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
-                          { id: 'circle', label: '원', svg: <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
-                          { id: 'line-h', label: '가로선', svg: <svg width="20" height="14" viewBox="0 0 20 14"><line x1="2" y1="7" x2="18" y2="7" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/></svg> },
-                          { id: 'line-v', label: '세로선', svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/></svg> },
+                          { id: 'rect',    label: '사각형',  svg: <svg width="20" height="14" viewBox="0 0 20 14"><rect x="1" y="1" width="18" height="12" rx="0" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'ellipse', label: '타원',    svg: <svg width="20" height="14" viewBox="0 0 20 14"><ellipse cx="10" cy="7" rx="9" ry="6" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'line',    label: '선',      svg: <svg width="20" height="14" viewBox="0 0 20 14"><line x1="2" y1="7" x2="18" y2="7" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/></svg> },
+                          { id: 'arrow',   label: '화살표',  svg: <svg width="20" height="14" viewBox="0 0 20 14"><line x1="2" y1="7" x2="14" y2="7" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/><polygon points="18,7 13,4 13,10" fill="#6B7280"/></svg> },
+                          { id: 'polygon', label: '폴리곤',  svg: <svg width="20" height="14" viewBox="0 0 20 14"><polygon points="10,1 18,6 15,13 5,13 2,6" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'star',    label: '별',      svg: <svg width="20" height="14" viewBox="0 0 20 14"><polygon points="10,1 12,6 18,6 13,9 15,14 10,11 5,14 7,9 2,6 8,6" fill="#FBBA4B" stroke="#F59E0B" strokeWidth="0.5"/></svg> },
                         ].map(shape => (
                           <button key={shape.id} onClick={() => addShapeLayer(shape.id)}
                             className="flex flex-col items-center gap-1 py-2 rounded-xl bg-white border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all">
@@ -2469,8 +2516,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   if (type === 'rect') {
                     const rectColorPanel = (
                       <div key="rectColor" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
-                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">박스 색상</h3>
-                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1.5">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">박스 속성</h3>
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1.5 mb-2">
                           <label className="cursor-pointer shrink-0" style={{ position: 'relative', width: 18, height: 18 }}>
                             <div style={{ width: 18, height: 18, borderRadius: 3, backgroundColor: selectedLayer.color || '#000000', border: '1px solid #e5e7eb' }} />
                             <input type="color" value={selectedLayer.color || '#000000'} onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
@@ -2479,9 +2526,81 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             onChange={(e) => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l)) }}
                             style={{ flex: 1, minWidth: 0, fontSize: 12, fontFamily: 'monospace', color: '#374151', background: 'transparent', border: 'none', outline: 'none' }} />
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span style={{ fontSize: 11, color: '#6b7280', flexShrink: 0 }}>모서리</span>
+                          <input type="range" min={0} max={Math.round(Math.min(selectedLayer.width, selectedLayer.height) / 2)} value={selectedLayer.borderRadius || 0}
+                            onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, borderRadius: Number(e.target.value) } : l))}
+                            onMouseUp={() => commitHistory(layers)} className="flex-1" />
+                          <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#374151', width: 28, textAlign: 'right', flexShrink: 0 }}>{selectedLayer.borderRadius || 0}</span>
+                        </div>
                       </div>
                     )
                     return <>{rectColorPanel}{selectedObj}{graphicsPanel}{bgPanel}{bottomPanels}</>
+                  }
+                  if (type === 'shape') {
+                    const shapeColorPanel = (
+                      <div key="shapeColor" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">도형 속성</h3>
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1.5 mb-2">
+                          <label className="cursor-pointer shrink-0" style={{ position: 'relative', width: 18, height: 18 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: 3, backgroundColor: selectedLayer.color || '#374151', border: '1px solid #e5e7eb' }} />
+                            <input type="color" value={selectedLayer.color || '#374151'} onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                          </label>
+                          <input type="text" value={selectedLayer.color || '#374151'}
+                            onChange={(e) => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l)) }}
+                            style={{ flex: 1, minWidth: 0, fontSize: 12, fontFamily: 'monospace', color: '#374151', background: 'transparent', border: 'none', outline: 'none' }} />
+                        </div>
+                        {(selectedLayer.shapeType === 'line' || selectedLayer.shapeType === 'arrow') && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 11, color: '#6b7280', flexShrink: 0 }}>두께</span>
+                              <input type="range" min={1} max={20} value={selectedLayer.strokeWidth || 3}
+                                onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, strokeWidth: Number(e.target.value) } : l))}
+                                onMouseUp={() => commitHistory(layers)} className="flex-1" />
+                              <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#374151', width: 24, textAlign: 'right', flexShrink: 0 }}>{selectedLayer.strokeWidth || 3}</span>
+                            </div>
+                            {selectedLayer.shapeType === 'arrow' && (
+                              <div className="flex items-center gap-2">
+                                <span style={{ fontSize: 11, color: '#6b7280', flexShrink: 0 }}>방향</span>
+                                <div className="flex gap-1 flex-1">
+                                  {[
+                                    { label: '→', end: true,  start: false },
+                                    { label: '←', end: false, start: true  },
+                                    { label: '↔', end: true,  start: true  },
+                                  ].map(opt => (
+                                    <button key={opt.label} onClick={() => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, arrowEnd: opt.end, arrowStart: opt.start } : l))}
+                                      style={{ flex: 1, padding: '3px 0', borderRadius: 6, fontSize: 13, border: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '1.5px solid #9F48CE' : '1px solid #e5e7eb', background: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#F3E8FF' : '#fff', cursor: 'pointer', color: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#9F48CE' : '#4b5563' }}>
+                                      {opt.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {(selectedLayer.shapeType === 'polygon' || selectedLayer.shapeType === 'star') && (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span style={{ fontSize: 11, color: '#6b7280', flexShrink: 0 }}>꼭지점</span>
+                              <input type="range" min={3} max={12} value={selectedLayer.points || (selectedLayer.shapeType === 'star' ? 5 : 6)}
+                                onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, points: Number(e.target.value) } : l))}
+                                onMouseUp={() => commitHistory(layers)} className="flex-1" />
+                              <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#374151', width: 24, textAlign: 'right', flexShrink: 0 }}>{selectedLayer.points || (selectedLayer.shapeType === 'star' ? 5 : 6)}</span>
+                            </div>
+                            {selectedLayer.shapeType === 'star' && (
+                              <div className="flex items-center gap-2">
+                                <span style={{ fontSize: 11, color: '#6b7280', flexShrink: 0 }}>내부비율</span>
+                                <input type="range" min={10} max={90} value={Math.round((selectedLayer.innerRadius ?? 0.4) * 100)}
+                                  onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, innerRadius: Number(e.target.value) / 100 } : l))}
+                                  onMouseUp={() => commitHistory(layers)} className="flex-1" />
+                                <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#374151', width: 28, textAlign: 'right', flexShrink: 0 }}>{Math.round((selectedLayer.innerRadius ?? 0.4) * 100)}%</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                    return <>{shapeColorPanel}{selectedObj}{graphicsPanel}{bgPanel}{bottomPanels}</>
                   }
                   return <>{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{bgPanel}{bottomPanels}</>
                 })()}
@@ -2603,6 +2722,46 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           {layer.type === 'rect' && (
                             <div style={{ width: '100%', height: '100%', background: layer.color || '#000000', borderRadius: layer.borderRadius || 0, pointerEvents: 'none' }} />
                           )}
+                          {layer.type === 'shape' && (() => {
+                            const { shapeType, color = '#374151', strokeWidth = 3, points, innerRadius = 0.4, arrowEnd = true, arrowStart = false, width: w, height: h } = layer
+                            const pts = points || (shapeType === 'star' ? 5 : 6)
+                            if (shapeType === 'ellipse') {
+                              return <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', pointerEvents: 'none' }}>
+                                <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} fill={color} />
+                              </svg>
+                            }
+                            if (shapeType === 'line' || shapeType === 'arrow') {
+                              const sw = strokeWidth
+                              const x1 = arrowStart ? sw * 3 : 0
+                              const x2 = w - (arrowEnd ? sw * 3 : 0)
+                              return <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', pointerEvents: 'none' }} overflow="visible">
+                                <line x1={x1} y1={h / 2} x2={x2} y2={h / 2} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+                                {arrowEnd   && <polygon points={`${w},${h/2} ${w-sw*3},${h/2-sw*2} ${w-sw*3},${h/2+sw*2}`} fill={color} />}
+                                {arrowStart && <polygon points={`0,${h/2} ${sw*3},${h/2-sw*2} ${sw*3},${h/2+sw*2}`} fill={color} />}
+                              </svg>
+                            }
+                            if (shapeType === 'polygon') {
+                              const polyPts = Array.from({ length: pts }, (_, i) => {
+                                const a = (i * 2 * Math.PI / pts) - Math.PI / 2
+                                return `${w / 2 + w / 2 * Math.cos(a)},${h / 2 + h / 2 * Math.sin(a)}`
+                              }).join(' ')
+                              return <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', pointerEvents: 'none' }}>
+                                <polygon points={polyPts} fill={color} />
+                              </svg>
+                            }
+                            if (shapeType === 'star') {
+                              const ir = innerRadius
+                              const starPts = Array.from({ length: pts * 2 }, (_, i) => {
+                                const a = (i * Math.PI / pts) - Math.PI / 2
+                                const r = i % 2 === 0 ? 1 : ir
+                                return `${w / 2 + w / 2 * r * Math.cos(a)},${h / 2 + h / 2 * r * Math.sin(a)}`
+                              }).join(' ')
+                              return <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', pointerEvents: 'none' }}>
+                                <polygon points={starPts} fill={color} />
+                              </svg>
+                            }
+                            return null
+                          })()}
                           {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
                             <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
                           )}
@@ -3128,6 +3287,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               : layer.type === 'image' ? `이미지 ${idx}`
                               : layer.type === 'gradient' ? '그라디언트'
                               : layer.type === 'rect' ? `도형 ${idx}`
+                              : layer.type === 'shape' ? `도형 ${idx}`
                               : `텍스트 ${idx}`)
                           return (
                             <div key={layer.id}
@@ -3161,7 +3321,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                       ? <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, ${bgColor}, transparent)` }} />
                                       : layer.type === 'rect'
                                         ? <div style={{ width: 14, height: 10, background: layer.color || '#e5e7eb', borderRadius: layer.borderRadius ? 2 : 0 }} />
-                                        : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
+                                        : layer.type === 'shape'
+                                          ? <svg width="14" height="14" viewBox="0 0 14 14">
+                                              {layer.shapeType === 'ellipse' && <ellipse cx="7" cy="7" rx="6" ry="5" fill={layer.color || '#e5e7eb'} />}
+                                              {layer.shapeType === 'line'    && <line x1="1" y1="7" x2="13" y2="7" stroke={layer.color || '#374151'} strokeWidth="2" strokeLinecap="round"/>}
+                                              {layer.shapeType === 'arrow'   && <><line x1="1" y1="7" x2="10" y2="7" stroke={layer.color || '#374151'} strokeWidth="2" strokeLinecap="round"/><polygon points="13,7 9,5 9,9" fill={layer.color || '#374151'}/></>}
+                                              {layer.shapeType === 'polygon' && <polygon points="7,1 12,5 10,12 4,12 2,5" fill={layer.color || '#e5e7eb'}/>}
+                                              {layer.shapeType === 'star'    && <polygon points="7,1 8.5,5.5 13,5.5 9.5,8.5 11,13 7,10.5 3,13 4.5,8.5 1,5.5 5.5,5.5" fill={layer.color || '#FBBA4B'}/>}
+                                            </svg>
+                                          : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
                                 }
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>

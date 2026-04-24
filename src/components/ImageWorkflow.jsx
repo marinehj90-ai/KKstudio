@@ -885,9 +885,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b10-sub':     '感谢您选择新世界免税店，祝您旅途愉快！',
           'b10-contact': '如有疑问，请联系客户中心  ☎ 400-842-8868',
         }
+        // zh 버전 레이어별 좌표 오버라이드 (사용자 확정 크기)
+        const zhCoords = {
+          'b10-body': { x: 72, y: 228, width: 605, height: 132 },
+        }
         const b10ZhId = 'b10-lang-zh'
         const b10ZhLayers = initAllLayers['b10'].map(l =>
-          l.type === 'text' && zhTexts[l.id] ? { ...l, text: zhTexts[l.id] } : l
+          l.type === 'text' && zhTexts[l.id]
+            ? { ...l, text: zhTexts[l.id], ...(zhCoords[l.id] || {}) }
+            : l
         )
         initAllLayers[b10ZhId] = b10ZhLayers
         initAllHistory[b10ZhId] = { history: [JSON.parse(JSON.stringify(b10ZhLayers))], index: 0 }

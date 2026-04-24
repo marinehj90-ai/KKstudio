@@ -38,6 +38,9 @@ export default function Home() {
       if (prev.includes(id)) return prev.filter((t) => t !== id)
       const prevGroup = templateGroups.find(g => g.templates.some(t => t.id === prev[0]))
       if (prev.length > 0 && prevGroup?.id !== targetGroup?.id) return [id]
+      // b10은 단독 선택만 허용: 이미 다른 템플릿이 있거나, b10이 있는 상태에서 추가 불가
+      if (id === 'b10' && prev.length > 0) return [id]
+      if (prev.includes('b10')) return [id]
       return [...prev, id]
     })
     // 탭도 해당 그룹으로 이동

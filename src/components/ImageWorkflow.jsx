@@ -929,7 +929,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         // b4 전용 레이아웃 상수는 파일 상단 전역 상수 사용
         const imgLayers = imgs.map((img, idx) => {
           let imgW, imgH, imgX, imgY
-          if (w === h) {
+          if (tmpl.id === 'b12') {
+            // 권장 이미지 영역 208×208 기준, 긴 쪽을 208에 맞춰 비율 유지 후 중앙 정렬
+            const ratio = img.naturalWidth / img.naturalHeight
+            if (ratio >= 1) { imgW = 208; imgH = Math.round(208 / ratio) }
+            else { imgH = 208; imgW = Math.round(208 * ratio) }
+            imgX = Math.round((w - imgW) / 2)
+            imgY = Math.round((h - imgH) / 2)
+          } else if (w === h) {
             imgW = w; imgH = h; imgX = 0; imgY = 0
           } else if (tmpl.id === 'b4') {
             // 우측 이미지 영역 가로 835px 채우고 세로 중앙 정렬
@@ -1265,7 +1272,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     img.onload = () => {
       const ratio = img.naturalWidth / img.naturalHeight
       let imgW, imgH
-      if (canvasW === canvasH) {
+      if (currentTemplateId === 'b12') {
+        // 208×208 권장 영역 기준, 긴 쪽을 208에 맞춰 비율 유지 후 중앙
+        if (ratio >= 1) { imgW = 208; imgH = Math.round(208 / ratio) }
+        else { imgH = 208; imgW = Math.round(208 * ratio) }
+      } else if (canvasW === canvasH) {
         // 정사각 캔버스: 캔버스 완전히 채우기 (cover fit)
         imgW = canvasW; imgH = canvasH
       } else {
@@ -1791,7 +1802,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && currentTemplateId !== 'b12' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />

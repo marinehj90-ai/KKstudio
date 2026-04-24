@@ -194,7 +194,8 @@ function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
 }
 
 export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, onGoHome, toggleTemplate }) {
-  const [step, setStep] = useState(STEP_IMAGE)
+  const isNoImageTemplate = selectedTemplateIds.every(id => id === 'b10')
+  const [step, setStep] = useState(() => isNoImageTemplate ? STEP_EDITOR : STEP_IMAGE)
   const [inputMode, setInputMode] = useState('upload')
   const [urlInput, setUrlInput] = useState('')
   const [uploadedImage, setUploadedImage] = useState(null)
@@ -211,6 +212,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [dlScale, setDlScale] = useState('x1')
   const [dragLayerId, setDragLayerId] = useState(null)
   const [dragOverLayerId, setDragOverLayerId] = useState(null)
+  const [hoverLayerId, setHoverLayerId] = useState(null)
   const [showAddTemplatePopup, setShowAddTemplatePopup] = useState(false)
   const [dlSelectedIds, setDlSelectedIds] = useState(() => new Set())
   const [guides, setGuides] = useState({ x: [], y: [] })
@@ -253,8 +255,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     setDlSelectedIds((prev) => {
       const next = new Set(prev)
       for (const id of next) { if (!validIds.has(id)) next.delete(id) }
-      // 로고 쌍은 자동 선택 (블랙/화이트 세트)
-      logoPairs.forEach(lp => next.add(lp.id))
       return next
     })
   }, [selectedTemplateIds.join(','), langCopies.map(lc => lc.id).join(','), logoPairs.map(lp => lp.id).join(',')])
@@ -425,21 +425,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       } else if (layer.type === 'text') {
         const fontSize = (layer.fontSize || 24) * multiplier
         const fontWeight = layer.fontWeight || (layer.bold ? '700' : '400')
+        const lineH = fontSize * (layer.lineHeight || 1.4)
+        const boxW = layer.width * multiplier
+        const boxH = layer.height * multiplier
+        // 배경색 (뱃지 등)
+        if (layer.bgColor) {
+          ctx.fillStyle = layer.bgColor
+          const r = (layer.borderRadius || 0) * multiplier
+          if (r > 0 && ctx.roundRect) {
+            ctx.beginPath(); ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, r); ctx.fill()
+          } else {
+            ctx.fillRect(-boxW / 2, -boxH / 2, boxW, boxH)
+          }
+        }
         ctx.font = `${fontWeight} ${fontSize}px ${layer.fontFamily || 'Pretendard'}`
         ctx.fillStyle = layer.color || '#000000'
-        ctx.textBaseline = 'top'
+        ctx.textBaseline = 'middle'
         // letterSpacing: 네이티브 Canvas API 사용 (Chrome 99+, Safari 16.4+)
         if ('letterSpacing' in ctx) ctx.letterSpacing = `${(layer.letterSpacing || 0) * multiplier}px`
         const align = layer.align || 'left'
         ctx.textAlign = align
-        const lineH = fontSize * (layer.lineHeight || 1.4)
-        const boxW = layer.width * multiplier
-        const boxH = layer.height * multiplier
         // textAlign 기준점: left=박스 왼쪽, center=중앙, right=오른쪽
         const drawX = align === 'center' ? 0 : align === 'right' ? boxW / 2 : -boxW / 2
         const lines = (layer.text || '').split('\n')
+        const totalTextH = lines.length * lineH
         lines.forEach((line, li) => {
-          ctx.fillText(line, drawX, -boxH / 2 + li * lineH)
+          ctx.fillText(line, drawX, -totalTextH / 2 + li * lineH + lineH / 2)
         })
       } else if (layer.type === 'gradient') {
         const bgC = bgLayerColor === 'transparent' ? '#ffffff' : bgLayerColor
@@ -453,6 +464,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         grad.addColorStop(1, `rgba(${rr},${gg},${bb},0)`)
         ctx.fillStyle = grad
         ctx.fillRect(-gW / 2, -gH / 2, gW, gH)
+      } else if (layer.type === 'rect') {
+        const rW = layer.width * multiplier
+        const rH = layer.height * multiplier
+        ctx.fillStyle = layer.color || '#000000'
+        const r = (layer.borderRadius || 0) * multiplier
+        if (r > 0 && ctx.roundRect) {
+          ctx.beginPath(); ctx.roundRect(-rW / 2, -rH / 2, rW, rH, r); ctx.fill()
+        } else {
+          ctx.fillRect(-rW / 2, -rH / 2, rW, rH)
+        }
       }
       ctx.restore()
     }
@@ -591,7 +612,49 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   useEffect(() => {
-    if (step !== STEP_EDITOR || !uploadedImage?.url) return
+    if (step !== STEP_EDITOR) return
+    // 이미지 불필요 템플릿(b10) 전용 초기화
+    if (isNoImageTemplate) {
+      const initAllLayers = {}
+      const initAllHistory = {}
+      selectedTemplateDetails.forEach((tmpl) => {
+        const [w, h] = tmpl.size.split('×').map(Number)
+        const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        const noImgLayers = tmpl.id === 'b10' ? (() => {
+          const mx = 60, cW = w - mx * 2, lh = 1.65
+          const bFS = 22, bH = 44, bW = 160
+          const bX = Math.round((w - bW) / 2)
+          const tFS = 36, tH = Math.round(tFS * lh * 2)
+          const bdFS = 20, bdH = Math.round(bdFS * lh * 4)
+          const cFS = 16, cH = Math.round(cFS * lh)
+          const g1 = 44, g2 = 28, grayPad = 24, g3 = 12
+          const total = bH + g1 + tH + g2 + grayPad + bdH + g3 + cH + grayPad
+          const sy = Math.round((h - total) / 2)
+          const bodyY = sy + bH + g1 + tH + g2 + grayPad
+          const contactY = bodyY + bdH + g3
+          const grayY = bodyY - grayPad
+          const grayH = grayPad + bdH + g3 + cH + grayPad
+          return [
+            { id: 'b10-gray-box', type: 'rect', color: '#F3F4F6', borderRadius: 0, x: 0, y: grayY, width: w, height: grayH, rotation: 0 },
+            { id: 'b10-badge-box', type: 'rect', color: '#000000', borderRadius: 6, x: bX, y: sy, width: bW, height: bH, rotation: 0 },
+            { id: 'b10-badge', type: 'text', text: '서비스 공지', x: bX, y: sy, width: bW, height: bH, fontSize: bFS, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
+            { id: 'b10-title', type: 'text', text: '인도장 혼잡 예상 안내', x: mx, y: sy + bH + g1, width: cW, height: tH, fontSize: tFS, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: -0.5, lineHeight: lh },
+            { id: 'b10-body', type: 'text', text: '성수기 연휴로 인한 공항 인도장이 혼잡이 예상되오니\n상품 수령에 불편함이 없으시도록 출국 3시간전\n공항에 방문 해 주시기 바랍니다.\n신세계면세점과 편안하고 즐거운 여행 되세요.', x: mx, y: bodyY, width: cW, height: bdH, fontSize: bdFS, fontWeight: '400', color: '#374151', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
+            { id: 'b10-contact', type: 'text', text: '문의 사항 안내 : 고객센터 ☎ 1661-8778', x: mx, y: contactY, width: cW, height: cH, fontSize: cFS, fontWeight: '400', color: '#9CA3AF', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: lh },
+          ]
+        })() : []
+        const init = [bgLayer, ...noImgLayers]
+        initAllLayers[tmpl.id] = init
+        initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
+      })
+      setAllLayers(initAllLayers)
+      setAllHistory(initAllHistory)
+      setSelectedLayerId('b10-title')
+      setPanOffset({ x: 0, y: 0 })
+      setZoom(75)
+      return
+    }
+    if (!uploadedImage?.url) return
     const allImages = [{ url: uploadedImage.url }, ...(uploadedImage.extra || [])]
     const loadImage = (url) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = url })
     Promise.all(allImages.map(({ url }) => loadImage(url))).then((imgs) => {
@@ -783,7 +846,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     e.stopPropagation()
     setSelectedLayerId(id)
     const layer = layers.find((l) => l.id === id)
-    if (layer?.type === 'text') return  // 텍스트 위치 고정
+    // b11은 텍스트 위치 고정 (레이아웃 유지), 나머지는 자유 이동
+    const isB11Template = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
+    if (layer?.type === 'text' && isB11Template) return
     const { x: origX, y: origY, width: lW, height: lH } = layer
     const startX = e.clientX, startY = e.clientY
     const SNAP = 6
@@ -847,8 +912,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setLayers(layers.map((l) => {
         if (l.id !== id) return l
         let nw = ow, nh = oh, nx = ox, ny = oy
-        if (isTextLayer) {
-          // 텍스트: 오른쪽 width만 조절
+        if (isTextLayer && !isNoImageTemplate) {
+          // 텍스트(b10 제외): 오른쪽 width만 조절
           nw = Math.max(60, ow + dx)
         } else if (isCorner) {
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
@@ -923,6 +988,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const id = `text-${Date.now()}`
     updateLayers([...layers, { id, type: 'text', text: '텍스트 입력', x: Math.round(canvasW * 0.1), y: Math.round(canvasH * 0.4), width: 220, height: 60, rotation: 0, fontSize: 24, color: '#000000', fontFamily: 'Pretendard', bold: false, underline: false, align: 'left', letterSpacing: 0, lineHeight: 1.4 }])
     setSelectedLayerId(id)
+  }
+
+  const addShapeLayer = (shapeType) => {
+    const id = `shape-${Date.now()}`
+    const cx = Math.round(canvasW / 2), cy = Math.round(canvasH / 2)
+    let newLayer
+    if (shapeType === 'rect')       newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 0,  x: cx - 150, y: cy - 75,  width: 300, height: 150, rotation: 0 }
+    if (shapeType === 'rect-round') newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 16, x: cx - 150, y: cy - 75,  width: 300, height: 150, rotation: 0 }
+    if (shapeType === 'circle')     newLayer = { id, type: 'rect', color: '#E5E7EB', borderRadius: 75, x: cx - 75,  y: cy - 75,  width: 150, height: 150, rotation: 0 }
+    if (shapeType === 'line-h')     newLayer = { id, type: 'rect', color: '#374151', borderRadius: 0,  x: Math.round(canvasW * 0.1), y: cy - 1, width: Math.round(canvasW * 0.8), height: 3, rotation: 0 }
+    if (shapeType === 'line-v')     newLayer = { id, type: 'rect', color: '#374151', borderRadius: 0,  x: cx - 1, y: Math.round(canvasH * 0.1), width: 3, height: Math.round(canvasH * 0.8), rotation: 0 }
+    if (newLayer) { updateLayers([...layers, newLayer]); setSelectedLayerId(id) }
   }
 
   const toggleLangCopy = (lang) => {
@@ -1328,11 +1405,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 <Check className="w-3 h-3" /> 1. 템플릿 선택
               </button>
               <span className="text-gray-300">›</span>
-              <button onClick={() => setStep(STEP_IMAGE)} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 flex items-center gap-1">
-                <Check className="w-3 h-3" /> 2. 이미지 입력
-              </button>
-              <span className="text-gray-300">›</span>
-              <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-600 text-white">3. 에디터</span>
+              {!isNoImageTemplate && (
+                <>
+                  <button onClick={() => setStep(STEP_IMAGE)} className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> 2. 이미지 입력
+                  </button>
+                  <span className="text-gray-300">›</span>
+                </>
+              )}
+              <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary-600 text-white">{isNoImageTemplate ? '2. 에디터' : '3. 에디터'}</span>
             </div>
             <div className="flex items-center gap-1">
               <button onClick={undo} disabled={histIdx <= 0} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 disabled:opacity-30">
@@ -1453,9 +1534,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             {/* 왼쪽 툴 패널 */}
             <div className="w-64 shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-y-auto">
               <div className="p-4 space-y-4">
-                <button onClick={() => setStep(STEP_IMAGE)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600">
-                  <ArrowLeft className="w-4 h-4" /> 이미지 다시 선택
-                </button>
+                {!isNoImageTemplate && (
+                  <button onClick={() => setStep(STEP_IMAGE)} className="flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600">
+                    <ArrowLeft className="w-4 h-4" /> 이미지 다시 선택
+                  </button>
+                )}
 
                 {/* 동적 패널 순서 - 선택 상태에 따라 관련 패널이 상단으로 */}
                 {(() => {
@@ -1601,6 +1684,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <p className="text-gray-300 mt-1" style={{ fontSize: 10 }}>Coming soon</p>
                           </div>
                         )}
+                      </div>
+                    </div>
+                  )
+
+                  const graphicsPanel = (
+                    <div key="graphics" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">그래픽</h3>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {[
+                          { id: 'rect', label: '사각형', svg: <svg width="20" height="14" viewBox="0 0 20 14"><rect x="1" y="1" width="18" height="12" rx="0" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'rect-round', label: '둥근박스', svg: <svg width="20" height="14" viewBox="0 0 20 14"><rect x="1" y="1" width="18" height="12" rx="4" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'circle', label: '원', svg: <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="7" cy="7" r="6" fill="#D1D5DB" stroke="#9CA3AF" strokeWidth="1.5"/></svg> },
+                          { id: 'line-h', label: '가로선', svg: <svg width="20" height="14" viewBox="0 0 20 14"><line x1="2" y1="7" x2="18" y2="7" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/></svg> },
+                          { id: 'line-v', label: '세로선', svg: <svg width="14" height="14" viewBox="0 0 14 14"><line x1="7" y1="2" x2="7" y2="12" stroke="#6B7280" strokeWidth="2" strokeLinecap="round"/></svg> },
+                        ].map(shape => (
+                          <button key={shape.id} onClick={() => addShapeLayer(shape.id)}
+                            className="flex flex-col items-center gap-1 py-2 rounded-xl bg-white border border-gray-200 hover:border-primary-300 hover:bg-primary-50 transition-all">
+                            <div className="flex items-center justify-center" style={{ width: 24, height: 18 }}>{shape.svg}</div>
+                            <span style={{ fontSize: 9, color: '#6b7280', lineHeight: 1.2, textAlign: 'center' }}>{shape.label}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )
@@ -1951,10 +2055,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     </>
                   )
 
-                  if (type === 'background') return <>{styleSync}{bgPanel}{translationPanel}{fileStorage}{quickEdit}{selectedObj}{bottomPanels}</>
-                  if (type === 'image') return <>{styleSync}{logoTypePanel}{fileStorage}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{bottomPanels}</>
-                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
-                  return <>{translationPanel}{fileStorage}{quickEdit}{bgPanel}{bottomPanels}</>
+                  if (type === 'background') return <>{styleSync}{bgPanel}{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{selectedObj}{bottomPanels}</>
+                  if (type === 'image') return <>{styleSync}{logoTypePanel}{fileStorage}{graphicsPanel}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{bottomPanels}</>
+                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{bgPanel}{bottomPanels}</>
+                  if (type === 'rect') {
+                    const rectColorPanel = (
+                      <div key="rectColor" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">박스 색상</h3>
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-2 py-1.5">
+                          <label className="cursor-pointer shrink-0" style={{ position: 'relative', width: 18, height: 18 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: 3, backgroundColor: selectedLayer.color || '#000000', border: '1px solid #e5e7eb' }} />
+                            <input type="color" value={selectedLayer.color || '#000000'} onChange={(e) => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                          </label>
+                          <input type="text" value={selectedLayer.color || '#000000'}
+                            onChange={(e) => { if (/^#[0-9A-Fa-f]{0,6}$/.test(e.target.value)) updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, color: e.target.value } : l)) }}
+                            style={{ flex: 1, minWidth: 0, fontSize: 12, fontFamily: 'monospace', color: '#374151', background: 'transparent', border: 'none', outline: 'none' }} />
+                        </div>
+                      </div>
+                    )
+                    return <>{rectColorPanel}{selectedObj}{graphicsPanel}{bgPanel}{bottomPanels}</>
+                  }
+                  return <>{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{bgPanel}{bottomPanels}</>
                 })()}
               </div>
             </div>
@@ -2071,6 +2192,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             const dir = layer.direction === 'to-left' ? 'to left' : 'to right'
                             return <div style={{ width: '100%', height: '100%', background: `linear-gradient(${dir}, rgba(${rr},${gg},${bb},1) 0%, rgba(${rr},${gg},${bb},1) 50%, rgba(${rr},${gg},${bb},0) 100%)`, pointerEvents: 'none' }} />
                           })()}
+                          {layer.type === 'rect' && (
+                            <div style={{ width: '100%', height: '100%', background: layer.color || '#000000', borderRadius: layer.borderRadius || 0, pointerEvents: 'none' }} />
+                          )}
                           {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
                             <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
                           )}
@@ -2085,7 +2209,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, background: 'rgba(255,255,255,0.15)', border: '1px dashed #9F48CE', outline: 'none', resize: 'none', padding: 4, boxSizing: 'border-box', cursor: 'text' }}
                               />
                             ) : (
-                              <div style={{ width: '100%', height: layer.height, overflow: 'hidden', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}>{layer.text}</div>
+                              layer.bgColor ? (
+                                <div style={{ width: '100%', height: layer.height, display: 'flex', alignItems: 'center', justifyContent: layer.align === 'center' ? 'center' : layer.align === 'right' ? 'flex-end' : 'flex-start', background: layer.bgColor, borderRadius: layer.borderRadius || 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                                  <span style={{ fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || '400', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'nowrap' }}>{layer.text}</span>
+                                </div>
+                              ) : (
+                                <div style={{ width: '100%', height: layer.height, overflow: isNoImageTemplate ? 'visible' : 'hidden', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', pointerEvents: 'none' }}>{layer.text}</div>
+                              )
                             )
                           )}
                         </div>
@@ -2116,10 +2246,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 90 }}>
                       {layers.filter((layer) => layer.type === 'text' && layer.id !== editingTextId).map((layer) => (
                         <div key={`text-hit-${layer.id}`}
-                          onMouseDown={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id) }}
+                          onMouseDown={(e) => { onMouseDownLayer(e, layer.id) }}
                           onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(layer.id); setSelectedLayerId(layer.id) }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'default', pointerEvents: 'all', background: 'transparent' }} />
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent' }} />
                       ))}
                     </div>
 
@@ -2459,15 +2589,54 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       )
                     })()}
 
-                    {/* 텍스트 선택 테두리 */}
-                    {selectedLayer?.type === 'text' && (
+                    {showGuide && !isLogoTab && currentTemplateId === 'b10' && (() => {
+                      const mx = 60, cW = canvasW - mx * 2, lh = 1.65
+                      const bH = 44, bW = 160, bX = Math.round((canvasW - bW) / 2)
+                      const tFS = 36, tH = Math.round(tFS * lh * 2)
+                      const bdFS = 20, bdH = Math.round(bdFS * lh * 4)
+                      const cFS = 16, cH = Math.round(cFS * lh)
+                      const g1 = 44, g2 = 28, grayPad = 24, g3 = 12
+                      const total = bH + g1 + tH + g2 + grayPad + bdH + g3 + cH + grayPad
+                      const sy = Math.round((canvasH - total) / 2)
+                      const bodyY = sy + bH + g1 + tH + g2 + grayPad
+                      const contactY = bodyY + bdH + g3
+                      const grayY = bodyY - grayPad
+                      const grayH = grayPad + bdH + g3 + cH + grayPad
+                      return (
+                        <div style={{ position: 'absolute', left: 0, top: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 95 }}>
+                          {/* 회색 박스 영역 */}
+                          <div style={{ position: 'absolute', left: 0, top: grayY, width: canvasW, height: grayH, border: '2px dashed rgba(107,114,128,0.5)', background: 'rgba(107,114,128,0.05)' }}>
+                            <span style={{ position: 'absolute', left: 8, top: 3, fontSize: 9, fontWeight: 700, color: '#6b7280', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>회색 박스 배경 — 본문+문의</span>
+                          </div>
+                          {/* 배지 영역 */}
+                          <div style={{ position: 'absolute', left: bX, top: sy, width: bW, height: bH, border: '2px dashed rgba(0,0,0,0.5)', borderRadius: 7 }}>
+                            <span style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 4px)', fontSize: 9, fontWeight: 700, color: '#1e2023', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>배지 22px · Bold</span>
+                          </div>
+                          {/* 타이틀 영역 */}
+                          <div style={{ position: 'absolute', left: mx, top: sy + bH + g1, width: cW, height: tH, background: 'rgba(159,72,206,0.08)', border: '2px dashed rgba(159,72,206,0.5)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>타이틀 {tFS}px · Bold</span>
+                          </div>
+                          {/* 본문 영역 */}
+                          <div style={{ position: 'absolute', left: mx, top: bodyY, width: cW, height: bdH, background: 'rgba(55,65,81,0.07)', border: '1.5px dashed rgba(55,65,81,0.4)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#374151', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>본문 {bdFS}px</span>
+                          </div>
+                          {/* 문의 영역 */}
+                          <div style={{ position: 'absolute', left: mx, top: contactY, width: cW, height: cH, background: 'rgba(156,163,175,0.12)', border: '1.5px dashed rgba(156,163,175,0.6)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#9ca3af', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>문의 안내 {cFS}px</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* 텍스트 선택 테두리 (b10은 핸들 오버레이가 대신함) */}
+                    {selectedLayer?.type === 'text' && !isNoImageTemplate && (
                       <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 100 }}>
                         <div style={{ position: 'absolute', left: selectedLayer.x - 2, top: selectedLayer.y - 2, width: selectedLayer.width + 4, height: selectedLayer.height + 4, border: '2px solid #9F48CE', borderRadius: 3, pointerEvents: 'none' }} />
                       </div>
                     )}
 
                     {/* 핸들 오버레이 */}
-                    {selectedLayer && selectedLayer.type !== 'background' && selectedLayer.type !== 'text' && (
+                    {selectedLayer && selectedLayer.type !== 'background' && (selectedLayer.type !== 'text' || isNoImageTemplate) && (
                       <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', overflow: 'visible', zIndex: 100 }}>
                         <div style={{ position: 'absolute', left: selectedLayer.x, top: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height, transform: `rotate(${selectedLayer.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
                           <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none' }} />
@@ -2513,6 +2682,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           const isSelected = layer.id === selectedLayerId
                           const idx = layers.length - i
                           const isDragOver = dragOverLayerId === layer.id && dragLayerId !== layer.id
+                          const isHovered = hoverLayerId === layer.id
+                          const displayName = layer.name
+                            || (layer.type === 'background' ? '배경색'
+                              : layer.type === 'image' ? `이미지 ${idx}`
+                              : layer.type === 'gradient' ? '그라디언트'
+                              : layer.type === 'rect' ? `도형 ${idx}`
+                              : `텍스트 ${idx}`)
                           return (
                             <div key={layer.id}
                               draggable
@@ -2531,26 +2707,73 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 setDragOverLayerId(null)
                               }}
                               onDragEnd={() => { setDragLayerId(null); setDragOverLayerId(null) }}
+                              onMouseEnter={() => setHoverLayerId(layer.id)}
+                              onMouseLeave={() => setHoverLayerId(null)}
                               onClick={() => setSelectedLayerId(layer.id)}
-                              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : 1, transition: 'all 0.1s' }}>
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : 1, transition: 'all 0.1s' }}>
                               <span style={{ fontSize: 10, color: '#d1d5db', flexShrink: 0 }}>⠿</span>
-                              <div style={{ width: 28, height: 28, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: 26, height: 26, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {layer.type === 'background'
                                   ? <div style={{ width: '100%', height: '100%', background: layer.color }} />
                                   : layer.type === 'image'
                                     ? <img src={layer.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     : layer.type === 'gradient'
                                       ? <div style={{ width: '100%', height: '100%', background: `linear-gradient(to right, ${bgColor}, transparent)` }} />
-                                      : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
+                                      : layer.type === 'rect'
+                                        ? <div style={{ width: 14, height: 10, background: layer.color || '#e5e7eb', borderRadius: layer.borderRadius ? 2 : 0 }} />
+                                        : <span style={{ fontSize: 10, color: '#6b7280', fontWeight: 600 }}>T</span>
                                 }
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? '#7e22ce' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {layer.type === 'background' ? '배경색' : layer.type === 'image' ? `이미지 ${idx}` : layer.type === 'gradient' ? '그라디언트' : `텍스트 ${idx}`}
+                                  {displayName}
                                 </p>
                                 <p style={{ fontSize: 10, color: '#9ca3af' }}>{layer.width} × {layer.height}</p>
                               </div>
-                              <span style={{ fontSize: 12, flexShrink: 0 }}>{layer.type === 'background' ? '🎨' : layer.type === 'image' ? '🖼' : layer.type === 'gradient' ? '🌅' : '✏️'}</span>
+                              {/* 복사 / 삭제 버튼 */}
+                              <div style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: isHovered || isSelected ? 1 : 0, transition: 'opacity 0.12s' }}>
+                                <button
+                                  title="복사"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    const newId = `${layer.type}-${Date.now()}`
+                                    const copy = { ...layer, id: newId, x: (layer.x || 0) + 10, y: (layer.y || 0) + 10, name: `${displayName} 복사` }
+                                    const fromIdx = layers.findIndex(l => l.id === layer.id)
+                                    const newLayers = [...layers]
+                                    newLayers.splice(fromIdx + 1, 0, copy)
+                                    updateLayers(newLayers)
+                                    setSelectedLayerId(newId)
+                                  }}
+                                  style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: 'pointer', color: '#9ca3af', padding: 0 }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#f3e8ff'; e.currentTarget.style.color = '#9F48CE' }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                  </svg>
+                                </button>
+                                <button
+                                  title="삭제"
+                                  disabled={layers.length <= 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (layers.length <= 1) return
+                                    const fromIdx = layers.findIndex(l => l.id === layer.id)
+                                    const newLayers = layers.filter(l => l.id !== layer.id)
+                                    updateLayers(newLayers)
+                                    if (selectedLayerId === layer.id) {
+                                      setSelectedLayerId(newLayers[Math.min(fromIdx, newLayers.length - 1)]?.id || null)
+                                    }
+                                  }}
+                                  style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: layers.length <= 1 ? 'not-allowed' : 'pointer', color: '#9ca3af', padding: 0, opacity: layers.length <= 1 ? 0.3 : 1 }}
+                                  onMouseEnter={e => { if (layers.length > 1) { e.currentTarget.style.background = '#fef2f2'; e.currentTarget.style.color = '#ef4444' } }}
+                                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
                           )
                         })}

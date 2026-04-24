@@ -1,4 +1,4 @@
-import { Layers, Image, CalendarRange, Sparkles, BookImage } from 'lucide-react'
+import { Layers, Image, CalendarRange, Sparkles, BookImage, BellDot } from 'lucide-react'
 
 export const templateGroups = [
   {
@@ -17,9 +17,20 @@ export const templateGroups = [
       { id: 'b5', name: '통컨 기본배너', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #7B2FA8 0%, #9F48CE 100%)' },
       { id: 'b6', name: '통컨 띠배너 A (MO)', size: '750×140', device: 'MO', preview: 'linear-gradient(135deg, #9F48CE 0%, #DDB8F0 100%)' },
       { id: 'b7', name: '통컨 띠배너 B (PC)', size: '1520×130', device: 'PC', preview: 'linear-gradient(135deg, #7B2FA8 0%, #C084FC 100%)' },
-      { id: 'b10', name: '메인 팝업 공지', size: '750×560', device: '공통', preview: 'linear-gradient(135deg, #7B2FA8 0%, #C084FC 100%)' },
       { id: 'b11', name: '메인 팝업 프로모션', size: '750×560', device: '공통', preview: 'linear-gradient(135deg, #9F48CE 0%, #F3E8FF 100%)' },
       { id: 'b12', name: '메인 퀵메뉴 이미지', size: '300×300', device: '공통', preview: 'linear-gradient(135deg, #9F48CE 0%, #F8F0FF 100%)' },
+    ],
+  },
+  {
+    id: 'notice',
+    label: '메인공지팝업',
+    icon: BellDot,
+    hex: '#7B2FA8',
+    light: '#F3E8FF',
+    dark: '#5B1A8A',
+    gradient: 'linear-gradient(135deg, #7B2FA8 0%, #C084FC 100%)',
+    templates: [
+      { id: 'b10', name: '메인 팝업 공지', size: '750×560', device: '공통', preview: 'linear-gradient(135deg, #7B2FA8 0%, #C084FC 100%)' },
     ],
   },
   {

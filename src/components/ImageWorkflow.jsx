@@ -1283,26 +1283,29 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const aspect = ow / oh
     const startX = e.clientX, startY = e.clientY
     const isTextLayer = layer.type === 'text'
+    // 이미지: 항상 비율 고정 / rect·shape·text: Shift 시 비율 고정
+    const isImage = layer.type === 'image'
+    const isLineArrow = layer.type === 'shape' && (layer.shapeType === 'line' || layer.shapeType === 'arrow')
     const onMove = (ev) => {
       const dx = Math.round((ev.clientX - startX) / scale)
       const dy = Math.round((ev.clientY - startY) / scale)
+      const shiftLock = ev.shiftKey
       setLayers(layers.map((l) => {
         if (l.id !== id) return l
         let nw = ow, nh = oh, nx = ox, ny = oy
         if (isTextLayer && !isNoImageTemplate) {
-          // 텍스트(b10 제외): 오른쪽 width만 조절
           nw = Math.max(60, ow + dx)
-        } else if (isCorner && layer.type !== 'rect' && layer.type !== 'shape') {
-          // 이미지 등: 비율 고정 코너 리사이즈
+        } else if (isCorner && (isImage || shiftLock)) {
+          // 비율 고정 코너 리사이즈 (이미지 항상, 도형 Shift 시)
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
           else if (handle === 'sw') { nw = Math.max(20, ow - dx); nh = Math.round(nw / aspect); nx = ox + (ow - nw) }
           else if (handle === 'ne') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect); ny = oy + (oh - nh) }
           else if (handle === 'nw') { nw = Math.max(20, ow - dx); nh = Math.round(nw / aspect); nx = ox + (ow - nw); ny = oy + (oh - nh) }
         } else {
           if (handle.includes('e')) nw = Math.max(20, ow + dx)
-          if (handle.includes('s')) nh = Math.max(20, oh + dy)
+          if (handle.includes('s')) nh = Math.max(isLineArrow ? 1 : 20, oh + dy)
           if (handle.includes('w')) { nw = Math.max(20, ow - dx); nx = ox + (ow - nw) }
-          if (handle.includes('n')) { nh = Math.max(20, oh - dy); ny = oy + (oh - nh) }
+          if (handle.includes('n')) { nh = Math.max(isLineArrow ? 1 : 20, oh - dy); ny = oy + (oh - nh) }
         }
         return { ...l, width: nw, height: nh, x: nx, y: ny }
       }))
@@ -1376,12 +1379,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const id = `shape-${Date.now()}`
     const cx = Math.round(canvasW / 2), cy = Math.round(canvasH / 2)
     let newLayer
-    if (shapeType === 'rect')    newLayer = { id, type: 'rect',  color: '#E5E7EB', borderRadius: 0, x: cx - 150, y: cy - 75, width: 300, height: 150, rotation: 0 }
-    if (shapeType === 'ellipse') newLayer = { id, type: 'shape', shapeType: 'ellipse', color: '#E5E7EB', x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
-    if (shapeType === 'line')    newLayer = { id, type: 'shape', shapeType: 'line',    color: '#374151', strokeWidth: 3, x: Math.round(canvasW * 0.1), y: cy - 2, width: Math.round(canvasW * 0.8), height: 4, rotation: 0 }
-    if (shapeType === 'arrow')   newLayer = { id, type: 'shape', shapeType: 'arrow',   color: '#374151', strokeWidth: 3, arrowEnd: true, arrowStart: false, x: Math.round(canvasW * 0.1), y: cy - 10, width: Math.round(canvasW * 0.8), height: 20, rotation: 0 }
-    if (shapeType === 'polygon') newLayer = { id, type: 'shape', shapeType: 'polygon', color: '#E5E7EB', points: 6, x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
-    if (shapeType === 'star')    newLayer = { id, type: 'shape', shapeType: 'star',    color: '#FBBA4B', points: 5, innerRadius: 0.4, x: cx - 75, y: cy - 75, width: 150, height: 150, rotation: 0 }
+    if (shapeType === 'rect')    newLayer = { id, type: 'rect',  color: '#E5E7EB', borderRadius: 0, x: cx - 50,  y: cy - 50,  width: 100, height: 100, rotation: 0 }
+    if (shapeType === 'ellipse') newLayer = { id, type: 'shape', shapeType: 'ellipse', color: '#E5E7EB', x: cx - 50, y: cy - 50, width: 100, height: 100, rotation: 0 }
+    if (shapeType === 'line')    newLayer = { id, type: 'shape', shapeType: 'line',    color: '#374151', strokeWidth: 3, x: Math.round(canvasW * 0.2), y: cy, width: Math.round(canvasW * 0.6), height: 3, rotation: 0 }
+    if (shapeType === 'arrow')   newLayer = { id, type: 'shape', shapeType: 'arrow',   color: '#374151', strokeWidth: 3, arrowEnd: true, arrowStart: false, x: Math.round(canvasW * 0.2), y: cy, width: Math.round(canvasW * 0.6), height: 20, rotation: 0 }
+    // 정삼각형: 높이 = 변 * (√3/2) ≈ 0.866
+    if (shapeType === 'polygon') newLayer = { id, type: 'shape', shapeType: 'polygon', color: '#E5E7EB', points: 3, x: cx - 50, y: cy - Math.round(50 * 0.866), width: 100, height: Math.round(100 * 0.866), rotation: 0 }
+    if (shapeType === 'star')    newLayer = { id, type: 'shape', shapeType: 'star',    color: '#FBBA4B', points: 5, innerRadius: 0.4, x: cx - 50, y: cy - 50, width: 100, height: 100, rotation: 0 }
     if (newLayer) { updateLayers([...layers, newLayer]); setSelectedLayerId(id) }
   }
 

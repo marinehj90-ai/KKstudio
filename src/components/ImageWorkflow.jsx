@@ -1579,6 +1579,21 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         return
       }
 
+      // Delete / Backspace — 선택된 레이어 삭제
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!selectedLayerId) return
+        e.preventDefault()
+        setAllLayers(prev => {
+          const cur = prev[currentTemplateId] || []
+          const target = cur.find(l => l.id === selectedLayerId)
+          if (!target || target.type === 'background') return prev
+          const updated = cur.filter(l => l.id !== selectedLayerId)
+          return { ...prev, [currentTemplateId]: updated }
+        })
+        setSelectedLayerId(null)
+        return
+      }
+
       // 화살표 키 — 선택된 레이어 이동
       const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
       if (!arrows.includes(e.key)) return

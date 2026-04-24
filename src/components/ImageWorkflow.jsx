@@ -938,7 +938,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         if (isTextLayer && !isNoImageTemplate) {
           // 텍스트(b10 제외): 오른쪽 width만 조절
           nw = Math.max(60, ow + dx)
-        } else if (isCorner) {
+        } else if (isCorner && layer.type !== 'rect') {
+          // 이미지 등: 비율 고정 코너 리사이즈
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
           else if (handle === 'sw') { nw = Math.max(20, ow - dx); nh = Math.round(nw / aspect); nx = ox + (ow - nw) }
           else if (handle === 'ne') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect); ny = oy + (oh - nh) }

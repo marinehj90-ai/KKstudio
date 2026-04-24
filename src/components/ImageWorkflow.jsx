@@ -626,7 +626,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           return [
             { id: 'b10-gray-box', type: 'rect', color: '#F3F3F3', borderRadius: 20, x: 36, y: 193, width: 678, height: 263, rotation: 0 },
             { id: 'b10-badge-box', type: 'rect', color: '#1E2023', borderRadius: 8, x: 304, y: 55, width: 142, height: 43, rotation: 0 },
-            { id: 'b10-badge', type: 'text', text: '서비스 공지', x: 304, y: 55, width: 142, height: 43, fontSize: 24, fontWeight: '800', color: '#ffffff', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
+            { id: 'b10-badge', type: 'text', text: '서비스 공지', x: 320, y: 62, width: 110, height: 29, fontSize: 24, fontWeight: '800', color: '#ffffff', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
             { id: 'b10-title', type: 'text', text: '인도장 혼잡 예상 안내', x: 51, y: 111, width: 648, height: 53, fontSize: 44, fontWeight: '800', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2 },
             { id: 'b10-body', type: 'text', text: '성수기 연휴로 인도장 혼잡이 예상되오니\n상품 수령에 불편함이 없으시도록 출국 3시간전\n공항에 방문 해 주시기 바랍니다.', x: 111, y: 226, width: 529, height: 132, fontSize: 29, fontWeight: '700', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 44 / 29 },
             { id: 'b10-sub', type: 'text', text: '신세계면세점과 편안하고 즐거운 여행 되세요.', x: 36, y: 390, width: 678, height: 33, fontSize: 22, fontWeight: '500', color: '#1E2023', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.5 },

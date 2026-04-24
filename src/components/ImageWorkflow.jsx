@@ -875,6 +875,34 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
+      // b10 전용: 중문(zh) 탭 자동 생성 & 기본 활성화 (Figma 1268:234)
+      const b10Tmpl = selectedTemplateDetails.find(t => t.id === 'b10')
+      if (b10Tmpl && initAllLayers['b10']) {
+        const zhTexts = {
+          'b10-badge':   '公告事项',
+          'b10-title':   '提货处繁忙通知',
+          'b10-body':    '因旺季假期影响，预计提货处将出现繁忙情况。\n为避免影响您的提货，\n请您务必于出境前至少提前3小时抵达机场。',
+          'b10-sub':     '感谢您选择新世界免税店，祝您旅途愉快！',
+          'b10-contact': '如有疑问，请联系客户中心  ☎ 400-842-8868',
+        }
+        const b10ZhId = 'b10-lang-zh'
+        const b10ZhLayers = initAllLayers['b10'].map(l =>
+          l.type === 'text' && zhTexts[l.id] ? { ...l, text: zhTexts[l.id] } : l
+        )
+        initAllLayers[b10ZhId] = b10ZhLayers
+        initAllHistory[b10ZhId] = { history: [JSON.parse(JSON.stringify(b10ZhLayers))], index: 0 }
+        const zhCopy = { lang: '中文', id: b10ZhId, name: `${b10Tmpl.name} (中文)`, size: b10Tmpl.size, baseId: 'b10' }
+        const zhSuggestions = initAllLayers['b10']
+          .filter(l => l.type === 'text')
+          .map(l => ({
+            layerId: l.id,
+            original: l.text,
+            suggestions: [zhTexts[l.id], l.text].filter(Boolean),
+          }))
+        setLangCopies([zhCopy])
+        setLangSuggestions({ [b10ZhId]: zhSuggestions })
+        setActivePreviewTab(1)
+      }
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
       setSelectedLayerId('b10-title')
@@ -1304,12 +1332,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b11-sub':    ["专属优惠", "限时特卖"],
           'b11-title':  ["限时特卖\n优惠活动", "精品品牌\n专属折扣"],
           'b11-detail': ["立即购物 享受专属优惠", "最高56折 仅限今日"],
-          // b10 (메인 팝업 공지)
-          'b10-badge':   ["服务公告", "重要通知"],
-          'b10-title':   ["机场提货区\n拥挤预警", "提货柜台\n繁忙期提示"],
-          'b10-body':    ["由于旅游旺季，机场提货区预计出现严重拥挤。\n为确保您顺利取货，\n请提前3小时到达机场。", "节假日旺季期间，提货柜台预计十分繁忙。\n请提前3小时抵达机场，\n以便顺利完成取货。"],
-          'b10-sub':     ["感谢您选择新世界免税店，祝您旅途愉快。", "感谢您的光临，\n祝您旅途顺利、愉快。"],
-          'b10-contact': ["咨询  ☎ 客户服务 1661-8778", "联系我们  ☎ 客服热线 1661-8778"],
+          // b10 (메인 팝업 공지) — Figma 1268:234 기준
+          'b10-badge':   ["公告事项", "重要通知"],
+          'b10-title':   ["提货处繁忙通知", "提货处繁忙提示"],
+          'b10-body':    ["因旺季假期影响，预计提货处将出现繁忙情况。\n为避免影响您的提货，\n请您务必于出境前至少提前3小时抵达机场。", "节假日旺季期间，提货处预计十分繁忙。\n请于出境前至少3小时提前抵达机场，\n以便顺利完成提货。"],
+          'b10-sub':     ["感谢您选择新世界免税店，祝您旅途愉快！", "感谢您的光临，祝您旅途顺利！"],
+          'b10-contact': ["如有疑问，请联系客户中心  ☎ 400-842-8868", "联系我们  ☎ 客服热线 400-842-8868"],
         },
         '日本語': {
           'b4-main': ["お正月セール #SSG\n最大56%OFF 本日限り！", "新春ショッピング\n最大56%引き・本日のみ"],

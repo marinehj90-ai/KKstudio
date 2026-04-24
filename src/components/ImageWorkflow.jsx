@@ -1053,6 +1053,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b11-sub':    ["Exclusive Offer", "Special Promotion"],
           'b11-title':  ["Limited Time\nSpecial Event", "Premium Brand\nExclusive Sale"],
           'b11-detail': ["Shop now for exclusive deals", "Up to 56% OFF — Today Only"],
+          // b10 (메인 팝업 공지)
+          'b10-badge':   ["Service Notice", "Important Notice"],
+          'b10-title':   ["Airport Pickup Area\nCongestion Alert", "Pickup Counter\nBusy Period Notice"],
+          'b10-body':    ["Due to the peak season, heavy congestion is expected\nin the airport pickup area. Please arrive at least\n3 hours before your departure.", "We expect high congestion at the pickup counter\nduring the holiday season. Kindly arrive\n3 hours prior to your departure time."],
+          'b10-sub':     ["Thank you for choosing Shinsegae Duty Free.\nWe wish you a pleasant journey.", "We appreciate your visit and hope you\nhave a wonderful trip."],
+          'b10-contact': ["Inquiries  ☎ Customer Center 1661-8778", "Contact  ☎ Customer Service 1661-8778"],
         },
         '中文': {
           'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选商品低至56折 今日截止"],
@@ -1060,6 +1066,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b11-sub':    ["专属优惠", "限时特卖"],
           'b11-title':  ["限时特卖\n优惠活动", "精品品牌\n专属折扣"],
           'b11-detail': ["立即购物 享受专属优惠", "最高56折 仅限今日"],
+          // b10 (메인 팝업 공지)
+          'b10-badge':   ["服务公告", "重要通知"],
+          'b10-title':   ["机场提货区\n拥挤预警", "提货柜台\n繁忙期提示"],
+          'b10-body':    ["由于旅游旺季，机场提货区预计出现严重拥挤。\n为确保您顺利取货，\n请提前3小时到达机场。", "节假日旺季期间，提货柜台预计十分繁忙。\n请提前3小时抵达机场，\n以便顺利完成取货。"],
+          'b10-sub':     ["感谢您选择新世界免税店，祝您旅途愉快。", "感谢您的光临，\n祝您旅途顺利、愉快。"],
+          'b10-contact': ["咨询  ☎ 客户服务 1661-8778", "联系我们  ☎ 客服热线 1661-8778"],
         },
         '日本語': {
           'b4-main': ["お正月セール #SSG\n最大56%OFF 本日限り！", "新春ショッピング\n最大56%引き・本日のみ"],
@@ -1067,6 +1079,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b11-sub':    ["特別オファー", "限定セール"],
           'b11-title':  ["期間限定\nスペシャルイベント", "プレミアムブランド\n限定セール"],
           'b11-detail': ["今すぐショッピング", "最大56%OFF 本日限り"],
+          // b10 (메인 팝업 공지)
+          'b10-badge':   ["サービスのお知らせ", "重要なお知らせ"],
+          'b10-title':   ["空港受取カウンター\n混雑のご案内", "ピックアップエリア\n混雑予想のお知らせ"],
+          'b10-body':    ["繁忙期のため、空港受取カウンターが\n大変混雑する見込みです。\nご出発の3時間前にはお越しください。", "ハイシーズンにより、受取カウンターの\n混雑が予想されます。出発の3時間前までに\n空港へお越しいただきますようお願いします。"],
+          'b10-sub':     ["新世界免税店をご利用いただきありがとうございます。\n楽しいご旅行をお祈り申し上げます。", "ご来店いただきありがとうございます。\n素敵なご旅行をお過ごしください。"],
+          'b10-contact': ["お問い合わせ  ☎ カスタマーセンター 1661-8778", "ご連絡先  ☎ お客様センター 1661-8778"],
         },
       }
       // 첫 번째 번역 제안을 텍스트 레이어에 자동 적용
@@ -2042,7 +2060,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       {currentSuggestions.map((item) => (
                         <div key={item.layerId} style={{ marginBottom: 10 }}>
                           <p style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4 }}>
-                            {item.layerId === 'b4-main' ? '메인카피' : '서브카피'}
+                            {({
+                              'b4-main': '메인카피', 'b4-sub': '서브카피',
+                              'b11-sub': '서브타이틀', 'b11-title': '타이틀', 'b11-detail': '상세내용',
+                              'b10-badge': '배지', 'b10-title': '타이틀', 'b10-body': '본문',
+                              'b10-sub': '서브', 'b10-contact': '문의 안내',
+                            })[item.layerId] || '텍스트'}
                           </p>
                           {item.suggestions.map((sug, si) => {
                             const isApplied = (layers.find(l => l.id === item.layerId)?.text || '') === sug

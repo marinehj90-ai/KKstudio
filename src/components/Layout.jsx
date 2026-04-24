@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin } from 'lucide-react'
+import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin, BookImage } from 'lucide-react'
 
 const navItems = [
   { to: '/', icon: Home, label: '홈' },
@@ -9,10 +9,11 @@ const navItems = [
 ]
 
 const templateCategories = [
-  { to: '/templates/banner',     icon: Layers,       label: '배너',      count: 12, hex: '#9F48CE', light: '#F3E8FF' },
-  { to: '/templates/product',    icon: Image,        label: '상품이미지', count: 2,  hex: '#685BAD', light: '#EBE8F8' },
-  { to: '/templates/exhibition', icon: CalendarRange, label: '기획전',   count: 4,  hex: '#F38C5C', light: '#FEF0E8' },
-  { to: '/templates/event',      icon: Sparkles,     label: '이벤트·상세', count: 3, hex: '#FBBA4B', light: '#FEF7E6' },
+  { to: '/templates/banner',     icon: Layers,       label: '배너',        count: 10, hex: '#9F48CE', light: '#F3E8FF' },
+  { to: '/templates/brand',      icon: BookImage,    label: '브랜드어셋',   count: 3,  hex: '#3B82F6', light: '#EFF6FF' },
+  { to: '/templates/product',    icon: Image,        label: '상품이미지',   count: 2,  hex: '#685BAD', light: '#EBE8F8' },
+  { to: '/templates/exhibition', icon: CalendarRange, label: '기획전',      count: 4,  hex: '#F38C5C', light: '#FEF0E8' },
+  { to: '/templates/event',      icon: Sparkles,     label: '이벤트·상세', count: 3,  hex: '#FBBA4B', light: '#FEF7E6' },
 ]
 
 // 홈 포인트 컬러

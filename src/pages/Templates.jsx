@@ -19,10 +19,13 @@ export default function Templates() {
   const [deviceFilter, setDeviceFilter] = useState('전체')
 
   const toggleTemplate = (id) => {
-    // Templates.jsx는 이미 단일 카테고리 페이지이므로 같은 그룹 내 다중선택만 허용
-    setSelectedTemplates((prev) =>
-      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
-    )
+    const SOLO_IDS = ['b10', 'b8']
+    setSelectedTemplates((prev) => {
+      if (prev.includes(id)) return prev.filter((t) => t !== id)
+      if (SOLO_IDS.includes(id) && prev.length > 0) return [id]
+      if (prev.some(p => SOLO_IDS.includes(p))) return [id]
+      return [...prev, id]
+    })
   }
 
   const filteredTemplates = activeGroup.templates.filter((t) => {

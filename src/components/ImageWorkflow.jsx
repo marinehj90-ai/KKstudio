@@ -257,6 +257,60 @@ const B3TextPreviewOverlay = memo(function B3TextPreviewOverlay({ canvasW, canva
   )
 })
 
+// b12 퀵메뉴 이미지 레이아웃 가이드 (피그마 6650-64627 기준, 300×300)
+const B12GuideOverlay = memo(function B12GuideOverlay({ canvasW, canvasH }) {
+  // 피그마 기준 300px → 캔버스 실제 크기로 스케일
+  const sc = canvasW / 300
+  const MARGIN   = Math.round(24 * sc)   // 안전마진 선 위치
+  const RED_W    = Math.round(208 * sc)  // 권장 이미지 영역
+  const RED_H    = Math.round(208 * sc)
+  const RED_X    = Math.round((canvasW - RED_W) / 2)
+  const RED_Y    = Math.round((canvasH - RED_H) / 2)
+  const BLU_HW   = Math.round(250 * sc)  // 가로형 콘텐츠 영역
+  const BLU_HH   = Math.round(160 * sc)
+  const BLU_HX   = Math.round((canvasW - BLU_HW) / 2)
+  const BLU_HY   = Math.round((canvasH - BLU_HH) / 2)
+  const BLU_VW   = Math.round(160 * sc)  // 세로형 콘텐츠 영역
+  const BLU_VH   = Math.round(250 * sc)
+  const BLU_VX   = Math.round((canvasW - BLU_VW) / 2)
+  const BLU_VY   = Math.round((canvasH - BLU_VH) / 2)
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+
+      {/* 가로형 콘텐츠 영역 (파란 가로) */}
+      <div style={{ position: 'absolute', left: BLU_HX, top: BLU_HY, width: BLU_HW, height: BLU_HH, background: 'rgba(0,30,255,0.15)', border: '1.5px solid rgba(0,30,255,0.5)', boxSizing: 'border-box' }} />
+
+      {/* 세로형 콘텐츠 영역 (파란 세로) */}
+      <div style={{ position: 'absolute', left: BLU_VX, top: BLU_VY, width: BLU_VW, height: BLU_VH, background: 'rgba(0,30,255,0.15)', border: '1.5px solid rgba(0,30,255,0.5)', boxSizing: 'border-box' }} />
+
+      {/* 권장 이미지 영역 (빨간) */}
+      <div style={{ position: 'absolute', left: RED_X, top: RED_Y, width: RED_W, height: RED_H, background: 'rgba(255,0,0,0.15)', border: '1.5px solid rgba(255,0,0,0.6)', boxSizing: 'border-box', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
+        <span style={{ fontSize: Math.round(9 * sc), fontWeight: 700, color: 'rgba(200,0,0,0.9)', background: 'rgba(255,255,255,0.85)', borderRadius: 3, padding: '1px 5px', marginTop: 4, fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>권장 이미지 영역 208×208</span>
+      </div>
+
+      {/* 라벨 — 가로형 */}
+      <div style={{ position: 'absolute', left: BLU_HX, top: BLU_HY + BLU_HH + 3, width: BLU_HW, display: 'flex', justifyContent: 'center' }}>
+        <span style={{ fontSize: Math.round(8 * sc), fontWeight: 700, color: 'rgba(0,30,200,0.9)', background: 'rgba(255,255,255,0.85)', borderRadius: 3, padding: '1px 5px', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>가로형 250×160</span>
+      </div>
+
+      {/* 라벨 — 세로형 */}
+      <div style={{ position: 'absolute', left: BLU_VX + BLU_VW + 3, top: BLU_VY, height: BLU_VH, display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontSize: Math.round(8 * sc), fontWeight: 700, color: 'rgba(0,30,200,0.9)', background: 'rgba(255,255,255,0.85)', borderRadius: 3, padding: '1px 5px', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>세로형 160×250</span>
+      </div>
+
+      {/* 안전마진 점선 4개 */}
+      <div style={{ position: 'absolute', left: 0, top: MARGIN, width: canvasW, height: 0, borderTop: '1px dashed rgba(100,100,100,0.7)' }} />
+      <div style={{ position: 'absolute', left: 0, bottom: MARGIN, width: canvasW, height: 0, borderTop: '1px dashed rgba(100,100,100,0.7)' }} />
+      <div style={{ position: 'absolute', left: MARGIN, top: 0, width: 0, height: canvasH, borderLeft: '1px dashed rgba(100,100,100,0.7)' }} />
+      <div style={{ position: 'absolute', right: MARGIN, top: 0, width: 0, height: canvasH, borderLeft: '1px dashed rgba(100,100,100,0.7)' }} />
+
+      {/* 마진 라벨 */}
+      <div style={{ position: 'absolute', left: 2, top: MARGIN / 2, transform: 'translateY(-50%)', fontSize: Math.round(7 * sc), fontWeight: 700, color: 'rgba(80,80,80,0.9)', background: 'rgba(255,255,255,0.85)', borderRadius: 3, padding: '1px 4px', fontFamily: 'system-ui, sans-serif', whiteSpace: 'nowrap' }}>24px</div>
+    </div>
+  )
+})
+
 function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   const isSymbol = guide === '심볼형'
   const SYMBOL_W = 160
@@ -837,7 +891,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       selectedTemplateDetails.forEach((tmpl) => {
         const [w, h] = tmpl.size.split('\u00d7').map(Number)
         // 배경색 레이어 (최하단)
-        const bgLayer = { id: 'background', type: 'background', color: (tmpl.id === 'b1' || tmpl.id === 'b2') ? '#777777' : '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        const bgLayer = { id: 'background', type: 'background', color: (tmpl.id === 'b1' || tmpl.id === 'b2') ? '#777777' : tmpl.id === 'b12' ? '#F3F3F3' : '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
         // b4 전용 레이아웃 상수는 파일 상단 전역 상수 사용
         const imgLayers = imgs.map((img, idx) => {
           let imgW, imgH, imgX, imgY
@@ -1686,12 +1740,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2' || currentTemplateId === 'b3') && (
+                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2' || currentTemplateId === 'b3' || currentTemplateId === 'b12') && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150 }}>
                     {(currentTemplateId === 'b1' || currentTemplateId === 'b2'
                       ? [['layout', '레이아웃 가이드']]
                       : currentTemplateId === 'b3'
                       ? [['text', '메인배너 텍스트 미리보기']]
+                      : currentTemplateId === 'b12'
+                      ? [['layout', '레이아웃 가이드']]
                       : [['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']]
                     ).map(([mode, label]) => (
                       <button key={mode} onClick={() => setB6GuideMode(m => m === mode ? null : mode)}
@@ -1701,7 +1757,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && currentTemplateId !== 'b12' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -2711,6 +2767,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {/* b3 메인배너 텍스트 미리보기 */}
                     {showGuide && !isLogoTab && currentTemplateId === 'b3' && b6GuideMode === 'text' && (
                       <B3TextPreviewOverlay canvasW={canvasW} canvasH={canvasH} />
+                    )}
+
+                    {/* b12 퀵메뉴 레이아웃 가이드 */}
+                    {showGuide && !isLogoTab && currentTemplateId === 'b12' && b6GuideMode === 'layout' && (
+                      <B12GuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
 
                     {/* b7/b1/b2 띠배너 B 가이드 오버레이 */}

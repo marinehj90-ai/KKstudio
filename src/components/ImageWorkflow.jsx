@@ -875,9 +875,43 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
-      // b10 전용: 중문(zh) 탭 자동 생성 & 기본 활성화 (Figma 1268:234)
+      // b10 전용: 영문(en) + 중문(zh) 탭 자동 생성, 국문(tab 0) 기본 활성화
       const b10Tmpl = selectedTemplateDetails.find(t => t.id === 'b10')
       if (b10Tmpl && initAllLayers['b10']) {
+        const base = initAllLayers['b10']
+
+        // ── 영문(en) ──────────────────────────────────────────
+        const enTexts = {
+          'b10-badge':   'Notice',
+          'b10-title':   'Expected Congestion\nat the Airport Pickup Desk',
+          'b10-body':    'Due to peak season holidays,\ncongestion is expected at the pickup desk.\nTo avoid any inconvenience,\nplease arrive at the airport\nat least 3 hours before departure.',
+          'b10-sub':     'Wishing you a pleasant journey with Shinsegae Duty Free.',
+          'b10-contact': 'For inquiries: Customer Service  ☎ 1661-8778',
+        }
+        const enCoords = {
+          'b10-gray-box':  { x: 36, y: 193, width: 678, height: 292 },
+          'b10-badge-box': { x: 304, y: 33, width: 142, height: 43 },
+          'b10-badge':     { x: 320, y: 40, width: 110, height: 29 },
+          'b10-title':     { x: 36, y: 88, width: 678, height: 98, fontSize: 38, lineHeight: 1.25 },
+          'b10-body':      { x: 51, y: 213, width: 648, height: 195, fontSize: 23, fontWeight: '600', lineHeight: 1.6 },
+          'b10-sub':       { x: 36, y: 423, width: 678, height: 26, fontSize: 20 },
+          'b10-contact':   { x: 0, y: 507, width: 750, height: 26, fontSize: 20 },
+        }
+        const b10EnId = 'b10-lang-en'
+        const b10EnLayers = base.map(l => {
+          const coord = enCoords[l.id] || {}
+          if (l.type === 'text' && enTexts[l.id]) return { ...l, text: enTexts[l.id], ...coord }
+          if (Object.keys(coord).length > 0) return { ...l, ...coord }
+          return l
+        })
+        initAllLayers[b10EnId] = b10EnLayers
+        initAllHistory[b10EnId] = { history: [JSON.parse(JSON.stringify(b10EnLayers))], index: 0 }
+        const enCopy = { lang: 'English', id: b10EnId, name: `${b10Tmpl.name} (English)`, size: b10Tmpl.size, baseId: 'b10' }
+        const enSuggestions = base.filter(l => l.type === 'text').map(l => ({
+          layerId: l.id, original: l.text, suggestions: [enTexts[l.id], l.text].filter(Boolean),
+        }))
+
+        // ── 중문(zh) ──────────────────────────────────────────
         const zhTexts = {
           'b10-badge':   '公告事项',
           'b10-title':   '提货处繁忙通知',
@@ -885,12 +919,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b10-sub':     '感谢您选择新世界免税店，祝您旅途愉快！',
           'b10-contact': '如有疑问，请联系客户中心  ☎ 400-842-8868',
         }
-        // zh 버전 레이어별 좌표 오버라이드 (사용자 확정 크기)
         const zhCoords = {
           'b10-body': { x: 72, y: 228, width: 605, height: 132 },
         }
         const b10ZhId = 'b10-lang-zh'
-        const b10ZhLayers = initAllLayers['b10'].map(l =>
+        const b10ZhLayers = base.map(l =>
           l.type === 'text' && zhTexts[l.id]
             ? { ...l, text: zhTexts[l.id], ...(zhCoords[l.id] || {}) }
             : l
@@ -898,16 +931,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         initAllLayers[b10ZhId] = b10ZhLayers
         initAllHistory[b10ZhId] = { history: [JSON.parse(JSON.stringify(b10ZhLayers))], index: 0 }
         const zhCopy = { lang: '中文', id: b10ZhId, name: `${b10Tmpl.name} (中文)`, size: b10Tmpl.size, baseId: 'b10' }
-        const zhSuggestions = initAllLayers['b10']
-          .filter(l => l.type === 'text')
-          .map(l => ({
-            layerId: l.id,
-            original: l.text,
-            suggestions: [zhTexts[l.id], l.text].filter(Boolean),
-          }))
-        setLangCopies([zhCopy])
-        setLangSuggestions({ [b10ZhId]: zhSuggestions })
-        setActivePreviewTab(1)
+        const zhSuggestions = base.filter(l => l.type === 'text').map(l => ({
+          layerId: l.id, original: l.text, suggestions: [zhTexts[l.id], l.text].filter(Boolean),
+        }))
+
+        setLangCopies([enCopy, zhCopy])
+        setLangSuggestions({ [b10EnId]: enSuggestions, [b10ZhId]: zhSuggestions })
+        setActivePreviewTab(0) // 국문 기본
       }
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
@@ -1336,12 +1366,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b11-sub':    ["Exclusive Offer", "Special Promotion"],
           'b11-title':  ["Limited Time\nSpecial Event", "Premium Brand\nExclusive Sale"],
           'b11-detail': ["Shop now for exclusive deals", "Up to 56% OFF — Today Only"],
-          // b10 (메인 팝업 공지)
-          'b10-badge':   ["Service Notice", "Important Notice"],
-          'b10-title':   ["Airport Pickup Area\nCongestion Alert", "Pickup Counter\nBusy Period Notice"],
-          'b10-body':    ["Due to the peak season, heavy congestion is expected\nin the airport pickup area. Please arrive at least\n3 hours before your departure.", "We expect high congestion at the pickup counter\nduring the holiday season. Kindly arrive\n3 hours prior to your departure time."],
-          'b10-sub':     ["Thank you for choosing Shinsegae Duty Free.\nWe wish you a pleasant journey.", "We appreciate your visit and hope you\nhave a wonderful trip."],
-          'b10-contact': ["Inquiries  ☎ Customer Center 1661-8778", "Contact  ☎ Customer Service 1661-8778"],
+          // b10 (메인 팝업 공지) — Figma 1266:339 기준
+          'b10-badge':   ["Notice", "Important Notice"],
+          'b10-title':   ["Expected Congestion\nat the Airport Pickup Desk", "Pickup Counter\nBusy Period Notice"],
+          'b10-body':    ["Due to peak season holidays,\ncongestion is expected at the pickup desk.\nTo avoid any inconvenience,\nplease arrive at the airport\nat least 3 hours before departure.", "We expect high congestion at the pickup counter\nduring the holiday season. Kindly arrive\n3 hours prior to your departure time."],
+          'b10-sub':     ["Wishing you a pleasant journey with Shinsegae Duty Free.", "We appreciate your visit and hope you have a wonderful trip."],
+          'b10-contact': ["For inquiries: Customer Service  ☎ 1661-8778", "Contact  ☎ Customer Service 1661-8778"],
         },
         '中文': {
           'b4-main': ["春节购物 #限时特卖\n最高56折 仅限今日！", "新春特卖会\n精选商品低至56折 今日截止"],
@@ -1370,11 +1400,31 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           'b10-contact': ["お問い合わせ  ☎ カスタマーセンター 1661-8778", "ご連絡先  ☎ お客様センター 1661-8778"],
         },
       }
-      // 첫 번째 번역 제안을 텍스트 레이어에 자동 적용
+      // 언어별 레이어 좌표/폰트 오버라이드 (rect 포함, 에디터 확정값 기준)
+      const COORD_OVERRIDES = {
+        'English': {
+          // rect 레이어
+          'b10-gray-box':  { x: 36, y: 193, width: 678, height: 292 },
+          'b10-badge-box': { x: 304, y: 33, width: 142, height: 43 },
+          // text 레이어 — Figma 1266:339 + 에디터 확정값
+          'b10-badge':   { x: 320, y: 40, width: 110, height: 29 },
+          'b10-title':   { x: 36, y: 88, width: 678, height: 98, fontSize: 38, lineHeight: 1.25 },
+          'b10-body':    { x: 51, y: 213, width: 648, height: 195, fontSize: 23, fontWeight: '600', lineHeight: 1.6 },
+          'b10-sub':     { x: 36, y: 423, width: 678, height: 26, fontSize: 20 },
+          'b10-contact': { x: 0, y: 507, width: 750, height: 26, fontSize: 20 },
+        },
+      }
+      // 첫 번째 번역 제안을 텍스트 레이어에 자동 적용 (rect도 오버라이드 적용)
       const translatedLayers = sourceLayers.map(l => {
-        if (l.type !== 'text') return l
+        const coordOverride = COORD_OVERRIDES[lang]?.[l.id] || {}
+        if (l.type !== 'text') {
+          return Object.keys(coordOverride).length > 0 ? { ...l, ...coordOverride } : l
+        }
         const translated = SUGGESTIONS[lang]?.[l.id]?.[0]
-        return translated ? { ...l, text: translated } : l
+        if (translated || Object.keys(coordOverride).length > 0) {
+          return { ...l, ...(translated ? { text: translated } : {}), ...coordOverride }
+        }
+        return l
       })
       const newCopy = { lang, id: langId, name: `${baseTemplate.name} (${lang})`, size: baseTemplate.size, baseId: baseTemplate.id }
       const newTabIdx = allDisplayTemplates.length

@@ -448,6 +448,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const canvasAreaRef = useRef(null)
 
   useEffect(() => {
+    setShowGuide(false)
+    setB6GuideMode(null)
+  }, [activePreviewTab])
+
+  useEffect(() => {
     // b8가 선택 해제되면 로고 쌍 초기화
     if (!selectedTemplateIds.includes('b8') && logoPairs.length > 0) {
       setLogoPairs([])
@@ -3681,7 +3686,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           setDragOverTplId(null)
                         }}
                         onDragEnd={() => { setDragTplId(null); setDragOverTplId(null) }}
-                        onClick={() => { setActivePreviewTab(i); setSelectedLayerId(null); setLogoGuide(null) }}
+                        onClick={() => { setActivePreviewTab(i); setSelectedLayerId(null); setLogoGuide(null); setShowGuide(false); setB6GuideMode(null) }}
                         className="shrink-0 flex flex-col items-start gap-1"
                         style={{ cursor: 'grab', opacity: dragTplId === tmpl.id ? 0.4 : 1, borderLeft: dragOverTplId === tmpl.id && dragTplId !== tmpl.id ? '3px solid #9F48CE' : '3px solid transparent', transition: 'all 0.1s' }}
                       >

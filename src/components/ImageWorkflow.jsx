@@ -1590,29 +1590,44 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     img.crossOrigin = 'anonymous'
     img.onload = () => {
       const origW = img.naturalWidth, origH = img.naturalHeight
-      // 원본 이미지 왼쪽 5% 스트립만 잘라서 샘플링 (전체 압축 아님)
-      const STRIP_W = Math.max(1, Math.round(origW * 0.05))
-      const canvas = document.createElement('canvas')
-      canvas.width = STRIP_W; canvas.height = origH
-      const ctx = canvas.getContext('2d')
-      // sx=0, sy=0, sWidth=STRIP_W, sHeight=origH → dx=0, dy=0, dWidth=STRIP_W, dHeight=origH
-      ctx.drawImage(img, 0, 0, STRIP_W, origH, 0, 0, STRIP_W, origH)
-      const data = ctx.getImageData(0, 0, STRIP_W, origH).data
+      // 좌우 각 200px(이미지보다 작으면 10%) 스트립 샘플링
+      const STRIP_W = Math.max(1, Math.min(200, Math.round(origW * 0.1)))
 
       const toHex = (r, g, b) => `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`
       const QUANT = 16
       const colorMap = {}
-      for (let i = 0; i < data.length; i += 4) {
-        if (data[i+3] < 128) continue
-        const r = Math.round(data[i] / QUANT) * QUANT
-        const g = Math.round(data[i+1] / QUANT) * QUANT
-        const b = Math.round(data[i+2] / QUANT) * QUANT
-        const key = `${r},${g},${b}`
-        colorMap[key] = (colorMap[key] || 0) + 1
+
+      const sampleStrip = (sx, sw) => {
+        const c = document.createElement('canvas')
+        c.width = sw; c.height = origH
+        const ctx = c.getContext('2d')
+        ctx.drawImage(img, sx, 0, sw, origH, 0, 0, sw, origH)
+        const data = ctx.getImageData(0, 0, sw, origH).data
+        for (let i = 0; i < data.length; i += 4) {
+          if (data[i+3] < 128) continue
+          const r = Math.round(data[i]   / QUANT) * QUANT
+          const g = Math.round(data[i+1] / QUANT) * QUANT
+          const b = Math.round(data[i+2] / QUANT) * QUANT
+          const key = `${r},${g},${b}`
+          colorMap[key] = (colorMap[key] || 0) + 1
+        }
       }
 
+      sampleStrip(0, STRIP_W)                      // 왼쪽 200px
+      sampleStrip(origW - STRIP_W, STRIP_W)        // 오른쪽 200px
+
       const sorted = Object.entries(colorMap).sort((a, b) => b[1] - a[1])
-      const colors = sorted.slice(0, 8).map(([key]) => {
+
+      // 너무 어둡거나(명도 < 8%) 너무 밝은(명도 > 97%) 색 필터 — 스와치에서 안 보이는 색 제거
+      const isUsable = ([key]) => {
+        const [r, g, b] = key.split(',').map(Number)
+        const l = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255
+        return l >= 0.08 && l <= 0.97
+      }
+      const filtered = sorted.filter(isUsable)
+      const source = filtered.length >= 3 ? filtered : sorted
+
+      const colors = source.slice(0, 8).map(([key]) => {
         const [r, g, b] = key.split(',').map(Number); return toHex(r, g, b)
       })
       setSuggestedColors(colors)

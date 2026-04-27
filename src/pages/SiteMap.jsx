@@ -21,8 +21,8 @@ export default function SiteMap() {
   const config = siteMapConfig[platform]
 
   const handleCreate = (zone) => {
-    // 해당 templateId를 sessionStorage에 저장 후 홈으로 이동
-    sessionStorage.setItem('preSelectedTemplate', zone.templateId)
+    if (zone.noCreate) return
+    if (zone.templateId) sessionStorage.setItem('preSelectedTemplate', zone.templateId)
     navigate('/')
   }
 
@@ -77,10 +77,10 @@ export default function SiteMap() {
           {/* 이미지 + 핫스팟 영역 */}
           <div className="flex-1 min-w-0">
             <div
-              className="rounded-2xl overflow-hidden shadow-lg border border-gray-200"
-              style={{ background: '#fff', maxHeight: '75vh', overflowY: 'auto' }}
+              className="rounded-2xl shadow-lg border border-gray-200"
+              style={{ background: '#fff', overflowX: 'auto' }}
             >
-              <div style={{ position: 'relative', width: '100%' }}>
+              <div style={{ position: 'relative', width: config.pxFrame ? config.pxFrame.width : '100%' }}>
                 {/* 가이드 이미지 */}
                 <img
                   src={config.image}
@@ -228,13 +228,19 @@ export default function SiteMap() {
                   })()}
 
                   {/* 제작 시작 버튼 */}
-                  <button
-                    onClick={() => handleCreate(selectedZone)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                    style={{ background: `linear-gradient(135deg, ${selectedZone.color}, #C084FC)` }}
-                  >
-                    이 배너 제작하기 <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
+                  {selectedZone.noCreate ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm text-center text-gray-400 bg-gray-50 border border-gray-100">
+                      BO에서 텍스트만 입력
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleCreate(selectedZone)}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+                      style={{ background: `linear-gradient(135deg, ${selectedZone.color}, #C084FC)` }}
+                    >
+                      이 배너 제작하기 <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (

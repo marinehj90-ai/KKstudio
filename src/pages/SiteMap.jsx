@@ -85,6 +85,7 @@ export default function SiteMap() {
                 <img
                   src={config.image}
                   alt={`${platform} 메인 가이드`}
+                  loading="lazy"
                   style={{ width: '100%', display: 'block' }}
                   onError={(e) => {
                     e.target.style.display = 'none'
@@ -106,7 +107,7 @@ export default function SiteMap() {
                   return (
                     <div
                       key={zone.id}
-                      onClick={() => setSelectedZone(isSelected ? null : zone)}
+                      onClick={() => !zone.comingSoon && setSelectedZone(isSelected ? null : zone)}
                       onMouseEnter={() => setHoveredZone(zone.id)}
                       onMouseLeave={() => setHoveredZone(null)}
                       style={{
@@ -121,7 +122,7 @@ export default function SiteMap() {
                           : isHovered
                           ? `${zone.color}20`
                           : `${zone.color}08`,
-                        cursor: 'pointer',
+                        cursor: zone.comingSoon ? 'not-allowed' : 'pointer',
                         transition: 'all 0.15s',
                         boxSizing: 'border-box',
                         zIndex: isSelected ? 20 : isHovered ? 15 : 10,
@@ -228,7 +229,11 @@ export default function SiteMap() {
                   })()}
 
                   {/* 제작 시작 버튼 */}
-                  {selectedZone.noCreate ? (
+                  {selectedZone.comingSoon ? (
+                    <div className="w-full py-2.5 rounded-xl text-sm text-center text-gray-400 bg-gray-50 border border-gray-100">
+                      템플릿 준비중
+                    </div>
+                  ) : selectedZone.noCreate ? (
                     <div className="w-full py-2.5 rounded-xl text-sm text-center text-gray-400 bg-gray-50 border border-gray-100">
                       BO에서 텍스트만 입력
                     </div>

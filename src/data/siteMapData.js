@@ -3,7 +3,7 @@
 
 export const siteMapConfig = {
   PC: {
-    image: 'http://localhost:3845/assets/69f5af20c66ba49143f2b2919dfac3fc3332076d.png',
+    image: '/guide/pc-main.webp',
     pxFrame: { width: 1318, height: 4378 },
     label: 'PC 메인',
     zones: [
@@ -13,6 +13,7 @@ export const siteMapConfig = {
         name: 'PC사이드 영상',
         size: '1080×1920',
         templateId: 'b4',
+        comingSoon: true,
         color: '#9F48CE',
         pos: { top: 86, left: 1167, width: 138, height: 275 },
       },
@@ -104,6 +105,7 @@ export const siteMapConfig = {
         name: '키워드 배너',
         size: '750×1125',
         templateId: 'b3',
+        comingSoon: true,
         color: '#9F48CE',
         pos: { top: 2074, left: 165, width: 985, height: 261 },
       },
@@ -146,7 +148,7 @@ export const siteMapConfig = {
     ],
   },
   MO: {
-    image: 'https://sdl.ssgdfs.com/guideImg/moK_banner.jpg',
+    image: '/guide/mo-main.webp',
     label: 'MO 메인',
     zones: [
       {
@@ -215,7 +217,7 @@ export const siteMapConfig = {
     ],
   },
   APP: {
-    image: 'https://sdl.ssgdfs.com/guideImg/moK_banner.jpg',
+    image: '/guide/mo-main.webp',
     label: 'APP 메인',
     zones: [
       {

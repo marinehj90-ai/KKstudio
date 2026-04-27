@@ -12,6 +12,25 @@ const PLATFORM_TABS = [
   { id: 'APP', label: 'APP', icon: AppWindow },
 ]
 
+const SUB_TABS = {
+  PC:  [
+    { id: 'main',    label: '메인',   active: true },
+    { id: 'beauty',  label: '뷰티',   active: false },
+    { id: 'fashion', label: '패션',   active: false },
+    { id: 'luxury',  label: '럭셔리', active: false },
+  ],
+  MO:  [
+    { id: 'main',    label: '메인',   active: true },
+    { id: 'beauty',  label: '뷰티',   active: false },
+    { id: 'fashion', label: '패션',   active: false },
+    { id: 'luxury',  label: '럭셔리', active: false },
+  ],
+  APP: [
+    { id: 'splash',   label: '스플래쉬',   active: true },
+    { id: 'floating', label: '플로팅 배너', active: false },
+  ],
+}
+
 export default function SiteMap() {
   const navigate = useNavigate()
   const [platform, setPlatform] = useState('PC')
@@ -61,7 +80,7 @@ export default function SiteMap() {
           ))}
 
           {/* 범례 */}
-          <div className="ml-auto flex items-center gap-4 px-4 py-2 bg-white rounded-xl border border-gray-100">
+          <div className="ml-auto flex items-center gap-4 px-4 py-2 bg-white rounded-xl border border-gray-100" style={{ flexShrink: 0 }}>
             <div className="flex items-center gap-1.5">
               <div style={{ width: 12, height: 12, borderRadius: 2, border: '2px solid #9F48CE', background: 'rgba(159,72,206,0.12)' }} />
               <span className="text-xs text-gray-500">배너 영역</span>
@@ -71,6 +90,30 @@ export default function SiteMap() {
               <span className="text-xs text-gray-500">선택됨</span>
             </div>
           </div>
+        </div>
+
+        {/* 하위 카테고리 탭 */}
+        <div className="flex gap-1.5 mb-5">
+          {SUB_TABS[platform].map(({ id, label, active }) =>
+            active ? (
+              <span
+                key={id}
+                className="px-4 py-1.5 rounded-lg text-sm font-semibold"
+                style={{ background: 'rgba(159,72,206,0.12)', color: '#9F48CE', border: '1px solid rgba(159,72,206,0.3)' }}
+              >
+                {label}
+              </span>
+            ) : (
+              <span
+                key={id}
+                className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm"
+                style={{ background: '#f3f4f6', color: '#9ca3af', border: '1px solid #e5e7eb', cursor: 'not-allowed' }}
+              >
+                {label}
+                <span className="text-xs" style={{ background: '#e5e7eb', color: '#9ca3af', borderRadius: 4, padding: '1px 5px', fontWeight: 500 }}>준비중</span>
+              </span>
+            )
+          )}
         </div>
 
         <div className="flex gap-5">

@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  Bold, Underline,
+  Bold, Underline, BringToFront,
 } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
@@ -257,6 +257,49 @@ const B3TextPreviewOverlay = memo(function B3TextPreviewOverlay({ canvasW, canva
   )
 })
 
+function Tip({ label, children }) {
+  const [show, setShow] = React.useState(false)
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {children}
+      {show && (
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', background: '#1f2937', color: '#fff', fontSize: 11, fontFamily: 'system-ui, sans-serif', fontWeight: 500, padding: '4px 8px', borderRadius: 6, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 400, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+          {label}
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #1f2937' }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// b2 띠배너 MO X 닫기 아이콘 (피그마 검수 18:58 기준, 1536×140)
+// left: calc(50%+352px) + translate(-50%) → center_x = 768+352 = 1120, center_y = 70
+const B2_CLOSE_ICON_PATH = 'M7.41401 5.99998L10.207 3.20695C10.3025 3.1147 10.3787 3.00437 10.4311 2.88236C10.4835 2.76036 10.5111 2.62915 10.5123 2.49638C10.5134 2.3636 10.4881 2.23194 10.4378 2.10905C10.3875 1.98615 10.3133 1.87445 10.2194 1.78056C10.1255 1.68666 10.0139 1.61245 9.89097 1.56217C9.76807 1.51189 9.63639 1.48655 9.50361 1.48771C9.37083 1.48886 9.23961 1.51648 9.11761 1.56889C8.9956 1.62129 8.88525 1.6975 8.79301 1.79301L6.00001 4.58598L3.20701 1.79301C3.01841 1.61085 2.76581 1.51003 2.50361 1.51231C2.24141 1.51458 1.99059 1.61974 1.80518 1.80515C1.61977 1.99056 1.51461 2.24138 1.51234 2.50358C1.51006 2.76577 1.61085 3.01834 1.79301 3.20695L4.58601 5.99998L1.79301 8.79301C1.6975 8.88525 1.62131 8.99559 1.5689 9.11759C1.51649 9.2396 1.48891 9.3708 1.48775 9.50358C1.4866 9.63636 1.51191 9.76801 1.56219 9.89091C1.61247 10.0138 1.68672 10.1255 1.78062 10.2194C1.87451 10.3133 1.98615 10.3875 2.10905 10.4378C2.23194 10.4881 2.36363 10.5134 2.49641 10.5122C2.62919 10.5111 2.7604 10.4835 2.88241 10.4311C3.00441 10.3787 3.11476 10.3025 3.20701 10.2069L6.00001 7.41398L8.79301 10.2069C8.88525 10.3025 8.9956 10.3787 9.11761 10.4311C9.23961 10.4835 9.37083 10.5111 9.50361 10.5122C9.63639 10.5134 9.76807 10.4881 9.89097 10.4378C10.0139 10.3875 10.1255 10.3133 10.2194 10.2194C10.3133 10.1255 10.3875 10.0138 10.4378 9.89091C10.4881 9.76801 10.5134 9.63636 10.5123 9.50358C10.5111 9.3708 10.4835 9.2396 10.4311 9.11759C10.3787 8.99559 10.3025 8.88525 10.207 8.79301L7.41401 5.99998Z'
+const B2_CLOSE_SIZE = 24
+const B2_CLOSE_CX = 1120
+const B2_CLOSE_CY = 70
+
+const B2CloseIconOverlay = memo(function B2CloseIconOverlay({ canvasW, canvasH }) {
+  const sc = canvasW / 1536
+  const size = B2_CLOSE_SIZE * sc
+  const cx = B2_CLOSE_CX * sc
+  const cy = B2_CLOSE_CY * sc
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 88 }}>
+      <svg
+        viewBox="0 0 12 12"
+        width={size}
+        height={size}
+        style={{ position: 'absolute', left: cx - size / 2, top: cy - size / 2 }}
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path d={B2_CLOSE_ICON_PATH} fill="white" />
+      </svg>
+    </div>
+  )
+})
+
 // b12 퀵메뉴 이미지 레이아웃 가이드 (피그마 6650-64627 기준, 300×300)
 const B12GuideOverlay = memo(function B12GuideOverlay({ canvasW, canvasH }) {
   // 피그마 기준 300px → 캔버스 실제 크기로 스케일
@@ -438,6 +481,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const selectedLayer = layers.find((l) => l.id === selectedLayerId)
   const bgLayer = layers.find(l => l.id === 'background')
   const bgColor = bgLayer?.color || allBgColors[currentTemplateId] || '#ffffff'
+  const isB2Template = currentTemplateId === 'b2' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b2'
+  const isB1Template = currentTemplateId === 'b1' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b1'
   const setBgColor = (color) => {
     setSelectedLayerId('background')
     setAllBgColors((prev) => ({ ...prev, [currentTemplateId]: color }))
@@ -589,8 +634,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         // textAlign 기준점: left=박스 왼쪽, center=중앙, right=오른쪽
         const drawX = align === 'center' ? 0 : align === 'right' ? boxW / 2 : -boxW / 2
         const lines = (layer.text || '').split('\n')
-        const totalTextH = lines.length * lineH
-        const startY = layer.verticalCenter ? -totalTextH / 2 : -boxH / 2
+        // verticalCenter: textBaseline='middle' 기준으로 블록 중앙을 0에 맞춤
+        // 블록 중앙 = startY + (n-1)*lineH/2 = 0 → startY = -(n-1)*lineH/2
+        const startY = layer.verticalCenter ? -((lines.length - 1) * lineH) / 2 : -boxH / 2
         lines.forEach((line, li) => {
           ctx.fillText(line, drawX, startY + li * lineH)
         })
@@ -662,6 +708,20 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           ctx.closePath(); ctx.fill()
         }
       }
+      ctx.restore()
+    }
+    // b2 X 닫기 아이콘 렌더링 (피그마 5950:16267 기준)
+    if (templateId === 'b2') {
+      const sc = multiplier * (w / 1536)
+      const iconSize = B2_CLOSE_SIZE * sc
+      const cx = B2_CLOSE_CX * (w / 1536) * multiplier
+      const cy = B2_CLOSE_CY * (h / 140) * multiplier
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.scale(iconSize / 12, iconSize / 12)
+      ctx.translate(-6, -6)
+      ctx.fillStyle = 'white'
+      ctx.fill(new Path2D(B2_CLOSE_ICON_PATH))
       ctx.restore()
     }
     return canvas
@@ -1048,10 +1108,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgW = 300; imgH = Math.round(300 / ratio)
             imgX = 1105; imgY = Math.round((h - imgH) / 2)
           } else if (tmpl.id === 'b2') {
-            // 가로 260px 고정, 비율 유지, 세로 중앙 정렬
+            // 가이드 기준: 이미지영역 x=402, w=188
             const ratio = img.naturalWidth / img.naturalHeight
-            imgW = 260; imgH = Math.round(260 / ratio)
-            imgX = 882; imgY = Math.round((h - imgH) / 2)
+            imgW = 188; imgH = Math.round(188 / ratio)
+            imgX = 402; imgY = Math.round((h - imgH) / 2)
           } else if (tmpl.id === 'b7') {
             // A2 영역(x=960, w=300)에 가로 300px 맞춰 세로 중앙 정렬
             const ratio = img.naturalWidth / img.naturalHeight
@@ -1102,10 +1162,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           ]
         })() : []
 
-        // b2 전용 텍스트 레이어 (x=428, w=454, 전체 높이로 verticalCenter 처리)
+        // b2 전용 텍스트 레이어 (가이드 기준: x=590, w=470)
         const b2TextLayers = tmpl.id === 'b2' ? (() => {
-          const lh = 1.4, fs = 22
-          return [{ id: 'b2-text', type: 'text', text: '텍스트는\n최대 두줄까지 가능합니다', x: 428, y: 0, width: 454, height: h, rotation: 0, fontSize: fs, fontWeight: '400', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight: lh, verticalCenter: true }]
+          const lh = 1.4, fs = 30
+          const textH = 80
+          const startY = Math.round((h - textH) / 2)
+          return [{ id: 'b2-text', type: 'text', text: '텍스트는\n최대 두줄까지 가능합니다', x: 590, y: startY, width: 470, height: textH, rotation: 0, fontSize: fs, fontWeight: '400', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight: lh, verticalCenter: true }]
         })() : []
 
         // b1 전용 텍스트 레이어 (피그마 기준: x=604, y=0, w=500, h=80)
@@ -1130,8 +1192,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             const gradX = (w - 210) - 10
             return [{ id: 'b6-gradient', type: 'gradient', direction: 'to-right', x: gradX, y: 0, width: 80, height: h, rotation: 0 }]
           } else if (tmpl.id === 'b2') {
-            // b2: 이미지 1개(x=882, w=260) 양쪽 그라디언트
-            const GRAD_W = 120, IMG_X = 882, IMG_W = 260
+            // b2: 이미지 영역(x=402, w=188) 양쪽 그라디언트
+            const GRAD_W = 120, IMG_X = 402, IMG_W = 188
             return [
               { id: 'b2-grad-left',  type: 'gradient', direction: 'to-right', x: IMG_X - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
               { id: 'b2-grad-right', type: 'gradient', direction: 'to-left',  x: (IMG_X + IMG_W) - Math.round(GRAD_W / 2), y: 0, width: GRAD_W, height: h, rotation: 0 },
@@ -1151,7 +1213,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           }
         })() : []
 
-        const init = [bgLayer, ...b7A1Layer, ...imgLayers, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers, ...b6b7GradLayer]
+        const init = [bgLayer, ...b7A1Layer, ...imgLayers, ...b6b7GradLayer, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
@@ -1293,8 +1355,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setLayers(layers.map((l) => {
         if (l.id !== id) return l
         let nw = ow, nh = oh, nx = ox, ny = oy
+        const isB1B2TextLayer = isTextLayer && (currentTemplateId === 'b1' || currentTemplateId === 'b2' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b1' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b2')
         if (isTextLayer && !isNoImageTemplate) {
-          nw = Math.max(60, ow + dx)
+          // b1/b2 텍스트: 좌우 핸들 모두 지원
+          if (isB1B2TextLayer && handle === 'w') {
+            nw = Math.max(60, ow - dx); nx = ox + (ow - nw)
+          } else {
+            nw = Math.max(60, ow + dx)
+          }
         } else if (isCorner && (isImage || shiftLock)) {
           // 비율 고정 코너 리사이즈 (이미지 항상, 도형 Shift 시)
           if (handle === 'se') { nw = Math.max(20, ow + dx); nh = Math.round(nw / aspect) }
@@ -1569,6 +1637,31 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       window.removeEventListener('keyup', onKeyUp)
     }
   }, [])
+
+  // b2 레이어 가이드 위치 마이그레이션 (구버전 x=882/428 → 신버전 x=402/590)
+  useEffect(() => {
+    const b2Layers = allLayers['b2']
+    if (!b2Layers || b2Layers.length === 0) return
+    const imgLayer  = b2Layers.find(l => l.type === 'image')
+    const textLayer = b2Layers.find(l => l.id === 'b2-text')
+    if (!imgLayer && !textLayer) return
+    const needsMigration = (imgLayer && imgLayer.x === 882) || (textLayer && (textLayer.x === 428 || textLayer.height !== 80))
+    if (!needsMigration) return
+    const migrated = b2Layers.map(l => {
+      if (l.type === 'image' && l.x === 882)       return { ...l, x: 402, width: 188 }
+      if (l.id === 'b2-text' && l.x === 428)       return { ...l, x: 590, width: 470, height: 80, y: 30 }
+      if (l.id === 'b2-text' && l.height !== 80)   return { ...l, height: 80, y: 30 }
+      if (l.id === 'b2-grad-left'  && l.x === 822) return { ...l, x: 342 }
+      if (l.id === 'b2-grad-right' && l.x === 1082) return { ...l, x: 530 }
+      return l
+    })
+    setAllLayers(prev => ({ ...prev, 'b2': migrated }))
+    setAllHistory(prev => {
+      const cur = prev['b2'] || { history: [[]], index: 0 }
+      const next = [...cur.history.slice(0, cur.index + 1), JSON.parse(JSON.stringify(migrated))]
+      return { ...prev, 'b2': { history: next, index: next.length - 1 } }
+    })
+  }, [allLayers['b2']?.length])
 
   // 화살표 키 이동 + Ctrl+Z 되돌리기
   useEffect(() => {
@@ -1900,9 +1993,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2' || currentTemplateId === 'b3' || currentTemplateId === 'b12') && (
+                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || isB1Template || isB2Template || currentTemplateId === 'b3' || currentTemplateId === 'b12') && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150 }}>
-                    {(currentTemplateId === 'b1' || currentTemplateId === 'b2'
+                    {(isB1Template || isB2Template
                       ? [['layout', '레이아웃 가이드']]
                       : currentTemplateId === 'b3'
                       ? [['text', '메인배너 텍스트 미리보기']]
@@ -1917,7 +2010,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && currentTemplateId !== 'b1' && currentTemplateId !== 'b2' && currentTemplateId !== 'b3' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -2705,7 +2798,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.type === 'text' ? 'auto' : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1 }}>
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1 }}>
                           {layer.type === 'image' && (() => {
                             const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
                             if (isB11Layout) {
@@ -2844,25 +2937,39 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y - 48, transform: 'translateX(-50%)', zIndex: 200, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 2, padding: '4px 8px', pointerEvents: 'all', whiteSpace: 'nowrap' }}>
                         {selectedLayer?.type === 'gradient' && <span style={{ fontSize: 11, color: '#9ca3af', padding: '0 4px' }}>그라디언트</span>}
                         {selectedLayer?.type === 'image' && selectedLayer?.src && (
-                          <button title="프레임에 맞추기" onClick={() => {
-                            const img = new Image()
-                            img.crossOrigin = 'anonymous'
-                            img.onload = () => {
-                              const ratio = img.naturalWidth / img.naturalHeight
-                              const newH = canvasH
-                              const newW = Math.round(canvasH * ratio)
-                              const centerX = selectedLayer.x + selectedLayer.width / 2
-                              const newX = Math.round(centerX - newW / 2)
-                              updateLayers(layers.map(l => l.id === selectedLayer.id ? { ...l, width: newW, height: newH, x: newX, y: 0 } : l))
-                            }
-                            img.src = selectedLayer.src
-                          }} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
-                            <Maximize2 style={{ width: 14, height: 14 }} />
-                          </button>
+                          <Tip label="이미지 프레임에 맞춰 키우기">
+                            <button onClick={() => {
+                              const img = new Image()
+                              img.crossOrigin = 'anonymous'
+                              img.onload = () => {
+                                const ratio = img.naturalWidth / img.naturalHeight
+                                const newH = canvasH
+                                const newW = Math.round(canvasH * ratio)
+                                const centerX = selectedLayer.x + selectedLayer.width / 2
+                                const newX = Math.round(centerX - newW / 2)
+                                updateLayers(layers.map(l => l.id === selectedLayer.id ? { ...l, width: newW, height: newH, x: newX, y: 0 } : l))
+                              }
+                              img.src = selectedLayer.src
+                            }} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+                              <Maximize2 style={{ width: 14, height: 14 }} />
+                            </button>
+                          </Tip>
                         )}
-                        <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                          <Trash2 style={{ width: 14, height: 14 }} />
-                        </button>
+                        {selectedLayer?.type === 'image' && (
+                          <Tip label="최상단으로 올리기">
+                            <button onClick={() => {
+                              const rest = layers.filter(l => l.id !== selectedLayer.id)
+                              updateLayers([...rest, selectedLayer])
+                            }} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+                              <BringToFront style={{ width: 14, height: 14 }} />
+                            </button>
+                          </Tip>
+                        )}
+                        <Tip label="삭제">
+                          <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                            <Trash2 style={{ width: 14, height: 14 }} />
+                          </button>
+                        </Tip>
                       </div>
                     )}
 
@@ -2905,6 +3012,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <Icon style={{ width: 15, height: 15 }} />
                           </button>
                         ))}
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, verticalCenter: !l.verticalCenter } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.verticalCenter ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.verticalCenter ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.verticalCenter ? '#9F48CE' : '#4b5563' }} title="수직 중앙 정렬">
+                          <AlignCenterVertical style={{ width: 15, height: 15 }} />
+                        </button>
                         <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
                         <label style={{ position: 'relative', cursor: 'pointer' }}>
                           <div style={{ width: 32, height: 32, borderRadius: 6, border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 1 }}>
@@ -3047,63 +3157,84 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       <B12GuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
 
-                    {/* b7/b1/b2 띠배너 B 가이드 오버레이 */}
-                    {showGuide && !isLogoTab && (currentTemplateId === 'b7' || currentTemplateId === 'b1' || currentTemplateId === 'b2') && b6GuideMode === 'layout' && (() => {
-                      const isB1 = currentTemplateId === 'b1'
-                      const isB2 = currentTemplateId === 'b2'
-                      // b2: 이미지 1개(우측), b1: 피그마 기준, b7: 기존
-                      const A1_X = isB1 ? 192  : isB2 ? null : 260
-                      const A2_X = isB1 ? 1105 : isB2 ? 882  : 960
-                      const A1_W = 300
-                      const A2_W = isB2 ? 260 : 300
-                      const T_X  = isB1 ? 604  : isB2 ? 428  : (260 + 300)
-                      const T_W  = isB1 ? 500  : isB2 ? 454  : 400
-                      const VISIBLE_W = (isB1 || isB2) ? (isB2 ? 750 : 840) : 1136
-                      const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
+                    {/* b2 띠배너 MO 레이아웃 가이드 */}
+                    {showGuide && !isLogoTab && isB2Template && b6GuideMode === 'layout' && (() => {
+                      const IMG_X = 402, IMG_W = 188
+                      const TXT_X = 590, TXT_W = 470
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
-                          {/* A1 이미지 영역 (b2는 없음) */}
-                          {A1_X !== null && (
-                            <div style={{ position: 'absolute', left: A1_X, top: 0, width: A1_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3 }}>
-                              <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>A1 이미지 영역</span>
-                                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{A1_W}×{canvasH}px</span>
-                              </div>
+                          {/* 이미지 영역 */}
+                          <div style={{ position: 'absolute', left: IMG_X, top: 0, width: IMG_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>이미지 영역</span>
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{IMG_W}×{canvasH}px</span>
                             </div>
-                          )}
+                          </div>
+                          {/* 텍스트 영역 */}
+                          <div style={{ position: 'absolute', left: TXT_X, top: 4, width: TXT_W, height: canvasH - 8, border: '2px dashed #9F48CE', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: 'rgba(159,72,206,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>텍스트 영역</span>
+                            </div>
+                          </div>
+                          {/* 치수 라벨 */}
+                          <div style={{ position: 'absolute', bottom: 2, left: IMG_X, width: IMG_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{IMG_W}</span>
+                          </div>
+                          <div style={{ position: 'absolute', bottom: 2, left: TXT_X, width: TXT_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(159,72,206,0.9)', fontFamily: 'system-ui, sans-serif' }}>{TXT_W}</span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* b7/b1 띠배너 B 가이드 오버레이 */}
+                    {showGuide && !isLogoTab && (currentTemplateId === 'b7' || currentTemplateId === 'b1') && b6GuideMode === 'layout' && (() => {
+                      const isB1 = currentTemplateId === 'b1'
+                      const A1_X = isB1 ? 192 : 260
+                      const A2_X = isB1 ? 1105 : 960
+                      const A1_W = 300, A2_W = 300
+                      const T_X  = isB1 ? 604 : (260 + 300)
+                      const T_W  = isB1 ? 500 : 400
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+                          {/* A1 이미지 영역 */}
+                          <div style={{ position: 'absolute', left: A1_X, top: 0, width: A1_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3 }}>
+                            <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>A1 이미지 영역</span>
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{A1_W}×{canvasH}px</span>
+                            </div>
+                          </div>
                           {/* T 텍스트 영역 */}
                           <div style={{ position: 'absolute', left: T_X, top: 4, width: T_W, height: canvasH - 8, border: '2px dashed #9F48CE', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <div style={{ background: 'rgba(159,72,206,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>텍스트 영역</span>
-                              {!isB2 && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>BOS 시스템 폰트</span>}
                             </div>
                           </div>
                           {/* A2 이미지 영역 */}
                           <div style={{ position: 'absolute', left: A2_X, top: 0, width: A2_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3 }}>
                             <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                               <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>A2 이미지 영역</span>
-                              {!isB2 && <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{A2_W}×{canvasH}px</span>}
+                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{A2_W}×{canvasH}px</span>
                             </div>
                           </div>
-                          {/* 치수 라벨 (b2 제외) */}
-                          {!isB2 && A1_X !== null && (
-                            <div style={{ position: 'absolute', bottom: 2, left: A1_X, width: A1_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A1_W}</span>
-                            </div>
-                          )}
-                          {!isB2 && (
-                            <div style={{ position: 'absolute', bottom: 2, left: T_X, width: T_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(159,72,206,0.9)', fontFamily: 'system-ui, sans-serif' }}>{T_W}</span>
-                            </div>
-                          )}
-                          {!isB2 && (
-                            <div style={{ position: 'absolute', bottom: 2, left: A2_X, width: A2_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A2_W}</span>
-                            </div>
-                          )}
+                          {/* 치수 라벨 */}
+                          <div style={{ position: 'absolute', bottom: 2, left: A1_X, width: A1_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A1_W}</span>
+                          </div>
+                          <div style={{ position: 'absolute', bottom: 2, left: T_X, width: T_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(159,72,206,0.9)', fontFamily: 'system-ui, sans-serif' }}>{T_W}</span>
+                          </div>
+                          <div style={{ position: 'absolute', bottom: 2, left: A2_X, width: A2_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A2_W}</span>
+                          </div>
                         </div>
                       )
                     })()}
+
+                    {/* b2 X 닫기 아이콘 항상 표시 */}
+                    {!isLogoTab && isB2Template && (
+                      <B2CloseIconOverlay canvasW={canvasW} canvasH={canvasH} />
+                    )}
 
                     {/* b7 항상 표시: 점선만 */}
                     {!isLogoTab && currentTemplateId === 'b7' && (() => {
@@ -3118,8 +3249,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     })()}
 
                     {/* b1/b2 항상: 점선만 표시 */}
-                    {!isLogoTab && (currentTemplateId === 'b1' || currentTemplateId === 'b2') && (() => {
-                      const VISIBLE_W = currentTemplateId === 'b1' ? 1440 : 750
+                    {!isLogoTab && (isB1Template || isB2Template) && (() => {
+                      const VISIBLE_W = isB1Template ? 1440 : 750
                       const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 88, overflow: 'hidden' }}>
@@ -3130,10 +3261,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     })()}
 
                     {/* b1/b2/b7 레이아웃 가이드 ON: 노란 딤 + 라벨 */}
-                    {showGuide && !isLogoTab && b6GuideMode === 'layout' && (currentTemplateId === 'b1' || currentTemplateId === 'b2' || currentTemplateId === 'b7') && (() => {
-                      const VISIBLE_W = currentTemplateId === 'b1' ? 1440 : currentTemplateId === 'b2' ? 750 : 1136
+                    {showGuide && !isLogoTab && b6GuideMode === 'layout' && (isB1Template || isB2Template || currentTemplateId === 'b7') && (() => {
+                      const VISIBLE_W = isB1Template ? 1440 : isB2Template ? 750 : 1136
                       const VISIBLE_X = Math.round((canvasW - VISIBLE_W) / 2)
-                      const LABEL = currentTemplateId === 'b2' ? '디바이스에 따라 가려지는 영역' : '가려지는 영역'
+                      const LABEL = isB2Template ? '디바이스에 따라 가려지는 영역' : '가려지는 영역'
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 89, overflow: 'hidden' }}>
                           {[
@@ -3254,21 +3385,29 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     )}
 
                     {/* 핸들 오버레이 */}
-                    {selectedLayer && selectedLayer.type !== 'background' && (selectedLayer.type !== 'text' || isNoImageTemplate) && (
-                      <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', overflow: 'visible', zIndex: 100 }}>
-                        <div style={{ position: 'absolute', left: selectedLayer.x, top: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height, transform: `rotate(${selectedLayer.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
-                          <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none' }} />
-                          {RESIZE_HANDLES.map((h) => (
-                            <div key={h.id} onMouseDown={(e) => onMouseDownResize(e, selectedLayer.id, h.id, h.corner)}
-                              style={{ position: 'absolute', left: `calc(${h.cx * 100}% - ${HS / 2}px)`, top: `calc(${h.cy * 100}% - ${HS / 2}px)`, width: HS, height: HS, background: '#ffffff', border: '2px solid #9F48CE', borderRadius: '50%', cursor: h.cursor, pointerEvents: 'all', zIndex: 110 }} />
-                          ))}
-                          <div style={{ position: 'absolute', left: '100%', top: '50%', width: 24, height: 1, background: '#9F48CE', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                          <div onMouseDown={(e) => onMouseDownRotate(e, selectedLayer.id)} style={{ position: 'absolute', left: '100%', top: '50%', marginLeft: 24, transform: 'translateY(-50%)', width: 24, height: 24, background: '#9F48CE', border: '2px solid #fff', borderRadius: '50%', cursor: 'grab', pointerEvents: 'all', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
-                            <RotateCw style={{ width: 12, height: 12, color: '#fff' }} />
+                    {(() => {
+                      const isB1B2Text = selectedLayer?.type === 'text' && (isB1Template || isB2Template)
+                      const showHandles = selectedLayer && selectedLayer.type !== 'background' && (selectedLayer.type !== 'text' || isNoImageTemplate || isB1B2Text)
+                      if (!showHandles) return null
+                      const visibleHandles = isB1B2Text ? RESIZE_HANDLES.filter(h => h.id === 'w' || h.id === 'e') : RESIZE_HANDLES
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', overflow: 'visible', zIndex: 100 }}>
+                          <div style={{ position: 'absolute', left: selectedLayer.x, top: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height, transform: `rotate(${selectedLayer.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
+                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none' }} />
+                            {visibleHandles.map((h) => (
+                              <div key={h.id} onMouseDown={(e) => onMouseDownResize(e, selectedLayer.id, h.id, h.corner)}
+                                style={{ position: 'absolute', left: `calc(${h.cx * 100}% - ${HS / 2}px)`, top: `calc(${h.cy * 100}% - ${HS / 2}px)`, width: HS, height: HS, background: '#ffffff', border: '2px solid #9F48CE', borderRadius: '50%', cursor: h.cursor, pointerEvents: 'all', zIndex: 110 }} />
+                            ))}
+                            {!isB1B2Text && <>
+                              <div style={{ position: 'absolute', left: '100%', top: '50%', width: 24, height: 1, background: '#9F48CE', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                              <div onMouseDown={(e) => onMouseDownRotate(e, selectedLayer.id)} style={{ position: 'absolute', left: '100%', top: '50%', marginLeft: 24, transform: 'translateY(-50%)', width: 24, height: 24, background: '#9F48CE', border: '2px solid #fff', borderRadius: '50%', cursor: 'grab', pointerEvents: 'all', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+                                <RotateCw style={{ width: 12, height: 12, color: '#fff' }} />
+                              </div>
+                            </>}
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )
+                    })()}
                   </div>
                 </div>
 

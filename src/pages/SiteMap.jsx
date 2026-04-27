@@ -129,6 +129,7 @@ export default function SiteMap() {
                   src={config.image}
                   alt={`${platform} 메인 가이드`}
                   loading="lazy"
+                  decoding="async"
                   style={{ width: '100%', display: 'block' }}
                   onError={(e) => {
                     e.target.style.display = 'none'
@@ -155,7 +156,7 @@ export default function SiteMap() {
                       onMouseLeave={() => setHoveredZone(null)}
                       style={{
                         position: 'absolute',
-                        top: zone.pos.top,
+                        top: typeof zone.pos.top === 'number' ? zone.pos.top - (platform === 'MO' ? 15 : 0) : zone.pos.top,
                         left: zone.pos.left,
                         width: zone.pos.width,
                         height: zone.pos.height,

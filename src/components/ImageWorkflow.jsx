@@ -273,6 +273,23 @@ function Tip({ label, children }) {
   )
 }
 
+function TipDesc({ label, desc, children }) {
+  const [show, setShow] = React.useState(false)
+  return (
+    <div style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {children}
+      {show && (
+        <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#1f2937', color: '#fff', fontSize: 11, fontFamily: 'system-ui, sans-serif', padding: '6px 10px', borderRadius: 7, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 400, boxShadow: '0 2px 10px rgba(0,0,0,0.28)', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <span style={{ fontWeight: 600, fontSize: 11 }}>{label}</span>
+          <span style={{ fontWeight: 400, fontSize: 10, color: '#9ca3af' }}>{desc}</span>
+          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #1f2937' }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // b2 띠배너 MO X 닫기 아이콘 (피그마 검수 18:58 기준, 1536×140)
 // left: calc(50%+352px) + translate(-50%) → center_x = 768+352 = 1120, center_y = 70
 const B2_CLOSE_ICON_PATH = 'M7.41401 5.99998L10.207 3.20695C10.3025 3.1147 10.3787 3.00437 10.4311 2.88236C10.4835 2.76036 10.5111 2.62915 10.5123 2.49638C10.5134 2.3636 10.4881 2.23194 10.4378 2.10905C10.3875 1.98615 10.3133 1.87445 10.2194 1.78056C10.1255 1.68666 10.0139 1.61245 9.89097 1.56217C9.76807 1.51189 9.63639 1.48655 9.50361 1.48771C9.37083 1.48886 9.23961 1.51648 9.11761 1.56889C8.9956 1.62129 8.88525 1.6975 8.79301 1.79301L6.00001 4.58598L3.20701 1.79301C3.01841 1.61085 2.76581 1.51003 2.50361 1.51231C2.24141 1.51458 1.99059 1.61974 1.80518 1.80515C1.61977 1.99056 1.51461 2.24138 1.51234 2.50358C1.51006 2.76577 1.61085 3.01834 1.79301 3.20695L4.58601 5.99998L1.79301 8.79301C1.6975 8.88525 1.62131 8.99559 1.5689 9.11759C1.51649 9.2396 1.48891 9.3708 1.48775 9.50358C1.4866 9.63636 1.51191 9.76801 1.56219 9.89091C1.61247 10.0138 1.68672 10.1255 1.78062 10.2194C1.87451 10.3133 1.98615 10.3875 2.10905 10.4378C2.23194 10.4881 2.36363 10.5134 2.49641 10.5122C2.62919 10.5111 2.7604 10.4835 2.88241 10.4311C3.00441 10.3787 3.11476 10.3025 3.20701 10.2069L6.00001 7.41398L8.79301 10.2069C8.88525 10.3025 8.9956 10.3787 9.11761 10.4311C9.23961 10.4835 9.37083 10.5111 9.50361 10.5122C9.63639 10.5134 9.76807 10.4881 9.89097 10.4378C10.0139 10.3875 10.1255 10.3133 10.2194 10.2194C10.3133 10.1255 10.3875 10.0138 10.4378 9.89091C10.4881 9.76801 10.5134 9.63636 10.5123 9.50358C10.5111 9.3708 10.4835 9.2396 10.4311 9.11759C10.3787 8.99559 10.3025 8.88525 10.207 8.79301L7.41401 5.99998Z'
@@ -2623,8 +2640,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   )
 
                   if (type === 'background') return <>{styleSync}{bgPanel}{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{selectedObj}{bottomPanels}</>
-                  if (type === 'image') return <>{styleSync}{logoTypePanel}{fileStorage}{graphicsPanel}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{bottomPanels}</>
-                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{graphicsPanel}{quickEdit}{bgPanel}{bottomPanels}</>
+                  if (type === 'image') return <>{styleSync}{logoTypePanel}{fileStorage}{quickEdit}{selectedObj}{bgPanel}{translationPanel}{graphicsPanel}{bottomPanels}</>
+                  if (type === 'text') return <>{styleSync}{selectedObj}{translationPanel}{fileStorage}{quickEdit}{bgPanel}{graphicsPanel}{bottomPanels}</>
                   if (type === 'rect') {
                     const rectColorPanel = (
                       <div key="rectColor" className="bg-gray-50 rounded-xl border border-gray-200 p-3">
@@ -2964,6 +2981,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               <BringToFront style={{ width: 14, height: 14 }} />
                             </button>
                           </Tip>
+                        )}
+                        {(isB1Template || isB2Template) && selectedLayer?.type === 'image' && (
+                          <>
+                            <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 4px' }} />
+                            <TipDesc label="가로 중앙 정렬" desc="캔버스 기준 좌우 중앙으로 이동">
+                              <button onClick={() => updateLayers(layers.map(l => l.id === selectedLayer.id ? { ...l, x: Math.round((canvasW - l.width) / 2) } : l))}
+                                style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+                                <AlignCenterVertical style={{ width: 14, height: 14 }} />
+                              </button>
+                            </TipDesc>
+                            <TipDesc label="세로 중앙 정렬" desc="캔버스 기준 상하 중앙으로 이동">
+                              <button onClick={() => updateLayers(layers.map(l => l.id === selectedLayer.id ? { ...l, y: Math.round((canvasH - l.height) / 2) } : l))}
+                                style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+                                <AlignCenterHorizontal style={{ width: 14, height: 14 }} />
+                              </button>
+                            </TipDesc>
+                          </>
                         )}
                         <Tip label="삭제">
                           <button onClick={() => deleteLayer(selectedLayer.id)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>

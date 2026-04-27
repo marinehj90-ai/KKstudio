@@ -30,7 +30,7 @@ export default function SiteMap() {
     <div className="min-h-screen" style={{ background: '#f8f7fc' }}>
       {/* 헤더 */}
       <div className="bg-white border-b border-gray-100 px-8 py-5">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-5 h-5" style={{ color: '#9F48CE' }} />
             <h1 className="text-xl font-bold text-gray-900">영역 찾기</h1>
@@ -41,7 +41,7 @@ export default function SiteMap() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-6">
+      <div className="max-w-[1600px] mx-auto px-8 py-6">
         {/* 플랫폼 탭 */}
         <div className="flex gap-2 mb-6">
           {PLATFORM_TABS.map(({ id, label, icon: Icon }) => (
@@ -77,10 +77,10 @@ export default function SiteMap() {
           {/* 이미지 + 핫스팟 영역 */}
           <div className="flex-1 min-w-0">
             <div
-              className="rounded-2xl shadow-lg border border-gray-200"
+              className="sitemap-card rounded-2xl shadow-lg border border-gray-200"
               style={{ background: '#fff', overflowX: 'auto' }}
             >
-              <div style={{ position: 'relative', width: config.pxFrame ? config.pxFrame.width : '100%' }}>
+              <div className="sitemap-inner" style={{ position: 'relative', width: config.pxFrame ? config.pxFrame.width : '100%' }}>
                 {/* 가이드 이미지 */}
                 <img
                   src={config.image}

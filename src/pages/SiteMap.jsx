@@ -26,7 +26,7 @@ const SUB_TABS = {
     { id: 'luxury',  label: '럭셔리', active: false },
   ],
   APP: [
-    { id: 'splash',   label: '스플래쉬',   active: true },
+    { id: 'splash',   label: '스플래쉬',   active: false },
     { id: 'floating', label: '플로팅 배너', active: false },
   ],
 }
@@ -38,6 +38,7 @@ export default function SiteMap() {
   const [hoveredZone, setHoveredZone] = useState(null)
 
   const config = siteMapConfig[platform]
+  const isComingSoon = SUB_TABS[platform].every((t) => !t.active)
 
   const handleCreate = (zone) => {
     if (zone.noCreate) return
@@ -119,6 +120,18 @@ export default function SiteMap() {
         <div className="flex gap-5">
           {/* 이미지 + 핫스팟 영역 */}
           <div className="flex-1 min-w-0">
+            {isComingSoon ? (
+              <div
+                className="sitemap-card rounded-2xl shadow-lg border border-gray-200 flex flex-col items-center justify-center"
+                style={{ background: '#fff', minHeight: 400 }}
+              >
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ background: '#f3f4f6' }}>
+                  <Monitor className="w-8 h-8" style={{ color: '#d1d5db' }} />
+                </div>
+                <p className="text-base font-semibold text-gray-400 mb-1">준비중입니다</p>
+                <p className="text-sm text-gray-300">해당 영역의 사이트맵은 곧 제공될 예정입니다.</p>
+              </div>
+            ) : (
             <div
               className="sitemap-card rounded-2xl shadow-lg border border-gray-200"
               style={{ background: '#fff', overflowX: 'auto' }}
@@ -215,13 +228,16 @@ export default function SiteMap() {
                 })}
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-2 text-center">
-              ※ 이미지 출처: 신세계면세점 배너 제작 가이드 (sdl.ssgdfs.com) · 배너 영역 클릭 시 바로 제작 가능
-            </p>
+            )}
+            {!isComingSoon && (
+              <p className="text-xs text-gray-400 mt-2 text-center">
+                ※ 이미지 출처: 신세계면세점 배너 제작 가이드 (sdl.ssgdfs.com) · 배너 영역 클릭 시 바로 제작 가능
+              </p>
+            )}
           </div>
 
           {/* 우측 패널: 선택된 영역 정보 */}
-          <div style={{ width: 240, flexShrink: 0 }}>
+          {!isComingSoon && <div style={{ width: 240, flexShrink: 0 }}>
             {selectedZone ? (
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-6">
                 {/* 헤더 */}
@@ -319,7 +335,7 @@ export default function SiteMap() {
                 </div>
               </div>
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </div>

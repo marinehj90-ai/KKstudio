@@ -2018,6 +2018,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       ? [['text', '메인배너 텍스트 미리보기']]
                       : currentTemplateId === 'b12'
                       ? [['layout', '레이아웃 가이드']]
+                      : currentTemplateId === 'b4'
+                      ? [['layout', '가이드 미리보기']]
                       : [['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']]
                     ).map(([mode, label]) => (
                       <button key={mode} onClick={() => setB6GuideMode(m => m === mode ? null : mode)}
@@ -2027,7 +2029,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -3111,6 +3113,19 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         </div>
                       )
                     })()}
+
+                    {/* b5 통컨 기본배너 가이드 오버레이 */}
+                    {showGuide && !isLogoTab && currentTemplateId === 'b5' && (
+                      <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+                        <div style={{ position: 'absolute', left: 0, top: 0, width: canvasW, height: canvasH, border: '3px solid rgba(239,68,68,0.8)', background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 10 }}>
+                          <div style={{ background: 'rgba(239,68,68,0.85)', borderRadius: 10, padding: '14px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>이미지영역 텍스트 삽입 금지</span>
+                            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)' }}>{canvasW} × {canvasH}px 전체 이미지 영역</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* 배경 제거 중 로딩 오버레이 */}
                     {isLogoTab && isRemovingBg && (

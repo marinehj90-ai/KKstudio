@@ -3,9 +3,13 @@ import {
   Search, ArrowRight, Check,
   Monitor, Smartphone, Globe, ChevronDown,
 } from 'lucide-react'
-import { templateGroups } from '../data/templateData'
+import { templateGroups as _templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
 
+const GROUP_ORDER = ['banner', 'brand', 'exhibition', 'event', 'product', 'notice']
+const templateGroups = [..._templateGroups].sort(
+  (a, b) => GROUP_ORDER.indexOf(a.id) - GROUP_ORDER.indexOf(b.id)
+)
 const allTemplates = templateGroups.flatMap((g) => g.templates)
 
 export default function Home() {

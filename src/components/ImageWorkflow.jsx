@@ -2107,7 +2107,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || isB1Template || isB2Template || currentTemplateId === 'b3' || currentTemplateId === 'b12') && (
+                {showGuide && !isLogoTab && (currentTemplateId === 'b6' || currentTemplateId === 'b7' || isB1Template || isB2Template || currentTemplateId === 'b3' || currentTemplateId === 'b12' || currentTemplateId === 'ev4') && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 150 }}>
                     {(isB1Template || isB2Template
                       ? [['layout', '레이아웃 가이드']]
@@ -2115,6 +2115,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       ? [['text', '메인배너 텍스트 미리보기']]
                       : currentTemplateId === 'b12'
                       ? [['layout', '레이아웃 가이드']]
+                      : currentTemplateId === 'ev4'
+                      ? [['landscape', '가로형 로고'], ['square', '정사각 로고'], ['portrait', '세로형 로고']]
                       : currentTemplateId === 'b4'
                       ? [['layout', '가이드 미리보기']]
                       : [['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']]
@@ -2126,7 +2128,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -2419,70 +2421,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               setIsRemovingBg(false)
                             }
                           }},
-                          {icon: Expand, label: '배경 확장', skip: isLogoTab, onClick: () => {
-                            if (!selectedLayer || selectedLayer.type !== 'image') return
-                            const src = selectedLayer.src
-                            const { x: ix, y: iy, width: iw, height: ih } = selectedLayer
-                            const img = new Image()
-                            img.crossOrigin = 'anonymous'
-                            img.onload = () => {
-                              const off = document.createElement('canvas')
-                              off.width = canvasW; off.height = canvasH
-                              const ctx = off.getContext('2d')
-
-                              // 1) 이미지를 캔버스 전체에 cover fit으로 블러 확장
-                              const imgR = img.naturalWidth / img.naturalHeight
-                              const cvR = canvasW / canvasH
-                              let bgW, bgH
-                              if (imgR > cvR) { bgH = canvasH; bgW = bgH * imgR }
-                              else { bgW = canvasW; bgH = bgW / imgR }
-                              const bgX = (canvasW - bgW) / 2, bgY = (canvasH - bgH) / 2
-
-                              // 블러 배경
-                              ctx.filter = 'blur(28px) saturate(0.85) brightness(0.92)'
-                              ctx.drawImage(img, bgX, bgY, bgW, bgH)
-                              ctx.filter = 'none'
-
-                              // 2) 원본 이미지 위치에 선명하게 합성 + 엣지 페더링
-                              // 페더 마스크: 원본 이미지 경계에서 자연스럽게 블렌드
-                              const feather = Math.min(iw, ih) * 0.08
-                              const tmpCanvas = document.createElement('canvas')
-                              tmpCanvas.width = canvasW; tmpCanvas.height = canvasH
-                              const tCtx = tmpCanvas.getContext('2d')
-
-                              // 원본 이미지를 tmpCanvas에 그리기
-                              tCtx.drawImage(img, ix, iy, iw, ih)
-
-                              // 바깥쪽 페더 마스크 (원본 경계 → 투명)
-                              tCtx.globalCompositeOperation = 'destination-in'
-                              const grad = tCtx.createLinearGradient(ix, 0, ix + feather, 0)
-                              // 4면 각각 gradient mask로 페더
-                              const applyEdgeFade = (x1, y1, x2, y2, rx, ry, rw, rh) => {
-                                const g = tCtx.createLinearGradient(x1, y1, x2, y2)
-                                g.addColorStop(0, 'rgba(0,0,0,0)')
-                                g.addColorStop(1, 'rgba(0,0,0,1)')
-                                tCtx.fillStyle = g
-                                tCtx.fillRect(rx, ry, rw, rh)
-                              }
-                              applyEdgeFade(ix, 0, ix + feather, 0, ix, iy, feather, ih)           // left
-                              applyEdgeFade(ix+iw, 0, ix+iw-feather, 0, ix+iw-feather, iy, feather, ih) // right
-                              applyEdgeFade(0, iy, 0, iy+feather, ix, iy, iw, feather)            // top
-                              applyEdgeFade(0, iy+ih, 0, iy+ih-feather, ix, iy+ih-feather, iw, feather) // bottom
-                              tCtx.globalCompositeOperation = 'source-over'
-
-                              // 3) blurred bg 위에 페더된 원본 합성
-                              ctx.drawImage(tmpCanvas, 0, 0)
-
-                              // 4) 레이어 교체
-                              const dataUrl = off.toDataURL('image/png')
-                              const bgLayerIdx = layers.findIndex(l => l.id === 'background')
-                              const newLayers = layers.filter(l => l.id !== selectedLayer.id)
-                              const expanded = { ...selectedLayer, src: dataUrl, x: 0, y: 0, width: canvasW, height: canvasH, rotation: 0 }
-                              newLayers.splice(bgLayerIdx + 1, 0, expanded)
-                              updateLayers(newLayers)
-                            }
-                            img.src = src
-                          }},
+                          {icon: Expand, label: '배경 확장', skip: isLogoTab, comingSoon: true, onClick: () => {}},
                           {icon: Maximize2, label: '프레임에 맞추기', onClick: () => {
                             if (!selectedLayer || selectedLayer.type !== 'image' || !selectedLayer.src) return
                             const img = new Image()
@@ -2499,14 +2438,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           }},
                           {icon: ZoomIn, label: '화질 개선', onClick: null},
                           {icon: Wand2, label: '자동 보정', onClick: null},
-                        ].map(({ icon: Icon, label, onClick, skip }) => {
+                        ].map(({ icon: Icon, label, onClick, skip, comingSoon }) => {
                           if (skip) return null
-                          const disabled = !onClick || (label.includes('처리 중') && isRemovingBg)
+                          const disabled = comingSoon || !onClick || (label.includes('처리 중') && isRemovingBg)
                           return (
-                          <button key={label} onClick={onClick || undefined} disabled={disabled}
-                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white border border-gray-200 transition-all ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-primary-300 hover:bg-primary-50'} ${isRemovingBg && label.includes('처리 중') ? 'animate-pulse border-primary-300 bg-primary-50' : ''}`}>
-                            <Icon className={`w-5 h-5 ${isRemovingBg && label.includes('처리 중') ? 'text-primary-500' : 'text-gray-500'}`} />
-                            <span className={`text-xs ${isRemovingBg && label.includes('처리 중') ? 'text-primary-600 font-medium' : 'text-gray-600'}`}>{label}</span>
+                          <button key={label} onClick={comingSoon ? undefined : (onClick || undefined)} disabled={disabled}
+                            style={comingSoon ? { position: 'relative' } : {}}
+                            className={`flex flex-col items-center gap-1.5 py-3 rounded-xl bg-white border border-gray-200 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary-300 hover:bg-primary-50'} ${isRemovingBg && label.includes('처리 중') ? 'animate-pulse border-primary-300 bg-primary-50' : ''}`}>
+                            <Icon className={`w-5 h-5 ${isRemovingBg && label.includes('처리 중') ? 'text-primary-500' : 'text-gray-400'}`} />
+                            <span className={`text-xs ${isRemovingBg && label.includes('처리 중') ? 'text-primary-600 font-medium' : 'text-gray-500'}`}>{label}</span>
+                            {comingSoon && (
+                              <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, color: '#9F48CE', background: '#F3E8FF', borderRadius: 4, padding: '1px 5px', lineHeight: 1.4, whiteSpace: 'nowrap' }}>준비중</span>
+                            )}
                           </button>
                           )
                         })}
@@ -3326,6 +3269,38 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {showGuide && !isLogoTab && currentTemplateId === 'b12' && b6GuideMode === 'layout' && (
                       <B12GuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
+
+                    {/* ev4 제휴 이벤트 공통 배너 — 가로형/정사각/세로형 가이드 */}
+                    {showGuide && !isLogoTab && currentTemplateId === 'ev4' && (b6GuideMode === 'landscape' || b6GuideMode === 'square' || b6GuideMode === 'portrait') && (() => {
+                      const sc = canvasW / 750
+                      const SAFE = Math.round(80 * sc)   // 외부 안전 여백 80px
+                      // 각 케이스 로고 영역 (750px 기준, 중앙 정렬)
+                      const zones = {
+                        landscape: { w: Math.round(590 * sc), h: Math.round(270 * sc), label: '가로형 로고 영역', sub: '590 × 270px' },
+                        square:    { w: Math.round(430 * sc), h: Math.round(430 * sc), label: '정사각 로고 영역', sub: '430 × 430px' },
+                        portrait:  { w: Math.round(270 * sc), h: Math.round(590 * sc), label: '세로형 로고 영역', sub: '270 × 590px' },
+                      }
+                      const zone = zones[b6GuideMode]
+                      const zoneX = Math.round((canvasW - zone.w) / 2)
+                      const zoneY = Math.round((canvasH - zone.h) / 2)
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+                          {/* 외부 안전 여백 선 */}
+                          <div style={{ position: 'absolute', left: SAFE, top: SAFE, width: canvasW - SAFE * 2, height: canvasH - SAFE * 2, border: '1.5px dashed rgba(159,72,206,0.6)', boxSizing: 'border-box', pointerEvents: 'none' }}>
+                            <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'rgba(159,72,206,0.85)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>안전 여백 {SAFE}px</span>
+                            </div>
+                          </div>
+                          {/* 로고 배치 영역 */}
+                          <div style={{ position: 'absolute', left: zoneX, top: zoneY, width: zone.w, height: zone.h, border: '2.5px solid rgba(59,130,246,0.85)', background: 'rgba(59,130,246,0.1)', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: 'rgba(37,99,235,0.9)', borderRadius: 8, padding: '8px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>{zone.label}</span>
+                              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.9)', fontFamily: 'system-ui, sans-serif' }}>{zone.sub}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     {/* b2 띠배너 MO 레이아웃 가이드 */}
                     {showGuide && !isLogoTab && isB2Template && b6GuideMode === 'layout' && (() => {

@@ -87,6 +87,7 @@ export const templateGroups = [
       { id: 'ev1', name: '이벤트 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)' },
       { id: 'ev2', name: '이벤트 상단 비주얼 (PC)', size: '1000×500', device: 'PC', preview: 'linear-gradient(135deg, #FBBA4B 0%, #FDE68A 100%)' },
       { id: 'ev3', name: '이벤트 상단 비주얼 (MO)', size: '750×500', device: 'MO', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)' },
+      { id: 'ev4', name: '제휴 이벤트 공통 배너', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 50%, #FDE68A 100%)' },
     ],
   },
 ]

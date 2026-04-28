@@ -164,7 +164,7 @@ export default function SiteMap() {
                   return (
                     <div
                       key={zone.id}
-                      onClick={() => !zone.comingSoon && setSelectedZone(isSelected ? null : zone)}
+                      onClick={() => setSelectedZone(isSelected ? null : zone)}
                       onMouseEnter={() => setHoveredZone(zone.id)}
                       onMouseLeave={() => setHoveredZone(null)}
                       style={{
@@ -179,7 +179,7 @@ export default function SiteMap() {
                           : isHovered
                           ? `${zone.color}20`
                           : `${zone.color}08`,
-                        cursor: zone.comingSoon ? 'not-allowed' : 'pointer',
+                        cursor: 'pointer',
                         transition: 'all 0.15s',
                         boxSizing: 'border-box',
                         zIndex: isSelected ? 20 : isHovered ? 15 : 10,

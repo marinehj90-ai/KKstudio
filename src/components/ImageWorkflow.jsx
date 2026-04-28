@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  Bold, Underline, BringToFront,
+  Bold, Underline, BringToFront, Crop,
 } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
@@ -445,6 +445,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [logoPairs, setLogoPairs] = useState([])
   const [langSuggestions, setLangSuggestions] = useState({}) // { [langId]: [{ layerId, original, suggestions: [str] }] }
   const [guideTextColor, setGuideTextColor] = useState('#1E2023')
+  const [cropLayerId, setCropLayerId] = useState(null)
+  const [cropTemp, setCropTemp] = useState(null) // { cropX, cropY, cropScale }
+  const applyCropRef = useRef(null)
+  const cancelCropRef = useRef(null)
+  const cropLayerRef = useRef(null)  // { x, y, width, height } — crop 중인 레이어 bounds
+  const cropTempRef = useRef(null)
+  const scaleRef = useRef(1)
   const canvasAreaRef = useRef(null)
 
   useEffect(() => {
@@ -617,13 +624,24 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
               ctx.restore()
             } else {
-              ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
+              const cX = layer.cropX ?? 0
+              const cY = layer.cropY ?? 0
+              const cS = layer.cropScale ?? 1
+              const cropOrigW = layer.cropOrigW ?? lw
+              const cropOrigH = layer.cropOrigH ?? lh
+              ctx.save()
+              ctx.beginPath()
+              ctx.rect(-lw / 2, -lh / 2, lw, lh)
+              ctx.clip()
+              const scaledW = cropOrigW * cS, scaledH = cropOrigH * cS
+              ctx.drawImage(img, -scaledW / 2 + cX * multiplier, -scaledH / 2 + cY * multiplier, scaledW, scaledH)
               if (logoPairInfo) {
                 ctx.globalCompositeOperation = 'source-atop'
                 ctx.fillStyle = logoPairInfo.variant === 'black' ? '#000000' : '#ffffff'
                 ctx.fillRect(-lw / 2, -lh / 2, lw, lh)
                 ctx.globalCompositeOperation = 'source-over'
               }
+              ctx.restore()
             }
             resolve()
           }
@@ -1752,8 +1770,37 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [selectedLayerId, currentTemplateId])
 
+  useEffect(() => {
+    if (!cropLayerId) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); applyCropRef.current?.() }
+      if (e.key === 'Escape') { e.preventDefault(); cancelCropRef.current?.() }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [cropLayerId])
+
+  useEffect(() => {
+    const el = document.getElementById('editor-canvas')
+    if (!el) return
+
+    const onWheel = (e) => {
+      if (!cropLayerRef.current) return
+      e.preventDefault()
+      e.stopPropagation()
+      const delta = e.deltaY > 0 ? -0.05 : 0.05
+      setCropTemp(prev => prev ? { ...prev, cropScale: Math.max(0.05, Math.min(10, (prev.cropScale ?? 1) + delta)) } : prev)
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+    }
+  }, [])
+
   const handleCanvasWheel = (e) => {
     e.preventDefault()
+    if (cropLayerId) return
     // Cmd/Ctrl + 휠 = 줌
     if (e.metaKey || e.ctrlKey) {
       const steps = [10,25,50,75,100,150,200,300]
@@ -1808,6 +1855,36 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     setZoom(Math.max(10, nearest))
     setPanOffset({ x: 0, y: 0 })
   }
+
+  const applyCrop = () => {
+    if (!cropLayerId || !cropTempRef.current) return
+    const cur = allLayers[currentTemplateId] || []
+    const t = cropTempRef.current
+    const newLayers = cur.map(l => l.id === cropLayerId ? {
+      ...l,
+      x: t.frameX ?? l.x, y: t.frameY ?? l.y,
+      width: t.frameW ?? l.width, height: t.frameH ?? l.height,
+      cropX: t.imageX - t.frameX - t.frameW / 2, cropY: t.imageY - t.frameY - t.frameH / 2, cropScale: t.cropScale,
+      cropOrigW: t.origW ?? l.cropOrigW ?? l.width,
+      cropOrigH: t.origH ?? l.cropOrigH ?? l.height
+    } : l)
+    updateLayers(newLayers)
+    cropLayerRef.current = null
+    setCropLayerId(null)
+    setCropTemp(null)
+  }
+
+  const cancelCrop = () => {
+    cropLayerRef.current = null
+    setCropLayerId(null)
+    setCropTemp(null)
+  }
+
+  applyCropRef.current = applyCrop
+  cancelCropRef.current = cancelCrop
+  scaleRef.current = zoom / 100
+  cropTempRef.current = cropTemp
+  if (cropTemp) cropLayerRef.current = { x: cropTemp.frameX, y: cropTemp.frameY, width: cropTemp.frameW, height: cropTemp.frameH }
 
   return (
     <div>
@@ -2766,7 +2843,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 ref={canvasAreaRef}
                 className="flex-1 overflow-hidden"
                 style={{ position: 'relative', cursor: isSpaceDown ? (isPanning ? 'grabbing' : 'grab') : 'default', background: isLogoTab && currentTemplate?.logoPair === 'white' ? '#2d2d2d' : '#f1f0f5' }}
-                onClick={(e) => { if (!isPanning) { setSelectedLayerId(null); setEditingTextId(null); setShowDlPopup(false) } }}
+                onClick={(e) => { if (!isPanning) { if (cropLayerId) { cancelCrop(); return } setSelectedLayerId(null); setEditingTextId(null); setShowDlPopup(false) } }}
                 onMouseDown={handleCanvasMouseDown}
                 onWheel={handleCanvasWheel}
               >
@@ -2837,7 +2914,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1 }}>
+                          style={{ position: 'absolute', left: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameX : layer.x, top: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameY : layer.y, width: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameW : layer.width, height: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameH : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1, overflow: layer.type === 'image' ? (cropLayerId === layer.id ? 'visible' : 'hidden') : undefined }}>
                           {layer.type === 'image' && (() => {
                             const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
                             if (isB11Layout) {
@@ -2852,7 +2929,24 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             }
                             return (
                               <>
-                                {layer.src && <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined }} />}
+                                {layer.src && (() => {
+                                  const isCropping = cropLayerId === layer.id
+                                  const cropX = layer.cropX ?? 0
+                                  const cropY = layer.cropY ?? 0
+                                  const cropScale = isCropping ? (cropTemp?.cropScale ?? 1) : (layer.cropScale ?? 1)
+                                  const oW = isCropping ? (cropTemp?.origW ?? layer.width) : (layer.cropOrigW ?? null)
+                                  const oH = isCropping ? (cropTemp?.origH ?? layer.height) : (layer.cropOrigH ?? null)
+                                  const curFW = isCropping ? (cropTemp?.frameW ?? layer.width) : layer.width
+                                  const curFH = isCropping ? (cropTemp?.frameH ?? layer.height) : layer.height
+                                  const logoFilter = isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined
+                                  if (oW && oH) {
+                                    const iW = oW * cropScale, iH = oH * cropScale
+                                    const imgLeft = isCropping ? ((cropTemp?.imageX ?? 0) - (cropTemp?.frameX ?? 0) - iW / 2) : (curFW / 2 - iW / 2 + cropX)
+                                    const imgTop  = isCropping ? ((cropTemp?.imageY ?? 0) - (cropTemp?.frameY ?? 0) - iH / 2) : (curFH / 2 - iH / 2 + cropY)
+                                    return <img src={layer.src} alt="" draggable={false} style={{ position: 'absolute', left: imgLeft, top: imgTop, width: iW, height: iH, objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: logoFilter }} />
+                                  }
+                                  return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
+                                })()}
                                 {layer.isB7A1 && (
                                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }}>
                                     <div style={{ background: 'rgba(0,0,0,0.75)', borderRadius: 6, padding: '6px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -2953,10 +3047,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 50 }}>
                       {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background' && layer.type !== 'text').map((layer, idx) => (
                         <div key={`hit-${layer.id}`}
-                          onMouseDown={(e) => onMouseDownLayer(e, layer.id)}
+                          onMouseDown={(e) => { if (cropLayerId) return; onMouseDownLayer(e, layer.id) }}
                           onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent', zIndex: 51 + idx }} />
+                          onDoubleClick={(e) => { e.stopPropagation(); if (layer.type === 'image') { cropLayerRef.current = { x: layer.x, y: layer.y, width: layer.width, height: layer.height }; setCropLayerId(layer.id); setCropTemp({ imageX: layer.x + layer.width / 2 + (layer.cropX ?? 0), imageY: layer.y + layer.height / 2 + (layer.cropY ?? 0), cropScale: layer.cropScale ?? 1, frameX: layer.x, frameY: layer.y, frameW: layer.width, frameH: layer.height, origW: layer.cropOrigW ?? layer.width, origH: layer.cropOrigH ?? layer.height }); setSelectedLayerId(layer.id) } }}
+                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: cropLayerId ? 'none' : 'all', background: 'transparent', zIndex: 51 + idx }} />
                       ))}
                     </div>
 
@@ -2972,7 +3066,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     </div>
 
                     {/* 이미지/그라디언트 툴바 */}
-                    {(selectedLayer?.type === 'image' || selectedLayer?.type === 'gradient') && (
+                    {!cropLayerId && (selectedLayer?.type === 'image' || selectedLayer?.type === 'gradient') && (
                       <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y - 48, transform: 'translateX(-50%)', zIndex: 200, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 2, padding: '4px 8px', pointerEvents: 'all', whiteSpace: 'nowrap' }}>
                         {selectedLayer?.type === 'gradient' && <span style={{ fontSize: 11, color: '#9ca3af', padding: '0 4px' }}>그라디언트</span>}
                         {selectedLayer?.type === 'image' && selectedLayer?.src && (
@@ -3004,6 +3098,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             </button>
                           </Tip>
                         )}
+                        {selectedLayer?.type === 'image' && selectedLayer?.src && (
+                          <Tip label="크롭 (이미지 내 구도 조정)">
+                            <button onClick={() => { cropLayerRef.current = { x: selectedLayer.x, y: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height }; setCropLayerId(selectedLayer.id); setCropTemp({ imageX: selectedLayer.x + selectedLayer.width / 2 + (selectedLayer.cropX ?? 0), imageY: selectedLayer.y + selectedLayer.height / 2 + (selectedLayer.cropY ?? 0), cropScale: selectedLayer.cropScale ?? 1, frameX: selectedLayer.x, frameY: selectedLayer.y, frameW: selectedLayer.width, frameH: selectedLayer.height, origW: selectedLayer.cropOrigW ?? selectedLayer.width, origH: selectedLayer.cropOrigH ?? selectedLayer.height }) }} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid transparent', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280' }}>
+                              <Crop style={{ width: 14, height: 14 }} />
+                            </button>
+                          </Tip>
+                        )}
                         {(isB1Template || isB2Template) && selectedLayer?.type === 'image' && (
                           <>
                             <div style={{ width: 1, height: 16, background: '#e5e7eb', margin: '0 4px' }} />
@@ -3030,7 +3131,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     )}
 
                     {/* 이미지 사이즈 뱃지 */}
-                    {selectedLayer?.type === 'image' && selectedLayer?.type !== 'gradient' && (
+                    {!cropLayerId && selectedLayer?.type === 'image' && selectedLayer?.type !== 'gradient' && (
                       <div style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y + selectedLayer.height + 10, transform: 'translateX(-50%)', zIndex: 200, pointerEvents: 'none' }}>
                         <div style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 6, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }}>
                           {selectedLayer.width} × {selectedLayer.height}
@@ -3453,10 +3554,95 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
+                    {/* 크롭 모드 오버레이 */}
+                    {cropLayerId && (() => {
+                      const cl = layers.find(l => l.id === cropLayerId)
+                      if (!cl) return null
+                      const fX = cropTemp?.frameX ?? cl.x
+                      const fY = cropTemp?.frameY ?? cl.y
+                      const fW = cropTemp?.frameW ?? cl.width
+                      const fH = cropTemp?.frameH ?? cl.height
+                      const MIN = 20
+                      const stop = e => e.stopPropagation()
+                      const startDrag = (e, fn) => {
+                        e.stopPropagation()
+                        const s = scaleRef.current || 1
+                        const sx = e.clientX, sy = e.clientY
+                        const snap = cropTempRef.current ? { ...cropTempRef.current } : null
+                        if (!snap) return
+                        const onMove = ev => setCropTemp(fn((ev.clientX - sx) / s, (ev.clientY - sy) / s, snap))
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); const b = ce => { ce.stopPropagation(); window.removeEventListener('click', b, true) }; window.addEventListener('click', b, true) }
+                        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
+                      }
+                      const cS = cropTemp?.cropScale ?? 1
+                      const oW = cropTemp?.origW ?? cl.width
+                      const oH = cropTemp?.origH ?? cl.height
+                      const imgCX = cropTemp?.imageX ?? (fX + fW / 2)
+                      const imgCY = cropTemp?.imageY ?? (fY + fH / 2)
+                      const imgHW = oW * cS / 2
+                      const imgHH = oH * cS / 2
+                      const fHandles = [
+                        { id:'nw', l:fX-5,       t:fY-5,       cur:'nw-resize', fn:(dx,dy,p)=>{ const nw=Math.max(MIN,p.frameW-dx),nh=Math.max(MIN,p.frameH-dy); return {...p,frameX:p.frameX+p.frameW-nw,frameY:p.frameY+p.frameH-nh,frameW:nw,frameH:nh} }},
+                        { id:'ne', l:fX+fW-5,    t:fY-5,       cur:'ne-resize', fn:(dx,dy,p)=>{ const nh=Math.max(MIN,p.frameH-dy); return {...p,frameY:p.frameY+p.frameH-nh,frameW:Math.max(MIN,p.frameW+dx),frameH:nh} }},
+                        { id:'sw', l:fX-5,       t:fY+fH-5,    cur:'sw-resize', fn:(dx,dy,p)=>{ const nw=Math.max(MIN,p.frameW-dx); return {...p,frameX:p.frameX+p.frameW-nw,frameW:nw,frameH:Math.max(MIN,p.frameH+dy)} }},
+                        { id:'se', l:fX+fW-5,    t:fY+fH-5,    cur:'se-resize', fn:(dx,dy,p)=>({...p,frameW:Math.max(MIN,p.frameW+dx),frameH:Math.max(MIN,p.frameH+dy)})},
+                        { id:'n',  l:fX+fW/2-5,  t:fY-5,       cur:'n-resize',  fn:(dx,dy,p)=>{ const nh=Math.max(MIN,p.frameH-dy); return {...p,frameY:p.frameY+p.frameH-nh,frameH:nh} }},
+                        { id:'s',  l:fX+fW/2-5,  t:fY+fH-5,    cur:'s-resize',  fn:(dx,dy,p)=>({...p,frameH:Math.max(MIN,p.frameH+dy)})},
+                        { id:'e',  l:fX+fW-5,    t:fY+fH/2-5,  cur:'e-resize',  fn:(dx,dy,p)=>({...p,frameW:Math.max(MIN,p.frameW+dx)})},
+                        { id:'w',  l:fX-5,       t:fY+fH/2-5,  cur:'w-resize',  fn:(dx,dy,p)=>{ const nw=Math.max(MIN,p.frameW-dx); return {...p,frameX:p.frameX+p.frameW-nw,frameW:nw} }},
+                      ]
+                      const iHandles = [
+                        { id:'inw', l:imgCX-imgHW-5, t:imgCY-imgHH-5, cur:'nw-resize', fn:(dx,dy,p)=>{ const iHD=Math.sqrt((p.origW*p.cropScale/2)**2+(p.origH*p.cropScale/2)**2)||1; const proj=(-dx-dy)/Math.SQRT2; return {...p,cropScale:Math.max(0.1,Math.min(10,p.cropScale*(1+proj/iHD)))} }},
+                        { id:'ine', l:imgCX+imgHW-5, t:imgCY-imgHH-5, cur:'ne-resize', fn:(dx,dy,p)=>{ const iHD=Math.sqrt((p.origW*p.cropScale/2)**2+(p.origH*p.cropScale/2)**2)||1; const proj=(dx-dy)/Math.SQRT2;  return {...p,cropScale:Math.max(0.1,Math.min(10,p.cropScale*(1+proj/iHD)))} }},
+                        { id:'isw', l:imgCX-imgHW-5, t:imgCY+imgHH-5, cur:'sw-resize', fn:(dx,dy,p)=>{ const iHD=Math.sqrt((p.origW*p.cropScale/2)**2+(p.origH*p.cropScale/2)**2)||1; const proj=(-dx+dy)/Math.SQRT2; return {...p,cropScale:Math.max(0.1,Math.min(10,p.cropScale*(1+proj/iHD)))} }},
+                        { id:'ise', l:imgCX+imgHW-5, t:imgCY+imgHH-5, cur:'se-resize', fn:(dx,dy,p)=>{ const iHD=Math.sqrt((p.origW*p.cropScale/2)**2+(p.origH*p.cropScale/2)**2)||1; const proj=(dx+dy)/Math.SQRT2;  return {...p,cropScale:Math.max(0.1,Math.min(10,p.cropScale*(1+proj/iHD)))} }},
+                      ]
+                      return (
+                        <>
+                          <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, zIndex: 155, pointerEvents: 'none' }}>
+                            {/* dim areas */}
+                            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: fY, background: 'rgba(0,0,0,0.65)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: fY + fH, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.65)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: fY, left: 0, width: fX, height: fH, background: 'rgba(0,0,0,0.65)', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', top: fY, left: fX + fW, right: 0, height: fH, background: 'rgba(0,0,0,0.65)', pointerEvents: 'none' }} />
+                            {/* frame border visual */}
+                            <div style={{ position: 'absolute', left: fX, top: fY, width: fW, height: fH, border: '2px solid rgba(255,255,255,0.85)', boxSizing: 'border-box', pointerEvents: 'none' }} />
+                            {/* z1: image drag (full frame body) */}
+                            <div style={{ position: 'absolute', left: fX, top: fY, width: fW, height: fH, cursor: 'move', pointerEvents: 'all', zIndex: 1 }}
+                              onClick={stop}
+                              onMouseDown={e => startDrag(e, (dx, dy, snap) => ({ ...snap, imageX: snap.imageX + dx, imageY: snap.imageY + dy }))} />
+                            {/* z2: frame move strips (4 sides, 10px wide) */}
+                            {[[fX - 10, fY - 10, fW + 20, 10], [fX - 10, fY + fH, fW + 20, 10], [fX - 10, fY, 10, fH], [fX + fW, fY, 10, fH]].map(([l, t, w, h], i) => (
+                              <div key={`fm-${i}`} style={{ position: 'absolute', left: l, top: t, width: w, height: h, cursor: 'grab', pointerEvents: 'all', zIndex: 2 }}
+                                onClick={stop}
+                                onMouseDown={e => startDrag(e, (dx, dy, snap) => ({ ...snap, frameX: snap.frameX + dx, frameY: snap.frameY + dy }))} />
+                            ))}
+                            {/* z3: image scale handles (4 inner corners, blue circle) */}
+                            {iHandles.map(h => (
+                              <div key={h.id} style={{ position: 'absolute', left: h.l, top: h.t, width: 10, height: 10, background: 'rgba(255,255,255,0.92)', border: '1.5px solid #3b82f6', borderRadius: '50%', cursor: h.cur, pointerEvents: 'all', zIndex: 3 }}
+                                onClick={stop} onMouseDown={e => startDrag(e, h.fn)} />
+                            ))}
+                            {/* z4: frame resize handles (8, purple square) */}
+                            {fHandles.map(h => (
+                              <div key={h.id} style={{ position: 'absolute', left: h.l, top: h.t, width: 10, height: 10, background: '#fff', border: '1.5px solid #9F48CE', borderRadius: 2, cursor: h.cur, pointerEvents: 'all', zIndex: 4 }}
+                                onClick={stop} onMouseDown={e => startDrag(e, h.fn)} />
+                            ))}
+                          </div>
+                          {/* toolbar */}
+                          <div style={{ position: 'absolute', left: fX + fW / 2, top: Math.max(0, fY - 52), transform: 'translateX(-50%)', zIndex: 250, background: '#18181b', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', pointerEvents: 'all', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
+                            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: 'system-ui, sans-serif' }}>크롭 모드</span>
+                            <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.18)' }} />
+                            <button onClick={e => { stop(e); applyCrop() }} style={{ padding: '4px 13px', background: '#9F48CE', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'system-ui, sans-serif' }}>적용</button>
+                            <button onClick={e => { stop(e); cancelCrop() }} style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'system-ui, sans-serif' }}>취소</button>
+                          </div>
+                        </>
+                      )
+                    })()}
+
                     {/* 핸들 오버레이 */}
                     {(() => {
                       const isB1B2Text = selectedLayer?.type === 'text' && (isB1Template || isB2Template)
-                      const showHandles = selectedLayer && selectedLayer.type !== 'background' && (selectedLayer.type !== 'text' || isNoImageTemplate || isB1B2Text)
+                      const showHandles = selectedLayer && selectedLayer.type !== 'background' && (selectedLayer.type !== 'text' || isNoImageTemplate || isB1B2Text) && !cropLayerId
                       if (!showHandles) return null
                       const visibleHandles = isB1B2Text ? RESIZE_HANDLES.filter(h => h.id === 'w' || h.id === 'e') : RESIZE_HANDLES
                       return (

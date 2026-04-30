@@ -3027,26 +3027,19 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
-                    {/* 투명 클릭 레이어 (이미지 + 그라디언트) */}
+                    {/* 투명 클릭 레이어 — 레이어 배열 순서 기반 zIndex로 텍스트/도형/이미지 통합 */}
                     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 50 }}>
-                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background' && layer.type !== 'text').map((layer, idx) => (
-                        <div key={`hit-${layer.id}`}
-                          onMouseDown={(e) => { if (cropLayerId) return; onMouseDownLayer(e, layer.id) }}
-                          onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => { e.stopPropagation(); if (layer.type === 'image') { cropLayerRef.current = { x: layer.x, y: layer.y, width: layer.width, height: layer.height }; setCropLayerId(layer.id); setCropTemp({ imageX: layer.x + layer.width / 2 + (layer.cropX ?? 0), imageY: layer.y + layer.height / 2 + (layer.cropY ?? 0), cropScale: layer.cropScale ?? 1, frameX: layer.x, frameY: layer.y, frameW: layer.width, frameH: layer.height, origW: layer.cropOrigW ?? layer.width, origH: layer.cropOrigH ?? layer.height }); setSelectedLayerId(layer.id) } }}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: cropLayerId ? 'none' : 'all', background: 'transparent', zIndex: 51 + idx }} />
-                      ))}
-                    </div>
-
-                    {/* 텍스트 전용 클릭 레이어 (항상 최상단 — 이미지·그라디언트 hit layer 위) */}
-                    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, overflow: 'visible', pointerEvents: 'none', zIndex: 90 }}>
-                      {layers.filter((layer) => layer.type === 'text' && layer.id !== editingTextId).map((layer) => (
-                        <div key={`text-hit-${layer.id}`}
-                          onMouseDown={(e) => { onMouseDownLayer(e, layer.id) }}
-                          onDoubleClick={(e) => { e.stopPropagation(); setEditingTextId(layer.id); setSelectedLayerId(layer.id) }}
-                          onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: 'all', background: 'transparent' }} />
-                      ))}
+                      {layers.filter((layer) => layer.id !== editingTextId && layer.type !== 'background').map((layer) => {
+                        const layerIdx = layers.findIndex(l => l.id === layer.id)
+                        const isText = layer.type === 'text'
+                        return (
+                          <div key={`hit-${layer.id}`}
+                            onMouseDown={(e) => { if (!isText && cropLayerId) return; onMouseDownLayer(e, layer.id) }}
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => { e.stopPropagation(); if (isText) { setEditingTextId(layer.id); setSelectedLayerId(layer.id); return; } if (layer.type === 'image') { cropLayerRef.current = { x: layer.x, y: layer.y, width: layer.width, height: layer.height }; setCropLayerId(layer.id); setCropTemp({ imageX: layer.x + layer.width / 2 + (layer.cropX ?? 0), imageY: layer.y + layer.height / 2 + (layer.cropY ?? 0), cropScale: layer.cropScale ?? 1, frameX: layer.x, frameY: layer.y, frameW: layer.width, frameH: layer.height, origW: layer.cropOrigW ?? layer.width, origH: layer.cropOrigH ?? layer.height }); setSelectedLayerId(layer.id) } }}
+                            style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: (isText || !cropLayerId) ? 'all' : 'none', background: 'transparent', zIndex: 51 + layerIdx }} />
+                        )
+                      })}
                     </div>
 
                     {/* 이미지/그라디언트 툴바 */}

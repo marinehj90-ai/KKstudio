@@ -3111,14 +3111,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
-                    {/* 이미지 사이즈 뱃지 */}
-                    {!cropLayerId && selectedLayer?.type === 'image' && selectedLayer?.type !== 'gradient' && (
-                      <div style={{ position: 'absolute', left: selectedLayer.x + selectedLayer.width / 2, top: selectedLayer.y + selectedLayer.height + 10, transform: 'translateX(-50%)', zIndex: 200, pointerEvents: 'none' }}>
-                        <div style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 600, padding: '4px 12px', borderRadius: 6, whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }}>
-                          {selectedLayer.width} × {selectedLayer.height}
-                        </div>
-                      </div>
-                    )}
 
                     {/* 텍스트 툴바 */}
                     {selectedLayer?.type === 'text' && (
@@ -3762,7 +3754,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? '#7e22ce' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {displayName}
                                 </p>
-                                <p style={{ fontSize: 10, color: '#9ca3af' }}>{layer.width} × {layer.height}</p>
                               </div>
                               {/* 복사 / 삭제 버튼 */}
                               <div style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: isHovered || isSelected ? 1 : 0, transition: 'opacity 0.12s' }}>

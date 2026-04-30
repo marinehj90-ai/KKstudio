@@ -1379,6 +1379,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   const onMouseDownResize = (e, id, handle, isCorner) => {
+    if (cropLayerId) return
     e.stopPropagation(); e.preventDefault()
     const layer = layers.find((l) => l.id === id)
     const { width: ow, height: oh, x: ox, y: oy } = layer
@@ -1860,15 +1861,51 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     if (!cropLayerId || !cropTempRef.current) return
     const cur = allLayers[currentTemplateId] || []
     const t = cropTempRef.current
-    const newLayers = cur.map(l => l.id === cropLayerId ? {
-      ...l,
-      x: t.frameX ?? l.x, y: t.frameY ?? l.y,
-      width: t.frameW ?? l.width, height: t.frameH ?? l.height,
-      cropX: t.imageX - t.frameX - t.frameW / 2, cropY: t.imageY - t.frameY - t.frameH / 2, cropScale: t.cropScale,
-      cropOrigW: t.origW ?? l.cropOrigW ?? l.width,
-      cropOrigH: t.origH ?? l.cropOrigH ?? l.height
-    } : l)
-    updateLayers(newLayers)
+    const layer = cur.find(l => l.id === cropLayerId)
+    if (!layer) return
+
+    const oW = t.origW ?? layer.cropOrigW ?? layer.width
+    const oH = t.origH ?? layer.cropOrigH ?? layer.height
+    const cropScale = t.cropScale ?? 1
+    const iW = oW * cropScale
+    const iH = oH * cropScale
+    const frameW = t.frameW ?? layer.width
+    const frameH = t.frameH ?? layer.height
+    const imgLeft = (t.imageX ?? (layer.x + layer.width / 2)) - (t.frameX ?? layer.x) - iW / 2
+    const imgTop  = (t.imageY ?? (layer.y + layer.height / 2)) - (t.frameY ?? layer.y) - iH / 2
+
+    // crop 결과를 canvas에 bake → 새 src로 교체, crop 메타데이터 전부 제거
+    const canvas = document.createElement('canvas')
+    canvas.width  = frameW
+    canvas.height = frameH
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    img.onload = () => {
+      ctx.drawImage(img, imgLeft, imgTop, iW, iH)
+      const newSrc = canvas.toDataURL('image/png')
+      const newLayers = cur.map(l => l.id === cropLayerId ? {
+        ...l,
+        x: t.frameX ?? l.x, y: t.frameY ?? l.y,
+        width: frameW, height: frameH,
+        src: newSrc,
+        cropX: undefined, cropY: undefined, cropScale: undefined,
+        cropOrigW: undefined, cropOrigH: undefined
+      } : l)
+      updateLayers(newLayers)
+    }
+    img.onerror = () => {
+      // canvas bake 실패 시 기존 방식 fallback
+      const newLayers = cur.map(l => l.id === cropLayerId ? {
+        ...l,
+        x: t.frameX ?? l.x, y: t.frameY ?? l.y,
+        width: frameW, height: frameH,
+        cropX: t.imageX - t.frameX - frameW / 2, cropY: t.imageY - t.frameY - frameH / 2, cropScale,
+        cropOrigW: oW, cropOrigH: oH
+      } : l)
+      updateLayers(newLayers)
+    }
+    img.src = layer.src
+
     cropLayerRef.current = null
     setCropLayerId(null)
     setCropTemp(null)
@@ -2844,6 +2881,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         return (
                         <div key={layer.id}
                           onMouseDown={(e) => {
+                            if (cropLayerId) { e.stopPropagation(); return }
                             if (layer.type === 'text') {
                               e.stopPropagation()
                               setSelectedLayerId(layer.id)
@@ -2877,8 +2915,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                   const cropX = layer.cropX ?? 0
                                   const cropY = layer.cropY ?? 0
                                   const cropScale = isCropping ? (cropTemp?.cropScale ?? 1) : (layer.cropScale ?? 1)
-                                  const oW = isCropping ? (cropTemp?.origW ?? layer.width) : (layer.cropOrigW ?? null)
-                                  const oH = isCropping ? (cropTemp?.origH ?? layer.height) : (layer.cropOrigH ?? null)
+                                  const oW = isCropping ? (cropTemp?.origW || layer.width) : (layer.cropOrigW ?? null)
+                                  const oH = isCropping ? (cropTemp?.origH || layer.height) : (layer.cropOrigH ?? null)
                                   const curFW = isCropping ? (cropTemp?.frameW ?? layer.width) : layer.width
                                   const curFH = isCropping ? (cropTemp?.frameH ?? layer.height) : layer.height
                                   const logoFilter = isLogoTab ? (currentTemplate.logoPair === 'black' ? 'brightness(0) saturate(0)' : 'brightness(0) saturate(0) invert(1)') : undefined
@@ -2886,7 +2924,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                     const iW = oW * cropScale, iH = oH * cropScale
                                     const imgLeft = isCropping ? ((cropTemp?.imageX ?? 0) - (cropTemp?.frameX ?? 0) - iW / 2) : (curFW / 2 - iW / 2 + cropX)
                                     const imgTop  = isCropping ? ((cropTemp?.imageY ?? 0) - (cropTemp?.frameY ?? 0) - iH / 2) : (curFH / 2 - iH / 2 + cropY)
-                                    return <img src={layer.src} alt="" draggable={false} style={{ position: 'absolute', left: imgLeft, top: imgTop, width: iW, height: iH, objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: logoFilter }} />
+                                    return <img src={layer.src} alt="" draggable={false} style={{ position: 'absolute', left: imgLeft, top: imgTop, width: iW, height: iH, maxWidth: 'none', maxHeight: 'none', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: logoFilter }} />
                                   }
                                   return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
                                 })()}
@@ -3540,7 +3578,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       const MIN = 20
                       const stop = e => e.stopPropagation()
                       const startDrag = (e, fn) => {
-                        e.stopPropagation()
+                        e.stopPropagation(); e.preventDefault()
                         const s = scaleRef.current || 1
                         const sx = e.clientX, sy = e.clientY
                         const snap = cropTempRef.current ? { ...cropTempRef.current } : null

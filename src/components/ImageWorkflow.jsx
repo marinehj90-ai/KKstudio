@@ -1112,7 +1112,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgX = Math.round((w - imgW) / 2)
             imgY = Math.round((h - imgH) / 2)
           } else if (w === h) {
-            imgW = w; imgH = h; imgX = 0; imgY = 0
+            // 정사각 템플릿: height 기준 fit, 비율 유지, 중앙 배치
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h; imgW = Math.round(h * ratio)
+            imgX = Math.round((w - imgW) / 2); imgY = 0
           } else if (tmpl.id === 'b4') {
             // 우측 이미지 영역 가로 835px 채우고 세로 중앙 정렬
             const areaW = w - B4_IMG_X  // 835
@@ -1464,8 +1467,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         if (ratio >= 1) { imgW = 208; imgH = Math.round(208 / ratio) }
         else { imgH = 208; imgW = Math.round(208 * ratio) }
       } else if (canvasW === canvasH) {
-        // 정사각 캔버스: 캔버스 완전히 채우기 (cover fit)
-        imgW = canvasW; imgH = canvasH
+        // 정사각 캔버스: height 기준 fit, 비율 유지, 중앙 배치
+        imgH = canvasH; imgW = Math.round(canvasH * ratio)
       } else {
         const maxW = Math.round(canvasW * 0.5), maxH = Math.round(canvasH * 0.5)
         if (ratio > maxW / maxH) { imgW = maxW; imgH = Math.round(maxW / ratio) }

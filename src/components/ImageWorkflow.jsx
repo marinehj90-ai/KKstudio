@@ -6,7 +6,7 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  Bold, Underline, BringToFront, Crop,
+  Bold, Underline, BringToFront, Crop, Eye, EyeOff,
 } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
 import jsPDF from 'jspdf'
@@ -454,6 +454,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const scaleRef = useRef(1)
   const canvasAreaRef = useRef(null)
 
+
   useEffect(() => {
     setShowGuide(false)
     setB6GuideMode(null)
@@ -594,7 +595,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     // transparent → 배경 비워둠 (PNG 투명 유지)
     for (const layer of layerList) {
       if (layer.type === 'background') continue
+      if (layer.isReference) continue  // 예시 이미지는 export 제외
+      if (layer.visible === false) continue
       ctx.save()
+      if (layer.opacity !== undefined) ctx.globalAlpha = layer.opacity
       const cx = (layer.x + layer.width / 2) * multiplier
       const cy = (layer.y + layer.height / 2) * multiplier
       ctx.translate(cx, cy)
@@ -996,6 +1000,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   useEffect(() => {
+    console.log('[init effect] step:', step, 'templates:', selectedTemplateDetails.map(t => t.id), 'uploadedUrl:', uploadedImage?.url?.slice(0,40))
     if (step !== STEP_EDITOR) return
     // 이미지 불필요 템플릿(b10) 전용 초기화
     if (isNoImageTemplate) {
@@ -1091,6 +1096,26 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setZoom(75)
       return
     }
+    // e1: 이미지 없이도 텍스트 레이어 즉시 초기화
+    const e1EarlyTemplates = selectedTemplateDetails.filter(t => t.id === 'e1' && !allLayers[t.id]?.length)
+    if (e1EarlyTemplates.length > 0) {
+      const earlyInit = {}
+      const earlyHistoryInit = {}
+      e1EarlyTemplates.forEach(tmpl => {
+        const [w, h] = tmpl.size.split('×').map(Number)
+        const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        const refLayer = { id: 'e1-ref', name: '예시 이미지', type: 'image', src: '/guide/e1-reference.jpg', x: 0, y: 0, width: w, height: h, rotation: 0, opacity: 0.90, isReference: true }
+        const textLayers = [
+          { id: 'e1-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 216, y: 163, width: 401, height: 114, rotation: 0, fontSize: 44, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.3 },
+          { id: 'e1-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',          x: 216, y: 301, width: 334, height: 36,  rotation: 0, fontSize: 24,  fontWeight: '500', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: 1.5 },
+        ]
+        const init = [bgLayer, refLayer, ...textLayers]
+        earlyInit[tmpl.id] = init
+        earlyHistoryInit[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
+      })
+      setAllLayers(prev => ({ ...prev, ...earlyInit }))
+      setAllHistory(prev => ({ ...prev, ...earlyHistoryInit }))
+    }
     if (!uploadedImage?.url) return
     const allImages = [{ url: uploadedImage.url }, ...(uploadedImage.extra || [])]
     const loadImage = (url) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = url })
@@ -1138,6 +1163,13 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgH = Math.round(w / ratio)
             imgX = 0
             imgY = Math.round((h - imgH) / 2)
+          } else if (tmpl.id === 'e1') {
+            // height 500 기준 fit, 비율 유지, 가로 중앙 정렬
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h
+            imgW = Math.round(h * ratio)
+            imgX = Math.round((w - imgW) / 2)
+            imgY = 0
           } else if (tmpl.id === 'b6') {
             // 가로 210px 고정, 세로 비율 맞춰 중앙, 오른쪽 끝 정렬
             const ratio = img.naturalWidth / img.naturalHeight
@@ -1256,7 +1288,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           }
         })() : []
 
-        const init = [bgLayer, ...b7A1Layer, ...imgLayers, ...b6b7GradLayer, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers]
+        // e1 레퍼런스 + 텍스트 레이어 (Figma 5869:7386 기준, 캔버스 1440×500)
+        const e1RefLayer = tmpl.id === 'e1'
+          ? [{ id: 'e1-ref', name: '예시 이미지', type: 'image', src: '/guide/e1-reference.jpg', x: 0, y: 0, width: w, height: h, rotation: 0, opacity: 0.90, isReference: true }]
+          : []
+        const e1TextLayers = tmpl.id === 'e1' ? [
+          { id: 'e1-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 216, y: 163, width: 401, height: 114, rotation: 0, fontSize: 44, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.3 },
+          { id: 'e1-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',          x: 216, y: 301, width: 334, height: 36,  rotation: 0, fontSize: 24,  fontWeight: '500', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: 1.5 },
+        ] : []
+
+        const init = [bgLayer, ...e1RefLayer, ...b7A1Layer, ...imgLayers, ...b6b7GradLayer, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers, ...e1TextLayers]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })
@@ -1314,6 +1355,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           .finally(() => setIsRemovingBg(false))
       }
 
+      console.log('[setAllLayers]', Object.fromEntries(Object.entries(initAllLayers).map(([k, v]) => [k, v.map(l => l.type + ':' + l.id)])))
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
       setSelectedLayerId('img-1')
@@ -2877,7 +2919,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <div key={layer.id}
                               onMouseDown={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id) }}
                               onClick={(e) => e.stopPropagation()}
-                              style={{ position: 'absolute', inset: 0, background: layer.color === 'transparent' ? 'transparent' : layer.color, cursor: 'pointer', zIndex: 0 }}
+                              style={{ position: 'absolute', inset: 0, background: layer.color === 'transparent' ? 'transparent' : layer.color, cursor: 'pointer', zIndex: 0, display: layer.visible === false ? 'none' : undefined }}
                             />
                           )
                         }
@@ -2898,7 +2940,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameX : layer.x, top: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameY : layer.y, width: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameW : layer.width, height: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameH : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1, overflow: layer.type === 'image' ? (cropLayerId === layer.id ? 'visible' : 'hidden') : undefined }}>
+                          style={{ position: 'absolute', left: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameX : layer.x, top: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameY : layer.y, width: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameW : layer.width, height: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameH : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1, overflow: layer.type === 'image' ? (cropLayerId === layer.id ? 'visible' : 'hidden') : undefined, opacity: layer.opacity !== undefined ? layer.opacity : undefined, display: layer.visible === false ? 'none' : undefined }}>
                           {layer.type === 'image' && (() => {
                             const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
                             if (isB11Layout) {
@@ -2929,7 +2971,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                     const imgTop  = isCropping ? ((cropTemp?.imageY ?? 0) - (cropTemp?.frameY ?? 0) - iH / 2) : (curFH / 2 - iH / 2 + cropY)
                                     return <img src={layer.src} alt="" draggable={false} style={{ position: 'absolute', left: imgLeft, top: imgTop, width: iW, height: iH, maxWidth: 'none', maxHeight: 'none', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: logoFilter }} />
                                   }
-                                  return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
+                                  return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: layer.isReference ? 'cover' : 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
                                 })()}
                                 {layer.isB7A1 && (
                                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }}>
@@ -3037,7 +3079,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             onMouseDown={(e) => { if (!isText && cropLayerId) return; onMouseDownLayer(e, layer.id) }}
                             onClick={(e) => e.stopPropagation()}
                             onDoubleClick={(e) => { e.stopPropagation(); if (isText) { setEditingTextId(layer.id); setSelectedLayerId(layer.id); return; } if (layer.type === 'image') { cropLayerRef.current = { x: layer.x, y: layer.y, width: layer.width, height: layer.height }; setCropLayerId(layer.id); setCropTemp({ imageX: layer.x + layer.width / 2 + (layer.cropX ?? 0), imageY: layer.y + layer.height / 2 + (layer.cropY ?? 0), cropScale: layer.cropScale ?? 1, frameX: layer.x, frameY: layer.y, frameW: layer.width, frameH: layer.height, origW: layer.cropOrigW ?? layer.width, origH: layer.cropOrigH ?? layer.height }); setSelectedLayerId(layer.id) } }}
-                            style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: (isText || !cropLayerId) ? 'all' : 'none', background: 'transparent', zIndex: 51 + layerIdx }} />
+                            style={{ position: 'absolute', left: layer.x, top: layer.y, width: layer.width, height: layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: 'move', pointerEvents: (layer.visible === false) ? 'none' : (isText || !cropLayerId) ? 'all' : 'none', background: 'transparent', zIndex: 51 + layerIdx }} />
                         )
                       })}
                     </div>
@@ -3724,7 +3766,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               onMouseEnter={() => setHoverLayerId(layer.id)}
                               onMouseLeave={() => setHoverLayerId(null)}
                               onClick={() => setSelectedLayerId(layer.id)}
-                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : 1, transition: 'all 0.1s' }}>
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : layer.visible === false ? 0.4 : 1, transition: 'all 0.1s' }}>
                               <span style={{ fontSize: 10, color: '#d1d5db', flexShrink: 0 }}>⠿</span>
                               <div style={{ width: 26, height: 26, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {layer.type === 'background'
@@ -3750,7 +3792,24 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 <p style={{ fontSize: 11, fontWeight: 600, color: isSelected ? '#7e22ce' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {displayName}
                                 </p>
+                                {layer.isReference && <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af', background: '#f3f4f6', borderRadius: 3, padding: '1px 4px', letterSpacing: '0.02em' }}>예시</span>}
                               </div>
+                              {/* 눈 (보이기/숨기기) 버튼 */}
+                              <button
+                                title={layer.visible === false ? '표시' : '숨기기'}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateLayers(layers.map(l => l.id === layer.id ? { ...l, visible: l.visible === false ? true : false } : l))
+                                }}
+                                style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: 'pointer', color: layer.visible === false ? '#9F48CE' : '#d1d5db', padding: 0, flexShrink: 0, opacity: isHovered || isSelected || layer.visible === false ? 1 : 0, transition: 'opacity 0.12s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#f3e8ff'; e.currentTarget.style.color = '#9F48CE' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = layer.visible === false ? '#9F48CE' : '#d1d5db' }}
+                              >
+                                {layer.visible === false
+                                  ? <EyeOff style={{ width: 12, height: 12 }} />
+                                  : <Eye style={{ width: 12, height: 12 }} />
+                                }
+                              </button>
                               {/* 복사 / 삭제 버튼 */}
                               <div style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: isHovered || isSelected ? 1 : 0, transition: 'opacity 0.12s' }}>
                                 <button

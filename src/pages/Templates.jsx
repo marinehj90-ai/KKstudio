@@ -187,9 +187,17 @@ export default function Templates() {
                   boxH = Math.max(boxH, cH * 0.12)
                   boxW = Math.max(boxW, cW * 0.10)
                   return (
-                    <div className="relative h-40 flex items-center justify-center" style={{ background: t.preview }}>
-                      <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                    <div className="relative h-40 flex items-center justify-center overflow-hidden" style={{ background: t.preview }}>
+                      {t.guideImage && (
+                        <img
+                          src={t.guideImage}
+                          alt="guide"
+                          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+                          draggable={false}
+                        />
+                      )}
+                      <div style={{ position: 'relative', zIndex: 1, width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: t.guideImage ? 'transparent' : 'rgba(255,255,255,0.15)', border: t.guideImage ? 'none' : '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {!t.guideImage && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>}
                       </div>
                       {isSelected && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${c.hex}` }}>

@@ -3372,30 +3372,35 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
                     {/* b2 띠배너 MO 레이아웃 가이드 */}
                     {showGuide && !isLogoTab && isB2Template && b6GuideMode === 'layout' && (() => {
-                      const IMG_X = 402, IMG_W = 188
-                      const TXT_X = 590, TXT_W = 470
+                      // 피그마 기준 (node 3735:206): 전체 1536×140
+                      // A 영역: x=420, w=660px / 모바일 표시: x=393, w=750px
+                      // ※ Non-display 딤·점선은 기존 코드가 이미 렌더링하므로 중복 제거
+                      const A_X = 420, A_W = 660
+                      const CLOSE_CX = 1120, CLOSE_SIZE = 24
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
-                          {/* 이미지 영역 */}
-                          <div style={{ position: 'absolute', left: IMG_X, top: 0, width: IMG_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3 }}>
-                            <div style={{ background: 'rgba(59,130,246,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>이미지 영역</span>
-                              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>{IMG_W}×{canvasH}px</span>
-                            </div>
+
+                          {/* A 영역 좌측 경계선 (x=420) — 빨간 점선 */}
+                          <div style={{ position: 'absolute', left: A_X, top: 0, width: 0, height: canvasH, borderLeft: '2px dashed rgba(255,30,30,0.9)' }} />
+
+                          {/* A 영역 우측 경계선 (x=1080) — 빨간 점선 */}
+                          <div style={{ position: 'absolute', left: A_X + A_W, top: 0, width: 0, height: canvasH, borderLeft: '2px dashed rgba(255,30,30,0.9)' }} />
+
+                          {/* A 영역 라벨 — 좌측 상단 */}
+                          <div style={{ position: 'absolute', left: A_X + 6, top: 4, background: 'rgba(210,20,20,0.88)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', fontFamily: 'system-ui,sans-serif' }}>A 영역 · 660px</span>
                           </div>
-                          {/* 텍스트 영역 */}
-                          <div style={{ position: 'absolute', left: TXT_X, top: 4, width: TXT_W, height: canvasH - 8, border: '2px dashed #9F48CE', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ background: 'rgba(159,72,206,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>텍스트 영역</span>
-                            </div>
+
+                          {/* 660px 치수 라벨 — 하단 중앙 */}
+                          <div style={{ position: 'absolute', bottom: 3, left: A_X, width: A_W, display: 'flex', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(210,20,20,0.95)', background: 'rgba(255,255,255,0.9)', borderRadius: 3, padding: '1px 6px', fontFamily: 'system-ui,sans-serif' }}>660px (텍스트+이미지)</span>
                           </div>
-                          {/* 치수 라벨 */}
-                          <div style={{ position: 'absolute', bottom: 2, left: IMG_X, width: IMG_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{IMG_W}</span>
+
+                          {/* X 닫기 버튼 위치 표시 */}
+                          <div style={{ position: 'absolute', left: CLOSE_CX - CLOSE_SIZE / 2, top: '50%', transform: 'translateY(-50%)', width: CLOSE_SIZE, height: CLOSE_SIZE, border: '1.5px dashed rgba(255,255,255,0.85)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ fontSize: 9, color: '#fff', fontFamily: 'system-ui,sans-serif' }}>✕</span>
                           </div>
-                          <div style={{ position: 'absolute', bottom: 2, left: TXT_X, width: TXT_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(159,72,206,0.9)', fontFamily: 'system-ui, sans-serif' }}>{TXT_W}</span>
-                          </div>
+
                         </div>
                       )
                     })()}
@@ -3448,6 +3453,19 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {!isLogoTab && isB2Template && (
                       <B2CloseIconOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
+
+                    {/* b2 A영역 660px 경계 점선 항상 표시 */}
+                    {!isLogoTab && isB2Template && (() => {
+                      const sc = canvasW / 1536
+                      const A_X = Math.round(420 * sc)
+                      const A_W = Math.round(660 * sc)
+                      return (
+                        <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 88, overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', left: A_X, top: 0, width: 0, height: canvasH, borderLeft: '2px dashed rgba(255,30,30,0.7)' }} />
+                          <div style={{ position: 'absolute', left: A_X + A_W, top: 0, width: 0, height: canvasH, borderLeft: '2px dashed rgba(255,30,30,0.7)' }} />
+                        </div>
+                      )
+                    })()}
 
                     {/* b7 항상 표시: 점선만 */}
                     {!isLogoTab && currentTemplateId === 'b7' && (() => {

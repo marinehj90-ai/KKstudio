@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  Search, ArrowRight, Check, X,
+  Search, ArrowRight, Check,
   Monitor, Smartphone, Globe, ChevronDown,
 } from 'lucide-react'
 import { templateGroups as _templateGroups } from '../data/templateData'
@@ -213,37 +213,11 @@ export default function Home() {
                   return (
                     <div
                       className="relative h-40 flex items-center justify-center"
-                      style={{ background: t.id === 'b2' ? '#ede9f5' : t.preview }}
+                      style={{ background: t.preview }}
                     >
-                      {t.id === 'b2' ? (
-                        // ── MO 띠배너 가이드 프리뷰: 이미지 없음, 750px A 영역 표시 ──
-                        <div className="w-full flex flex-col items-center justify-center gap-2 px-3">
-                          {/* 배너 스트립 */}
-                          <div
-                            className="w-full relative rounded overflow-hidden"
-                            style={{ height: '28px', background: 'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)' }}
-                          >
-                            {/* A 영역: 750/1536 ≈ 48.8% 너비, 25.6% 좌측 여백으로 가운데 배치 */}
-                            <div
-                              className="absolute top-0 bottom-0 border border-red-400 bg-red-400/30 flex items-center justify-between px-1"
-                              style={{ left: '25.6%', width: '48.8%' }}
-                            >
-                              <div style={{ color: 'white', fontSize: '5px', lineHeight: 1.4 }}>
-                                <div>텍스트 위치는 여기부터</div>
-                                <div>최대 두줄까지 가능</div>
-                              </div>
-                              <X style={{ width: '6px', height: '6px', color: 'white', flexShrink: 0 }} />
-                            </div>
-                          </div>
-                          <span style={{ color: '#6b7280', fontSize: '9px', fontFamily: 'monospace' }}>
-                            전체 1536×140 · 컨텐츠 750px
-                          </span>
-                        </div>
-                      ) : (
-                        <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
-                        </div>
-                      )}
+                      <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                      </div>
                       {isSelected && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${currentGroupData?.hex || '#9F48CE'}` }}>
                           <Check className="w-3.5 h-3.5" style={{ color: currentGroupData?.hex || '#9F48CE' }} />

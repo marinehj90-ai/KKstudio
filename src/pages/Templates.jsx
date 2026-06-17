@@ -1,6 +1,50 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, NavLink, useNavigate } from 'react-router-dom'
-import { Search, Check, ArrowRight, Monitor, Smartphone, Globe } from 'lucide-react'
+import { Search, Check, ArrowRight, Monitor, Smartphone, Globe, AlertTriangle } from 'lucide-react'
+
+function NavigationGuardModal({ onProceed, onCancel }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-[360px] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-4">
+          <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 leading-snug">
+            작업을 중단하고 이동할까요?
+          </h3>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+            현재 입력 중인 이미지와 선택한 템플릿 정보가 초기화될 수 있습니다. 작업을 중단하고 다른 템플릿을 선택하시겠습니까?
+          </p>
+        </div>
+        <div className="px-6 pb-5 flex gap-2.5">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={onProceed}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+            style={{ background: '#9F48CE' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#7B2FA8' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#9F48CE' }}
+          >
+            템플릿 선택하기
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 import { templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
 
@@ -17,6 +61,27 @@ export default function Templates() {
   const [selectedTemplates, setSelectedTemplates] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [deviceFilter, setDeviceFilter] = useState('전체')
+  const [guardTarget, setGuardTarget] = useState(null) // pending navigation path
+  const stepRef = useRef(step)
+  useEffect(() => { stepRef.current = step }, [step])
+
+  // LNB 템플릿 카테고리 클릭 인터셉트 (step >= 1일 때만)
+  useEffect(() => {
+    function handleCapture(e) {
+      if (stepRef.current < 1) return
+      const anchor = e.target.closest('a[href]')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || !href.startsWith('/templates/')) return
+      // 현재 경로와 동일하면 통과
+      if (href === window.location.pathname) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      setGuardTarget(href)
+    }
+    document.addEventListener('click', handleCapture, true)
+    return () => document.removeEventListener('click', handleCapture, true)
+  }, [])
 
   const toggleTemplate = (id) => {
     const SOLO_IDS = ['b10', 'b8']
@@ -39,6 +104,12 @@ export default function Templates() {
   if (step === 1) {
     return (
       <div className="min-h-screen">
+        {guardTarget && (
+          <NavigationGuardModal
+            onProceed={() => { setGuardTarget(null); navigate(guardTarget) }}
+            onCancel={() => setGuardTarget(null)}
+          />
+        )}
         <ImageWorkflow
           selectedTemplateIds={selectedTemplates}
           allTemplates={allTemplates}

@@ -61,7 +61,7 @@ export default function Templates() {
   const [selectedTemplates, setSelectedTemplates] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [deviceFilter, setDeviceFilter] = useState('전체')
-  const [guardTarget, setGuardTarget] = useState(null) // pending navigation path
+  const [pendingNavigation, setPendingNavigation] = useState(null) // 이동 대기 경로
   const stepRef = useRef(step)
   useEffect(() => { stepRef.current = step }, [step])
 
@@ -77,11 +77,23 @@ export default function Templates() {
       if (href === window.location.pathname) return
       e.preventDefault()
       e.stopImmediatePropagation()
-      setGuardTarget(href)
+      setPendingNavigation(href)
     }
     document.addEventListener('click', handleCapture, true)
     return () => document.removeEventListener('click', handleCapture, true)
   }, [])
+
+  function handleGuardProceed() {
+    const target = pendingNavigation // 클리어 전 명시적 캡처
+    setPendingNavigation(null)
+    setSelectedTemplates([])
+    setStep(0)
+    if (target) navigate(target)
+  }
+
+  function handleGuardCancel() {
+    setPendingNavigation(null)
+  }
 
   const toggleTemplate = (id) => {
     const SOLO_IDS = ['b10', 'b8']
@@ -104,10 +116,10 @@ export default function Templates() {
   if (step === 1) {
     return (
       <div className="min-h-screen">
-        {guardTarget && (
+        {pendingNavigation && (
           <NavigationGuardModal
-            onProceed={() => { setGuardTarget(null); navigate(guardTarget) }}
-            onCancel={() => setGuardTarget(null)}
+            onProceed={handleGuardProceed}
+            onCancel={handleGuardCancel}
           />
         )}
         <ImageWorkflow

@@ -429,7 +429,7 @@ const TemplateGuideOverlay = memo(function TemplateGuideOverlay({ canvasW, canva
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
           </svg>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>이미지 영역</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>메인 오브제 위치 영역</span>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>{IMG_W} × {canvasH}px</span>
         </div>
       </div>
@@ -1188,6 +1188,29 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setAllLayers(prev => ({ ...prev, ...earlyInit }))
       setAllHistory(prev => ({ ...prev, ...earlyHistoryInit }))
     }
+    // e2: 이미지 없이도 기본 레이어 즉시 초기화 (Figma 6861-2359, 1000×512→1000×500)
+    const e2EarlyTemplates = selectedTemplateDetails.filter(t => t.id === 'e2' && !allLayers[t.id]?.length)
+    if (e2EarlyTemplates.length > 0) {
+      const earlyInit = {}
+      const earlyHistoryInit = {}
+      e2EarlyTemplates.forEach(tmpl => {
+        const [w, h] = tmpl.size.split('×').map(Number)
+        const bgLayer = { id: 'background', type: 'background', color: '#0a0a14', x: 0, y: 0, width: w, height: h, rotation: 0 }
+        const bgImgLayer = { id: 'e2-bg', name: '배경 이미지', type: 'image', src: '/guide/e2-bg-69c9e4.png', x: -560, y: 0, width: 2560, height: h, rotation: 0 }
+        const objectLayer = { id: 'e2-object', name: '메인 오브제', type: 'image', src: '/guide/e2-object-fd4a39.png', x: -150, y: Math.round(-220 * h / 512), width: 1667, height: Math.round(758 * h / 512), rotation: 0 }
+        const mainH = Math.round(44 * 1.3 * 2)
+        const mainY = Math.round(169 * h / 512)
+        const textLayers = [
+          { id: 'e2-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 71, y: mainY, width: 445, height: mainH, rotation: 0, fontSize: 44, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.3 },
+          { id: 'e2-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',  x: 71, y: mainY + mainH + 24, width: 445, height: Math.round(28 * 1.3), rotation: 0, fontSize: 28, fontWeight: '700', color: 'rgba(255,255,255,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight: 1.3 },
+        ]
+        const init = [bgLayer, bgImgLayer, objectLayer, ...textLayers]
+        earlyInit[tmpl.id] = init
+        earlyHistoryInit[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
+      })
+      setAllLayers(prev => ({ ...prev, ...earlyInit }))
+      setAllHistory(prev => ({ ...prev, ...earlyHistoryInit }))
+    }
     if (!uploadedImage?.url) return
     const allImages = [{ url: uploadedImage.url }, ...(uploadedImage.extra || [])]
     const loadImage = (url) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = url })
@@ -1241,6 +1264,15 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgH = h
             imgW = Math.round(h * ratio)
             imgX = Math.round((w - imgW) / 2)
+            imgY = 0
+          } else if (tmpl.id === 'e2') {
+            // 우측 이미지 영역 (x=516, w=484) 기준, 높이 캔버스에 맞춤
+            const E2_IMG_X = 516
+            const E2_IMG_W = w - E2_IMG_X  // 484
+            const ratio = img.naturalWidth / img.naturalHeight
+            imgH = h
+            imgW = Math.round(h * ratio)
+            imgX = E2_IMG_X + Math.round((E2_IMG_W - imgW) / 2)
             imgY = 0
           } else if (tmpl.id === 'b6') {
             // 가로 210px 고정, 세로 비율 맞춰 중앙, 오른쪽 끝 정렬
@@ -1369,7 +1401,23 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           { id: 'e1-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',          x: 216, y: 301, width: 334, height: 36,  rotation: 0, fontSize: 24,  fontWeight: '500', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: 1.5 },
         ] : []
 
-        const init = [bgLayer, ...e1RefLayer, ...b7A1Layer, ...imgLayers, ...b6b7GradLayer, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers, ...e1TextLayers]
+        // e2 기본 레이어 (Figma 6861-2359, 1000×512→캔버스 높이 기준)
+        const e2BgImgLayer = tmpl.id === 'e2'
+          ? [{ id: 'e2-bg', name: '배경 이미지', type: 'image', src: '/guide/e2-bg-69c9e4.png', x: -560, y: 0, width: 2560, height: h, rotation: 0 }]
+          : []
+        const e2ObjectLayer = tmpl.id === 'e2'
+          ? [{ id: 'e2-object', name: '메인 오브제', type: 'image', src: '/guide/e2-object-fd4a39.png', x: -150, y: Math.round(-220 * h / 512), width: 1667, height: Math.round(758 * h / 512), rotation: 0 }]
+          : []
+        const e2TextLayers = tmpl.id === 'e2' ? (() => {
+          const mainH = Math.round(44 * 1.3 * 2)
+          const mainY = Math.round(169 * h / 512)
+          return [
+            { id: 'e2-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 71, y: mainY, width: 445, height: mainH, rotation: 0, fontSize: 44, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.3 },
+            { id: 'e2-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',  x: 71, y: mainY + mainH + 24, width: 445, height: Math.round(28 * 1.3), rotation: 0, fontSize: 28, fontWeight: '700', color: 'rgba(255,255,255,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0, lineHeight: 1.3 },
+          ]
+        })() : []
+
+        const init = [bgLayer, ...e1RefLayer, ...e2BgImgLayer, ...e2ObjectLayer, ...b7A1Layer, ...imgLayers, ...b6b7GradLayer, ...b4TextLayers, ...b11Layers, ...b1TextLayers, ...b2TextLayers, ...e1TextLayers, ...e2TextLayers]
         initAllLayers[tmpl.id] = init
         initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(init))], index: 0 }
       })

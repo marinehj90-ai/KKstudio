@@ -595,6 +595,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const selectedLayerIdsRef = useRef(new Set())
   const [dlFormat, setDlFormat] = useState('PNG')
   const [dlScale, setDlScale] = useState('x1')
+  const [linkInfoModalSlotId, setLinkInfoModalSlotId] = useState(null)
+  const [linkInputModalSlotId, setLinkInputModalSlotId] = useState(null)
+  const [linkInputValue, setLinkInputValue] = useState('')
   const [dragLayerId, setDragLayerId] = useState(null)
   const [dragOverLayerId, setDragOverLayerId] = useState(null)
   const [hoverLayerId, setHoverLayerId] = useState(null)
@@ -894,7 +897,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         }
         ctx.font = `${fontWeight} ${fontSize}px ${layer.fontFamily || 'Pretendard'}`
         ctx.fillStyle = layer.color || '#000000'
-        ctx.textBaseline = 'middle'
+        // textBaseline='top': CSS half-leading과 동일하게 글자 상단을 기준으로 배치
+        ctx.textBaseline = 'top'
         // letterSpacing: 네이티브 Canvas API 사용 (Chrome 99+, Safari 16.4+)
         if ('letterSpacing' in ctx) ctx.letterSpacing = `${(layer.letterSpacing || 0) * multiplier}px`
         const align = layer.align || 'left'
@@ -902,9 +906,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         // textAlign 기준점: left=박스 왼쪽, center=중앙, right=오른쪽
         const drawX = align === 'center' ? 0 : align === 'right' ? boxW / 2 : -boxW / 2
         const lines = (layer.text || '').split('\n')
-        // verticalCenter: textBaseline='middle' 기준으로 블록 중앙을 0에 맞춤
-        // 블록 중앙 = startY + (n-1)*lineH/2 = 0 → startY = -(n-1)*lineH/2
-        const startY = layer.verticalCenter ? -((lines.length - 1) * lineH) / 2 : -boxH / 2
+        // halfLeading: CSS line-height에서 상하에 균등 분배되는 여백 (절반)
+        const halfLeading = Math.max(0, (lineH - fontSize) / 2)
+        // verticalCenter: 텍스트 블록을 레이어 세로 중앙에 배치
+        //   블록 총 높이 = n*lineH, 첫 줄 top = -n*lineH/2 + halfLeading → 블록 시각 중심 = 0
+        // 일반: CSS처럼 박스 상단에서 halfLeading 내려서 시작
+        const startY = layer.verticalCenter ? -(lines.length * lineH) / 2 + halfLeading : -boxH / 2 + halfLeading
         lines.forEach((line, li) => {
           ctx.fillText(line, drawX, startY + li * lineH)
         })
@@ -1156,6 +1163,63 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     link.href = URL.createObjectURL(blob)
     link.click()
     URL.revokeObjectURL(link.href)
+  }
+
+  const handleDownloadImageMap = async () => {
+    const linkLayers = layers.filter(l => l.linkUrl)
+    if (linkLayers.length === 0) {
+      alert('링크가 설정된 영역이 없습니다.')
+      return
+    }
+    const invalidLinks = linkLayers.filter(l => !l.linkUrl.startsWith('http://') && !l.linkUrl.startsWith('https://'))
+    if (invalidLinks.length > 0) {
+      alert('유효하지 않은 링크가 있습니다. 링크 URL은 http:// 또는 https://로 시작해야 합니다.')
+      return
+    }
+    // Pretendard 등 웹폰트 로드 완료 보장 — 폰트 미로드 시 fallback 폰트로 텍스트가 어긋나는 문제 방지
+    await document.fonts.ready
+    // 디버그 로그: export 직전 좌표 확인
+    const _mainImgLayer = layers.find(l => l.id === 'e5-main-image')
+    const _bgLayer = layers.find(l => l.id === 'e5-bg-texture')
+    console.log('[e5 HTML export] debug', {
+      exportWidth: canvasW,
+      exportHeight: canvasH,
+      currentZoom: zoom,
+      linkedLayerCoords: linkLayers.map(l => ({ id: l.id, x: l.x, y: l.y, w: l.width, h: l.height, url: l.linkUrl })),
+      mainImageLayer: _mainImgLayer ? { x: _mainImgLayer.x, y: _mainImgLayer.y, w: _mainImgLayer.width, h: _mainImgLayer.height, hasCrop: !!_mainImgLayer.cropOrigW } : null,
+      backgroundLayer: _bgLayer ? { x: _bgLayer.x, y: _bgLayer.y, w: _bgLayer.width, h: _bgLayer.height } : null,
+    })
+    const canvas = await renderToCanvas(currentTemplateId, 1)
+    if (!canvas) return
+    console.log('[e5 HTML export] canvas size', { width: canvas.width, height: canvas.height })
+    const pngBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
+    const imgH = canvas.height
+    const halfW = Math.round(canvasW / 2)
+    const areas = linkLayers.map(l => {
+      const x1 = Math.round(l.x), y1 = Math.round(l.y)
+      const x2 = Math.round(l.x + l.width), y2 = Math.round(l.y + l.height)
+      return `    <area shape="rect" coords="${x1},${y1},${x2},${y2}" href="${l.linkUrl}" alt="${l.name || ''}" />`
+    }).join('\n')
+    const htmlString = [
+      `<div style="width:100%; position:relative; overflow:visible; text-align:left;">`,
+      `  <div style="position:relative; left:50%; margin-left:-${halfW}px; width:${canvasW}px; height:${imgH}px;">`,
+      `    <img src="./md-recommend-module.png" usemap="#md-recommend-map" width="${canvasW}" height="${imgH}" alt="기획전 MD추천 모듈" style="display:block; width:${canvasW}px; height:${imgH}px; border:0; margin:0; padding:0;" />`,
+      `    <map name="md-recommend-map" id="md-recommend-map">`,
+      areas,
+      `    </map>`,
+      `  </div>`,
+      `</div>`,
+    ].join('\n')
+    const zip = new JSZip()
+    zip.file('md-recommend-module.png', pngBlob)
+    zip.file('index.html', htmlString)
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
+    const link = document.createElement('a')
+    link.download = 'md-recommend-module.zip'
+    link.href = URL.createObjectURL(zipBlob)
+    link.click()
+    URL.revokeObjectURL(link.href)
+    setTimeout(() => alert('ZIP 안의 md-recommend-module.png를 사내몰 이미지 서버에 업로드한 뒤, index.html의 img src 경로를 업로드된 이미지 URL로 변경해 사용하세요.'), 300)
   }
 
   const exhibitionEventGroupIds = ['exhibition', 'event']
@@ -2499,6 +2563,87 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         </div>
       )}
 
+      {/* 링크 안내 모달 */}
+      {linkInfoModalSlotId && (
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 700, background: 'rgba(0,0,0,0.45)' }} onClick={() => setLinkInfoModalSlotId(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[360px] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 pt-6 pb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mb-4" style={{ background: '#FFF0E5' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F15A24" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-gray-900 leading-snug">링크 추가 안내</h3>
+              <p className="mt-2 text-sm text-gray-500 leading-relaxed">링크를 추가하면 HTML 형식으로 추출됩니다.</p>
+            </div>
+            <div className="px-6 pb-5 flex gap-2.5">
+              <button onClick={() => setLinkInfoModalSlotId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">취소</button>
+              <button
+                onClick={() => {
+                  const sl = layers.find(l => l.id === linkInfoModalSlotId)
+                  setLinkInputValue(sl?.linkUrl || '')
+                  setLinkInputModalSlotId(linkInfoModalSlotId)
+                  setLinkInfoModalSlotId(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+                style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+              >확인</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* URL 입력 모달 */}
+      {linkInputModalSlotId && (
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 700, background: 'rgba(0,0,0,0.45)' }} onClick={() => setLinkInputModalSlotId(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 pt-6 pb-4">
+              <h3 className="text-base font-bold text-gray-900 mb-3">링크 {layers.find(l => l.id === linkInputModalSlotId)?.linkUrl ? '수정' : '추가'}</h3>
+              <input
+                type="url"
+                value={linkInputValue}
+                onChange={e => setLinkInputValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.closest('div[class]')?.querySelector('button[data-save]')?.click() }}
+                placeholder="https://example.com"
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none transition-all"
+                onFocus={e => { e.target.style.borderColor = '#F15A24'; e.target.style.boxShadow = '0 0 0 3px rgba(241,90,36,0.15)' }}
+                onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none' }}
+              />
+              <p className="mt-1.5 text-xs text-gray-400">http:// 또는 https://로 시작하는 URL을 입력하세요.</p>
+            </div>
+            <div className="px-6 pb-5 flex gap-2">
+              {layers.find(l => l.id === linkInputModalSlotId)?.linkUrl && (
+                <button
+                  onClick={() => {
+                    updateLayers(layers.map(l => l.id === linkInputModalSlotId ? { ...l, linkUrl: undefined } : l))
+                    setLinkInputModalSlotId(null)
+                  }}
+                  className="py-2.5 px-4 rounded-xl border border-red-200 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                >링크 삭제</button>
+              )}
+              <button onClick={() => setLinkInputModalSlotId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">취소</button>
+              <button
+                data-save
+                onClick={() => {
+                  const url = linkInputValue.trim()
+                  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    alert('http:// 또는 https://로 시작하는 URL을 입력해주세요.')
+                    return
+                  }
+                  const hadLinks = layers.some(l => l.linkUrl)
+                  updateLayers(layers.map(l => l.id === linkInputModalSlotId ? { ...l, linkUrl: url } : l))
+                  if (!hadLinks) setDlFormat('HTML')
+                  setLinkInputModalSlotId(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+                style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+              >저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* STEP 3: 에디터 */}
       {step === STEP_EDITOR && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#f1f0f5' }}>
@@ -2676,14 +2821,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         <div style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1.5px solid #F15A24', background: '#FFF0E5', color: '#D44117', textAlign: 'center' }}>PNG</div>
                       </div>
                     ) : (
-                    <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                      {['JPG','PNG','PDF'].map(fmt => (
-                        <button key={fmt} onClick={() => setDlFormat(fmt)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: dlFormat === fmt ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb', background: dlFormat === fmt ? '#FFF0E5' : '#fff', color: dlFormat === fmt ? '#D44117' : '#6b7280', cursor: 'pointer' }}>{fmt}</button>
+                    <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+                      {(currentTemplateId === 'e5' ? ['JPG','PNG','PDF','HTML'] : ['JPG','PNG','PDF']).map(fmt => (
+                        <button key={fmt} onClick={() => setDlFormat(fmt)} style={{ flex: 1, minWidth: 0, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: dlFormat === fmt ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb', background: dlFormat === fmt ? '#FFF0E5' : '#fff', color: dlFormat === fmt ? '#D44117' : '#6b7280', cursor: 'pointer' }}>{fmt}</button>
                       ))}
                     </div>
                     )}
                     {hasLogoSelected && <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 12, textAlign: 'center' }}>로고배너는 투명 PNG로 저장</p>}
-                    {dlEffectiveFmt !== 'PDF' && (
+                    {dlEffectiveFmt === 'HTML' ? (
+                      <p style={{ fontSize: 11, color: '#F15A24', marginBottom: 12, textAlign: 'center', lineHeight: 1.6 }}>HTML은 1440px 고정 이미지맵 기준으로 추출됩니다.<br />ZIP 안의 PNG 이미지를 이미지 서버에 업로드한 뒤,<br />index.html의 img src를 업로드된 이미지 URL로 변경해 사용하세요.</p>
+                    ) : dlEffectiveFmt !== 'PDF' ? (
                       <>
                         <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>해상도</p>
                         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
@@ -2692,8 +2839,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           ))}
                         </div>
                       </>
+                    ) : (
+                      <p style={{ fontSize: 11, color: '#F15A24', marginBottom: 12, textAlign: 'center' }}>300dpi 고화질 출력</p>
                     )}
-                    {dlEffectiveFmt === 'PDF' && <p style={{ fontSize: 11, color: '#F15A24', marginBottom: 12, textAlign: 'center' }}>300dpi 고화질 출력</p>}
                     {currentTemplateId === 'b3' && dlSelectedIds.has('b3') && (
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 500 }}>
                         <input type="checkbox" checked={b3WithPreview} onChange={e => setB3WithPreview(e.target.checked)}
@@ -2701,9 +2849,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         메인배너 텍스트 미리보기 함께 다운로드
                       </label>
                     )}
-                    <button onClick={() => { setShowDlPopup(false); handleDownloadZip() }} style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <button
+                      onClick={() => {
+                        setShowDlPopup(false)
+                        if (dlEffectiveFmt === 'HTML') handleDownloadImageMap()
+                        else handleDownloadZip()
+                      }}
+                      style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    >
                       <Download style={{ width: 14, height: 14 }} />
-                      {dlSelectedIds.size <= 1 ? '다운로드' : `${dlSelectedIds.size}개 다운로드`}
+                      {dlEffectiveFmt === 'HTML' ? 'ZIP 다운로드' : dlSelectedIds.size <= 1 ? '다운로드' : `${dlSelectedIds.size}개 다운로드`}
                     </button>
                   </div>
                 )}
@@ -4230,13 +4385,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       )
                     })()}
 
+                    {/* 링크 배지 오버레이 — linkUrl 있는 레이어에 표시 (export 제외) */}
+                    {layers.filter(l => l.linkUrl).map((l, idx) => (
+                      <div key={`link-badge-${l.id}`} style={{ position: 'absolute', left: l.x, top: l.y, width: l.width, height: l.height, zIndex: 195, pointerEvents: 'none', transform: `rotate(${l.rotation || 0}deg)`, transformOrigin: 'center center' }}>
+                        <div style={{ position: 'absolute', inset: 0, border: '2px solid rgba(241,90,36,0.5)', borderRadius: l.borderRadius || 0, pointerEvents: 'none' }} />
+                        <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', alignItems: 'center', gap: 3, background: 'rgba(241,90,36,0.92)', color: '#fff', fontSize: 10, fontWeight: 700, fontFamily: 'Pretendard', padding: '3px 7px 3px 5px', borderRadius: 99, pointerEvents: 'none', userSelect: 'none' }}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                          </svg>
+                          링크 {idx + 1}
+                        </div>
+                      </div>
+                    ))}
+
                     {/* 업로드 슬롯 CTA 오버레이 — 항상 표시, 모든 슬롯 */}
                     {layers.filter(l => l.isUploadSlot).map(sl => {
                       const isLarge = sl.width >= 200
+                      const isE5 = currentTemplateId === 'e5'
                       return (
                         <div
                           key={`cta-${sl.id}`}
-                          style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.width, height: sl.height, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: sl.borderRadius || 0, overflow: 'hidden' }}
+                          style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.width, height: sl.height, zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: isLarge ? 8 : 5, pointerEvents: 'none', borderRadius: sl.borderRadius || 0, overflow: 'hidden' }}
                         >
                           <div
                             style={{ display: 'flex', alignItems: 'center', gap: isLarge ? 8 : 4, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', fontSize: isLarge ? 14 : 11, fontWeight: 700, fontFamily: 'Pretendard', padding: isLarge ? '11px 22px' : '6px 10px', borderRadius: isLarge ? 10 : 6, cursor: 'pointer', boxShadow: '0 4px 16px rgba(241,90,36,0.55)', whiteSpace: 'nowrap', userSelect: 'none', pointerEvents: 'all' }}
@@ -4248,6 +4417,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             </svg>
                             이미지 교체
                           </div>
+                          {isE5 && (
+                            <div
+                              style={{ display: 'flex', alignItems: 'center', gap: isLarge ? 6 : 4, background: sl.linkUrl ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.82)', color: sl.linkUrl ? '#F15A24' : '#374151', fontSize: isLarge ? 12 : 10, fontWeight: 600, fontFamily: 'Pretendard', padding: isLarge ? '7px 16px' : '4px 9px', borderRadius: isLarge ? 8 : 5, cursor: 'pointer', border: sl.linkUrl ? '1.5px solid #F15A24' : '1.5px solid #d1d5db', whiteSpace: 'nowrap', userSelect: 'none', pointerEvents: 'all', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                              onMouseDown={e => e.stopPropagation()}
+                              onClick={e => { e.stopPropagation(); setLinkInfoModalSlotId(sl.id) }}
+                            >
+                              <svg width={isLarge ? 12 : 10} height={isLarge ? 12 : 10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                              </svg>
+                              {sl.linkUrl ? '링크 수정' : '링크 추가'}
+                            </div>
+                          )}
                         </div>
                       )
                     })}

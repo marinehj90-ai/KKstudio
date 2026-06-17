@@ -754,6 +754,62 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite }) {
   )
 }
 
+// ─── 삭제 확인 모달 ──────────────────────────────────────────────────────────
+
+function DeleteConfirmModal({ count, onConfirm, onCancel }) {
+  const single = count === 1
+  return (
+    // 백드롭
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onClick={onCancel}
+    >
+      {/* 모달 패널 */}
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-80 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 헤더 */}
+        <div className="px-6 pt-6 pb-4">
+          {/* 경고 아이콘 */}
+          <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <Trash2 className="w-5 h-5 text-red-500" />
+          </div>
+
+          <h3 className="text-base font-bold text-gray-900 leading-snug">
+            {single
+              ? '제작물을 삭제할까요?'
+              : `선택한 제작물 ${count}개를 삭제할까요?`}
+          </h3>
+          <p className="mt-2 text-sm text-red-600 font-medium">
+            삭제한 제작물은 복구할 수 없습니다.
+          </p>
+        </div>
+
+        {/* 버튼 */}
+        <div className="px-6 pb-5 flex gap-2.5">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            취소
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+            style={{ background: '#EF4444' }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#DC2626' }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#EF4444' }}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── 좌측 카테고리 사이드바 ──────────────────────────────────────────────────
 
 function CategorySidebar({ selected, onChange, counts }) {
@@ -798,6 +854,7 @@ export default function MyContent() {
   )
   const [folders, setFolders]           = useState(INITIAL_FOLDERS)
   const [currentFolderId, setCurrentFolderId] = useState(null)   // null = 전체(루트)
+  const [deleteModal, setDeleteModal]   = useState(null)         // null | { ids: Set }
   const [viewMode, setViewMode]         = useState('grid')
   const [searchQuery, setSearchQuery]   = useState('')
   const [dateFilter, setDateFilter]     = useState('all')
@@ -911,9 +968,19 @@ export default function MyContent() {
 
   function handleBulkDelete() {
     const targets = filteredItems.filter(it => selectedIds.has(it.id))
-    if (!window.confirm(`선택한 ${targets.length}개 항목을 삭제하시겠습니까?`)) return
-    setItems(prev => prev.filter(it => !selectedIds.has(it.id)))
+    if (targets.length === 0) return
+    setDeleteModal({ ids: new Set(targets.map(it => it.id)) })
+  }
+
+  function handleDeleteConfirm() {
+    const idsToDelete = deleteModal.ids
+    setItems(prev => prev.filter(it => !idsToDelete.has(it.id)))
     setSelectedIds(new Set())
+    setDeleteModal(null)
+  }
+
+  function handleDeleteCancel() {
+    setDeleteModal(null)
   }
 
   function handleSidebarCategory(cat) {
@@ -925,6 +992,15 @@ export default function MyContent() {
 
   return (
     <div className="flex h-full">
+      {/* 삭제 확인 모달 */}
+      {deleteModal && (
+        <DeleteConfirmModal
+          count={deleteModal.ids.size}
+          onConfirm={handleDeleteConfirm}
+          onCancel={handleDeleteCancel}
+        />
+      )}
+
       {/* 좌측 카테고리 */}
       <CategorySidebar selected={sidebarCategory} onChange={handleSidebarCategory} counts={categoryCounts} />
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, sans-serif; font-size: 12px; background: #fff; color: #333; padding: 16px; }
+  h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  label { font-size: 11px; color: #666; width: 60px; flex-shrink: 0; }
+  input { flex: 1; border: 1px solid #ddd; border-radius: 4px; padding: 5px 8px; font-size: 12px; }
+  input:focus { outline: none; border-color: #9f48ce; }
+  .btn { padding: 7px 14px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #9f48ce; color: #fff; width: 100%; margin-bottom: 8px; }
+  .btn-primary:hover { background: #7b2fa8; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .status { font-size: 11px; padding: 6px 10px; border-radius: 4px; margin-bottom: 8px; }
+  .status.wait    { background: #f3f4f6; color: #6b7280; }
+  .status.connecting { background: #fef9c3; color: #854d0e; }
+  .status.connected  { background: #dcfce7; color: #166534; }
+  .status.error      { background: #fee2e2; color: #991b1b; }
+  .log { font-size: 10px; color: #555; background: #f7f7f7; border-radius: 4px; padding: 8px; height: 130px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
+</style>
+</head>
+<body>
+<h3>Talk to Claude</h3>
+
+<div class="row">
+  <label>Channel</label>
+  <input type="text" id="channel" value="claude">
+</div>
+<div class="row">
+  <label>Port</label>
+  <input type="number" id="port" value="3055">
+</div>
+
+<button class="btn btn-primary" id="btn" onclick="connect()">Connect</button>
+<div class="status wait" id="status">대기 중</div>
+<div class="log" id="log"></div>
+
+<script>
+  let ws = null;
+
+  function log(msg) {
+    const el = document.getElementById('log');
+    const t = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+    el.textContent += `[${t}] ${msg}\n`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setStatus(msg, cls) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + cls;
+  }
+
+  function connect() {
+    const channel = document.getElementById('channel').value || 'claude';
+    const port = document.getElementById('port').value || '3055';
+    document.getElementById('btn').disabled = true;
+    if (ws) { ws.close(); ws = null; }
+
+    setStatus('연결 중...', 'connecting');
+    log(`ws://localhost:${port} → 채널: ${channel}`);
+
+    ws = new WebSocket(`ws://localhost:${port}`);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'join', channel }));
+      setStatus(`연결됨 · 채널: ${channel}`, 'connected');
+      log('연결 성공 — join 전송');
+      document.getElementById('btn').textContent = '재연결';
+      document.getElementById('btn').disabled = false;
+    };
+
+    ws.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        log(`수신: ${JSON.stringify(msg).slice(0, 100)}`);
+        parent.postMessage({ pluginMessage: { type: 'ws_message', data: msg } }, '*');
+      } catch { log('파싱 오류'); }
+    };
+
+    ws.onerror = () => {
+      setStatus('연결 실패 — 릴레이 서버 실행 여부 확인', 'error');
+      log('오류 발생');
+      document.getElementById('btn').disabled = false;
+    };
+
+    ws.onclose = () => {
+      setStatus('연결 끊김', 'error');
+      log('연결 종료');
+      document.getElementById('btn').disabled = false;
+    };
+  }
+
+  window.onmessage = (e) => {
+    const msg = e.data.pluginMessage;
+    if (!msg || msg.type !== 'send_to_ws') return;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const channel = document.getElementById('channel').value || 'claude';
+      ws.send(JSON.stringify({ ...msg.data, channel }));
+      log(`전송: ${JSON.stringify(msg.data).slice(0, 80)}`);
+    }
+  };
+</script>
+</body>
+</html>

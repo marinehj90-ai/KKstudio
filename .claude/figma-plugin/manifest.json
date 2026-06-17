@@ -1,0 +1,13 @@
+{
+  "name": "Talk to Claude",
+  "id": "talk-to-claude-local",
+  "api": "1.0.0",
+  "main": "plugin-code.js",
+  "ui": "plugin-ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["http://localhost:3055", "ws://localhost:3055"],
+    "devAllowedDomains": ["http://localhost:3055", "ws://localhost:3055"],
+    "reasoning": "Connects Claude to local Figma relay server for write access."
+  }
+}

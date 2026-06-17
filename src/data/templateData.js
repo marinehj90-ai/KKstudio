@@ -69,10 +69,10 @@ export const templateGroups = [
     dark: '#D46830',
     gradient: 'linear-gradient(135deg, #F38C5C 0%, #FDBA74 100%)',
     templates: [
-      { id: 'e1', name: '기획전 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: 'linear-gradient(135deg, #D46830 0%, #F38C5C 100%)' },
-      { id: 'e2', name: '기획전 상단 비주얼 (PC)', size: '1000×500', device: 'PC', preview: 'linear-gradient(135deg, #F38C5C 0%, #FDBA74 100%)' },
-      { id: 'e3', name: '기획전 상단 비주얼 (MO)', size: '750×500', device: 'MO', preview: 'linear-gradient(135deg, #D46830 0%, #F38C5C 100%)' },
-      { id: 'e4', name: '기획전 모듈용 썸네일', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #F38C5C 0%, #FDBA74 100%)' },
+      { id: 'e1', name: '기획전 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: 'linear-gradient(135deg, #D46830 0%, #F38C5C 100%)', heightResizable: true },
+      { id: 'e2', name: '기획전 상단 비주얼 (PC)', size: '1000×500', device: 'PC', preview: 'linear-gradient(135deg, #F38C5C 0%, #FDBA74 100%)', heightResizable: true },
+      { id: 'e3', name: '기획전 상단 비주얼 (MO)', size: '750×500', device: 'MO', preview: 'linear-gradient(135deg, #D46830 0%, #F38C5C 100%)', heightResizable: true },
+      { id: 'e4', name: '기획전 모듈용 썸네일', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #F38C5C 0%, #FDBA74 100%)', heightResizable: true },
     ],
   },
   {
@@ -84,10 +84,10 @@ export const templateGroups = [
     dark: '#D9920A',
     gradient: 'linear-gradient(135deg, #FBBA4B 0%, #FDE68A 100%)',
     templates: [
-      { id: 'ev1', name: '이벤트 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)' },
-      { id: 'ev2', name: '이벤트 상단 비주얼 (PC)', size: '1000×500', device: 'PC', preview: 'linear-gradient(135deg, #FBBA4B 0%, #FDE68A 100%)' },
-      { id: 'ev3', name: '이벤트 상단 비주얼 (MO)', size: '750×500', device: 'MO', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)' },
-      { id: 'ev4', name: '제휴 이벤트 공통 배너', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 50%, #FDE68A 100%)' },
+      { id: 'ev1', name: '이벤트 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)', heightResizable: true },
+      { id: 'ev2', name: '이벤트 상단 비주얼 (PC)', size: '1000×500', device: 'PC', preview: 'linear-gradient(135deg, #FBBA4B 0%, #FDE68A 100%)', heightResizable: true },
+      { id: 'ev3', name: '이벤트 상단 비주얼 (MO)', size: '750×500', device: 'MO', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 100%)', heightResizable: true },
+      { id: 'ev4', name: '제휴 이벤트 공통 배너', size: '750×750', device: '공통', preview: 'linear-gradient(135deg, #D9920A 0%, #FBBA4B 50%, #FDE68A 100%)', heightResizable: true },
     ],
   },
 ]

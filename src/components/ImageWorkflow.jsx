@@ -445,6 +445,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [logoPairs, setLogoPairs] = useState([])
   const [langSuggestions, setLangSuggestions] = useState({}) // { [langId]: [{ layerId, original, suggestions: [str] }] }
   const [guideTextColor, setGuideTextColor] = useState('#1E2023')
+  const [customHeights, setCustomHeights] = useState({}) // { [templateId]: number } — heightResizable 템플릿 전용
+  const [showFrameSizePopover, setShowFrameSizePopover] = useState(false)
+  const [frameHInput, setFrameHInput] = useState('')
   const [cropLayerId, setCropLayerId] = useState(null)
   const [cropTemp, setCropTemp] = useState(null) // { cropX, cropY, cropScale }
   const applyCropRef = useRef(null)
@@ -500,7 +503,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const currentTemplateId = currentTemplate?.id || ''
   // 현재 보고 있는 탭이 lang 복사본이 아닌 실제 템플릿인 경우에만 다국어 추가 가능
   const langBase = currentTemplate && !currentTemplate.lang ? currentTemplate : null
-  const [canvasW, canvasH] = currentTemplate?.size?.split('\u00d7').map(Number) || [750, 750]
+  const [canvasW, _baseCanvasH] = currentTemplate?.size?.split('\u00d7').map(Number) || [750, 750]
+  const isHeightResizable = !!currentTemplate?.heightResizable
+  const canvasH = (isHeightResizable && customHeights[currentTemplateId]) ? customHeights[currentTemplateId] : _baseCanvasH
   const scale = zoom / 100
   const isLogoTab = !!currentTemplate?.logoPair // b8-black / b8-white 탭 여부
   const LOGO_MARGIN = 20
@@ -581,7 +586,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const renderToCanvas = async (templateId, multiplier) => {
     const tmpl = allTemplates.find((t) => t.id === templateId) || langCopies.find((lc) => lc.id === templateId) || logoPairs.find((lp) => lp.id === templateId)
     if (!tmpl) return null
-    const [w, h] = tmpl.size.split('\u00d7').map(Number)
+    const [w, _hBase] = tmpl.size.split('\u00d7').map(Number)
+    const h = (tmpl.heightResizable && customHeights[templateId]) ? customHeights[templateId] : _hBase
     const canvas = document.createElement('canvas')
     canvas.width = w * multiplier
     canvas.height = h * multiplier
@@ -2167,6 +2173,59 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               </button>
             </div>
             <div className="flex items-center gap-2">
+              {/* 프레임 사이즈 변경 — heightResizable 템플릿 전용 */}
+              {isHeightResizable && (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => { setFrameHInput(String(canvasH)); setShowFrameSizePopover(v => !v) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${showFrameSizePopover ? '#9F48CE' : '#e5e7eb'}`, background: showFrameSizePopover ? '#F3E8FF' : '#fff', color: showFrameSizePopover ? '#9F48CE' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                    프레임 사이즈 변경
+                  </button>
+                  {showFrameSizePopover && (
+                    <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.13)', padding: 16, width: 280 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                        {/* W — 고정 비활성 */}
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderRadius: 8, background: '#f3f4f6', border: '1.5px solid #e5e7eb' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af' }}>W</span>
+                          <span style={{ fontSize: 14, color: '#9ca3af' }}>{canvasW}</span>
+                        </div>
+                        {/* H — 수정 가능 */}
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderRadius: 8, background: '#fff', border: '1.5px solid #9F48CE' }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>H</span>
+                          <input
+                            type="number"
+                            value={frameHInput}
+                            onChange={e => setFrameHInput(e.target.value)}
+                            min={500} max={5000}
+                            style={{ width: '100%', border: 'none', outline: 'none', fontSize: 14, color: '#111827', background: 'transparent' }}
+                          />
+                        </div>
+                      </div>
+                      <p style={{ fontSize: 11, color: '#9ca3af', marginBottom: 12 }}>*사이즈 범위 500~5000 (px)</p>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => setShowFrameSizePopover(false)}
+                          style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: '1.5px solid #e5e7eb', background: '#f9fafb', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer' }}
+                        >취소</button>
+                        <button
+                          onClick={() => {
+                            const v = parseInt(frameHInput, 10)
+                            if (!isNaN(v) && v >= 500 && v <= 5000) {
+                              setCustomHeights(prev => ({ ...prev, [currentTemplateId]: v }))
+                            }
+                            setShowFrameSizePopover(false)
+                          }}
+                          style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#9F48CE', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
+                        >적용</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               {/* 가이드 보기 토글 */}
               <div style={{ position: 'relative' }}>
                 <button

@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin, BookImage, BellDot } from 'lucide-react'
+import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin, BookImage, BellDot, Ruler } from 'lucide-react'
 
 const navItems = [
   { to: '/', icon: Home, label: '홈' },
@@ -14,7 +14,8 @@ const templateCategories = [
   { to: '/templates/exhibition', icon: CalendarRange, label: '기획전',       count: 4,  hex: '#F15A24', light: '#FFF0E5' },
   { to: '/templates/event',      icon: Sparkles,      label: '이벤트·상세', count: 3,  hex: '#F6A23A', light: '#FFF7EF' },
   { to: '/templates/product',    icon: Image,         label: '상품이미지',   count: 2,  hex: '#F6A23A', light: '#FFF7EF' },
-  { to: '/templates/notice',     icon: BellDot,       label: '메인공지팝업', count: 1,  hex: '#F6A23A', light: '#FFF7EF' },
+  { to: '/templates/notice',      icon: BellDot,       label: '메인공지팝업', count: 1,  hex: '#F6A23A', light: '#FFF7EF' },
+  { to: '/templates/custom-size', icon: Ruler,         label: '자유사이즈',   count: null, hex: '#78716C', light: '#F5F4F2' },
 ]
 
 // 홈 포인트 컬러
@@ -82,12 +83,14 @@ export default function Layout() {
                   <>
                     <Icon className="w-4 h-4" style={{ color: isActive ? hex : undefined }} />
                     <span className="flex-1 text-left">{label}</span>
-                    <span
-                      className="text-xs"
-                      style={{ color: isActive ? hex : '#9ca3af' }}
-                    >
-                      {count}
-                    </span>
+                    {count !== null && (
+                      <span
+                        className="text-xs"
+                        style={{ color: isActive ? hex : '#9ca3af' }}
+                      >
+                        {count}
+                      </span>
+                    )}
                     <ChevronRight
                       className="w-3.5 h-3.5"
                       style={{ color: isActive ? hex : '#d1d5db' }}

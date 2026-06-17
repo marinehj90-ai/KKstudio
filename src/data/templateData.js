@@ -1,10 +1,11 @@
 import { Layers, Image, CalendarRange, Sparkles, BookImage, BellDot } from 'lucide-react'
 
-// 공통 preview gradient (orange brand tone)
-const PV_STD  = 'linear-gradient(135deg, #FFC567 0%, #FF9A3D 48%, #F15A24 100%)'
-const PV_DEEP = 'linear-gradient(135deg, #FFB347 0%, #FF8A2A 45%, #E94E1B 100%)'
-const PV_WARM = 'linear-gradient(135deg, #FFD58A 0%, #FFAB4E 50%, #F15A24 100%)'
-const PV_RICH = 'linear-gradient(150deg, #FFC567 0%, #FF9A3D 48%, #F15A24 100%)'
+// 공통 preview gradient — 히어로와 동일 톤
+const PV_HERO = 'linear-gradient(135deg, #E06038 0%, #F27848 35%, #F5A255 68%, #FFD28A 100%)'
+const PV_STD  = PV_HERO
+const PV_DEEP = PV_HERO
+const PV_WARM = PV_HERO
+const PV_RICH = PV_HERO
 
 export const templateGroups = [
   {

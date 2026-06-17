@@ -34,9 +34,9 @@ function NavigationGuardModal({ onProceed, onCancel }) {
           <button
             onClick={onProceed}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-            style={{ background: 'linear-gradient(135deg,#F9A94D 0%,#FF6A24 100%)' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F9A94D 0%,#E85A14 100%)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F9A94D 0%,#FF6A24 100%)' }}
+            style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#E94E1B 55%,#D44117 100%)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
           >
             템플릿 선택하기
           </button>

@@ -75,7 +75,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4A8FA3 0%, #F6A23A 55%, #E94E1B 100%)' }}>
+      <div className="relative overflow-hidden" style={{ background: 'var(--ck-gradient-template-hero)' }}>
         <div className="absolute inset-0">
           <div className="absolute top-0 right-0 w-64 h-full opacity-20" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.25), transparent)' }} />
         </div>

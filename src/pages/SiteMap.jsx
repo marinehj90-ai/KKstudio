@@ -71,7 +71,7 @@ export default function SiteMap() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={
                 platform === id
-                  ? { background: 'linear-gradient(135deg,#F8D28A 0%,#F9A94D 45%,#F15A24 100%)', color: '#fff', boxShadow: '0 4px 16px rgba(233,78,27,0.3)' }
+                  ? { background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', boxShadow: '0 4px 16px rgba(233,78,27,0.3)' }
                   : { background: '#fff', color: '#4b5563', border: '1px solid #e5e7eb' }
               }
             >
@@ -301,7 +301,7 @@ export default function SiteMap() {
                     <button
                       onClick={() => handleCreate(selectedZone)}
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                      style={{ background: 'linear-gradient(135deg,#F8D28A 0%,#F9A94D 45%,#F15A24 100%)' }}
+                      style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
                     >
                       이 배너 제작하기 <ArrowRight className="w-3.5 h-3.5" />
                     </button>

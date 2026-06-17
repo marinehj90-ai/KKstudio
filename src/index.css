@@ -34,7 +34,7 @@
   --ck-active-text: #E94E1B;
   --ck-gradient-cta: linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%);
   --ck-gradient-hero: linear-gradient(135deg, #4A8FA3 0%, #E94E1B 100%);
-  --ck-gradient-template-hero: linear-gradient(135deg, #D9471A 0%, #F15A24 35%, #FF9A3D 68%, #FFD28A 100%);
+  --ck-gradient-template-hero: linear-gradient(135deg, #E06038 0%, #F27848 35%, #F5A255 68%, #FFD28A 100%);
 }
 
 @font-face {

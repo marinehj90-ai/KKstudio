@@ -34,9 +34,9 @@ function NavigationGuardModal({ onProceed, onCancel }) {
           <button
             onClick={onProceed}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
-            style={{ background: '#9F48CE' }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#7B2FA8' }}
-            onMouseLeave={e => { e.currentTarget.style.background = '#9F48CE' }}
+            style={{ background: 'linear-gradient(135deg,#F9A94D 0%,#FF6A24 100%)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F9A94D 0%,#E85A14 100%)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F9A94D 0%,#FF6A24 100%)' }}
           >
             템플릿 선택하기
           </button>
@@ -137,7 +137,7 @@ export default function Templates() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden" style={{ background: c.gradient }}>
+      <div className="relative overflow-hidden" style={{ background: 'var(--ck-gradient-template-hero)' }}>
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-10 left-20 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
           <div className="absolute bottom-5 right-40 w-48 h-48 rounded-full bg-white/10 blur-3xl" />
@@ -147,10 +147,10 @@ export default function Templates() {
             <Icon className="w-3 h-3" />
             TEMPLATE
           </p>
-          <h1 className="text-3xl font-extrabold text-white leading-tight mb-2">
+          <h1 className="text-3xl font-extrabold text-white leading-tight mb-2" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
             {activeGroup.label} 템플릿
           </h1>
-          <p className="text-white/80 text-sm">
+          <p className="text-white/90 text-sm" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
             원하는 템플릿을 선택하고, 이미지를 업로드하면 AI가 자동으로 생성해드려요.
           </p>
         </div>
@@ -314,7 +314,7 @@ export default function Templates() {
           <button
             onClick={() => setStep(1)}
             className="pointer-events-auto flex items-center gap-2 px-8 py-3.5 rounded-2xl font-semibold transition-all hover:scale-[1.02] text-white"
-            style={{ backgroundColor: c.hex, boxShadow: `0 8px 24px ${c.hex}55` }}
+            style={{ background: c.gradient || 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', boxShadow: '0 8px 24px rgba(233,78,27,0.45)' }}
           >
             {selectedTemplates.length}개 템플릿 선택 완료
             <ArrowRight className="w-4 h-4" />

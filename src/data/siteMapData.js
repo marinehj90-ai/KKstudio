@@ -14,7 +14,7 @@ export const siteMapConfig = {
         size: '1080×1920',
         templateId: 'b4',
         comingSoon: true,
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 86, left: 1167, width: 138, height: 275 },
       },
       {
@@ -23,7 +23,7 @@ export const siteMapConfig = {
         name: '최상단 띠배너',
         size: '1712×80',
         templateId: 'b1',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 0, left: 164, width: 986, height: 55 },
       },
       {
@@ -32,7 +32,7 @@ export const siteMapConfig = {
         name: '메인 대배너',
         size: '750×750',
         templateId: 'b3',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 159, left: 164, width: 986, height: 328 },
       },
       {
@@ -41,7 +41,7 @@ export const siteMapConfig = {
         name: '퀵메뉴',
         size: '300×300',
         templateId: 'b12',
-        color: '#C084FC',
+        color: '#F6A23A',
         pos: { top: 517, left: 165, width: 985, height: 125 },
       },
       {
@@ -60,7 +60,7 @@ export const siteMapConfig = {
         name: '브랜드 단독 배너',
         size: '750×750',
         templateId: 'b5',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 768, left: 165, width: 985, height: 202 },
       },
       {
@@ -69,7 +69,7 @@ export const siteMapConfig = {
         name: '결제 혜택 배너',
         size: '750×750',
         templateId: 'b5',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 1006, left: 165, width: 985, height: 170 },
       },
       {
@@ -78,7 +78,7 @@ export const siteMapConfig = {
         name: '브랜드 할인 배너',
         size: '750×750',
         templateId: 'b5',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 1213, left: 165, width: 985, height: 274 },
       },
       {
@@ -87,7 +87,7 @@ export const siteMapConfig = {
         name: '브랜드 제안 배너',
         size: '750×750',
         templateId: 'b5',
-        color: '#C084FC',
+        color: '#F6A23A',
         pos: { top: 1546, left: 165, width: 985, height: 390 },
       },
       {
@@ -96,7 +96,7 @@ export const siteMapConfig = {
         name: '메인 띠배너',
         size: '1520×130',
         templateId: 'b7',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 1957, left: 165, width: 985, height: 94 },
       },
       {
@@ -106,7 +106,7 @@ export const siteMapConfig = {
         size: '750×1125',
         templateId: 'b3',
         comingSoon: true,
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 2074, left: 165, width: 985, height: 261 },
       },
       {
@@ -124,7 +124,7 @@ export const siteMapConfig = {
         name: '제휴사 배너',
         size: '750×750',
         templateId: 'b5',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 2816, left: 165, width: 985, height: 273 },
       },
       {
@@ -133,7 +133,7 @@ export const siteMapConfig = {
         name: '체험단 배너',
         size: '750×750',
         templateId: 'e4',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 3144, left: 165, width: 985, height: 222 },
       },
       {
@@ -142,7 +142,7 @@ export const siteMapConfig = {
         name: '오프라인 행사 배너',
         size: '750×750',
         templateId: 'e4',
-        color: '#C084FC',
+        color: '#F6A23A',
         pos: { top: 3407, left: 165, width: 985, height: 276 },
       },
     ],
@@ -160,7 +160,7 @@ export const siteMapConfig = {
         size: '',
         templateId: 'b3',
         comingSoon: true,
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 54, left: 0, width: 375, height: 174 },
       },
       {
@@ -170,7 +170,7 @@ export const siteMapConfig = {
         size: '1536×140',
         templateId: 'b2',
         comingSoon: true,
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 228, left: 0, width: 375, height: 70 },
       },
       {
@@ -179,7 +179,7 @@ export const siteMapConfig = {
         name: '메인 대배너',
         size: '750×750',
         templateId: 'b3',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 398, left: 0, width: 375, height: 375 },
       },
       {
@@ -188,7 +188,7 @@ export const siteMapConfig = {
         name: '퀵메뉴',
         size: '300×300',
         templateId: 'b12',
-        color: '#C084FC',
+        color: '#F6A23A',
         pos: { top: 763, left: 0, width: 375, height: 216 },
       },
       {
@@ -207,7 +207,7 @@ export const siteMapConfig = {
         name: '오늘의 혜택 · 결제',
         size: '750×750',
         templateId: 'b5',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 1122, left: 0, width: 375, height: 200 },
       },
       {
@@ -216,7 +216,7 @@ export const siteMapConfig = {
         name: '사은증정',
         size: '750×750',
         templateId: 'b5',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 1362, left: 0, width: 375, height: 364 },
       },
       {
@@ -234,7 +234,7 @@ export const siteMapConfig = {
         name: '오직신세계에서만 (하)',
         size: '750×750',
         templateId: 'b9',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 2104, left: 0, width: 375, height: 416 },
       },
       {
@@ -263,7 +263,7 @@ export const siteMapConfig = {
         name: '회원혜택',
         size: '750×750',
         templateId: 'b5',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 3245, left: 0, width: 375, height: 230 },
       },
       {
@@ -292,7 +292,7 @@ export const siteMapConfig = {
         name: '전면 배너 1',
         size: '750×140',
         templateId: 'b6',
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: 4039, left: 0, width: 375, height: 110 },
       },
       {
@@ -301,7 +301,7 @@ export const siteMapConfig = {
         name: '전면 배너 2',
         size: '750×140',
         templateId: 'b6',
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: 4189, left: 0, width: 375, height: 110 },
       },
     ],
@@ -317,7 +317,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b3',
         comingSoon: true,
-        color: '#7B2FA8',
+        color: '#D44117',
         pos: { top: '12%', left: '0%', width: '100%', height: '22%' },
       },
       {
@@ -327,7 +327,7 @@ export const siteMapConfig = {
         size: '300×300',
         templateId: 'b12',
         comingSoon: true,
-        color: '#C084FC',
+        color: '#F6A23A',
         pos: { top: '35.5%', left: '0%', width: '100%', height: '7%' },
       },
       {
@@ -337,7 +337,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         comingSoon: true,
-        color: '#9F48CE',
+        color: '#F15A24',
         pos: { top: '44%', left: '0%', width: '100%', height: '19%' },
       },
       {

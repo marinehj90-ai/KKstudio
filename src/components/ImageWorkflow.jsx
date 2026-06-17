@@ -105,18 +105,18 @@ const B6TextPreviewOverlay = memo(function B6TextPreviewOverlay({ canvasW, canva
       {/* 메인카피 */}
       <div ref={mainRef} contentEditable suppressContentEditableWarning
         onMouseDown={stop} onClick={stop} onKeyDown={stop}
-        style={{ position: 'absolute', left: TEXT_X, top: TOP_Y, width: TEXT_W, height: MAIN_H, fontSize: MAIN_FS, fontWeight: 700, fontFamily: 'Pretendard', lineHeight: MAIN_LH, letterSpacing: '-0.42px', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.5)', borderRadius: 3, padding: '0 2px', background: 'transparent', overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+        style={{ position: 'absolute', left: TEXT_X, top: TOP_Y, width: TEXT_W, height: MAIN_H, fontSize: MAIN_FS, fontWeight: 700, fontFamily: 'Pretendard', lineHeight: MAIN_LH, letterSpacing: '-0.42px', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(241,90,36,0.5)', borderRadius: 3, padding: '0 2px', background: 'transparent', overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
       />
       {/* 서브카피 */}
       <div ref={subRef} contentEditable suppressContentEditableWarning
         onMouseDown={stop} onClick={stop} onKeyDown={stop}
-        style={{ position: 'absolute', left: TEXT_X, top: TOP_Y + MAIN_H + GAP, width: TEXT_W, height: SUB_H, fontSize: SUB_FS, fontWeight: 400, fontFamily: 'Pretendard', lineHeight: 1.0, letterSpacing: '-0.34px', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.3)', borderRadius: 3, padding: '0 2px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
+        style={{ position: 'absolute', left: TEXT_X, top: TOP_Y + MAIN_H + GAP, width: TEXT_W, height: SUB_H, fontSize: SUB_FS, fontWeight: 400, fontFamily: 'Pretendard', lineHeight: 1.0, letterSpacing: '-0.34px', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(241,90,36,0.3)', borderRadius: 3, padding: '0 2px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
       />
       {/* 컬러 토글 */}
       <div style={{ position: 'absolute', left: TEXT_X, top: TOP_Y + MAIN_H + GAP + SUB_H + 6, display: 'flex', gap: 5, pointerEvents: 'all' }}>
         {['#1E2023', '#ffffff'].map(c => (
           <button key={c} onMouseDown={stop} onClick={() => onColorChange(c)}
-            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: `2.5px solid ${color === c ? '#9F48CE' : '#d1d5db'}`, cursor: 'pointer', boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #e5e7eb' : 'none' }} />
+            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: `2.5px solid ${color === c ? '#F15A24' : '#d1d5db'}`, cursor: 'pointer', boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #e5e7eb' : 'none' }} />
         ))}
       </div>
     </div>
@@ -153,18 +153,18 @@ const B7TextPreviewOverlay = memo(function B7TextPreviewOverlay({ canvasW, canva
       {/* 메인카피 — 24px Bold, center */}
       <div ref={mainRef} contentEditable suppressContentEditableWarning
         onMouseDown={stop} onClick={stop} onKeyDown={stop}
-        style={{ position: 'absolute', left: T_X, top: startY, width: T_W, height: MAIN_H, fontSize: MAIN_FS, fontWeight: 700, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.5)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
+        style={{ position: 'absolute', left: T_X, top: startY, width: T_W, height: MAIN_H, fontSize: MAIN_FS, fontWeight: 700, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(241,90,36,0.5)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
       />
       {/* 서브카피 — 18px Regular, center */}
       <div ref={subRef} contentEditable suppressContentEditableWarning
         onMouseDown={stop} onClick={stop} onKeyDown={stop}
-        style={{ position: 'absolute', left: T_X, top: startY + MAIN_H + GAP, width: T_W, height: SUB_H, fontSize: SUB_FS, fontWeight: 400, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(159,72,206,0.3)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
+        style={{ position: 'absolute', left: T_X, top: startY + MAIN_H + GAP, width: T_W, height: SUB_H, fontSize: SUB_FS, fontWeight: 400, fontFamily: 'Pretendard', lineHeight: 'normal', textAlign: 'center', color, outline: 'none', pointerEvents: 'all', cursor: 'text', border: '1.5px dashed rgba(241,90,36,0.3)', borderRadius: 3, padding: '0 4px', background: 'transparent', overflow: 'hidden', whiteSpace: 'nowrap' }}
       />
       {/* 컬러 토글 */}
       <div style={{ position: 'absolute', left: T_X + T_W / 2 - 25, top: startY + totalH + 8, display: 'flex', gap: 5, pointerEvents: 'all' }}>
         {['#ffffff', '#1E2023'].map(c => (
           <button key={c} onMouseDown={stop} onClick={() => onColorChange(c)}
-            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: `2.5px solid ${color === c ? '#9F48CE' : '#d1d5db'}`, cursor: 'pointer', boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #e5e7eb' : 'none' }} />
+            style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: `2.5px solid ${color === c ? '#F15A24' : '#d1d5db'}`, cursor: 'pointer', boxShadow: c === '#ffffff' ? 'inset 0 0 0 1px #e5e7eb' : 'none' }} />
         ))}
       </div>
     </div>
@@ -392,9 +392,9 @@ const TemplateGuideOverlay = memo(function TemplateGuideOverlay({ canvasW, canva
   const SUB_H   = Math.round(SUB_FS  * LH)
   const TOTAL_H = MAIN_H + GAP + SUB_H
 
-  const ORANGE = '#F38C5C'
-  const DARK   = '#D46830'
-  const BLUE   = 'rgba(59,130,246,0.85)'
+  const ORANGE = '#F15A24'
+  const DARK   = '#D44117'
+  const BLUE   = 'rgba(100,90,82,0.82)'
 
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
@@ -448,11 +448,11 @@ function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, zIndex: 90, pointerEvents: 'none' }}>
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
-      <div style={{ position: 'absolute', left: gx, top: gy, width: gw, height: gh, boxShadow: '0 0 0 9999px rgba(0,0,0,0.4)', border: '2px dashed #C084FC', borderRadius: 2, background: 'transparent' }} />
+      <div style={{ position: 'absolute', left: gx, top: gy, width: gw, height: gh, boxShadow: '0 0 0 9999px rgba(0,0,0,0.4)', border: '2px dashed #F9A94D', borderRadius: 2, background: 'transparent' }} />
       {isSymbol ? (
-        <div style={{ position: 'absolute', left: gx + gw / 2, top: gy + 5, transform: 'translateX(-50%)', fontSize: 11, fontWeight: 700, color: '#C084FC', background: 'rgba(0,0,0,0.65)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ position: 'absolute', left: gx + gw / 2, top: gy + 5, transform: 'translateX(-50%)', fontSize: 11, fontWeight: 700, color: '#F9A94D', background: 'rgba(0,0,0,0.65)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap' }}>{label}</div>
       ) : (
-        <div style={{ position: 'absolute', left: gx, top: gy + gh + 5, fontSize: 11, fontWeight: 700, color: '#C084FC', background: 'rgba(0,0,0,0.65)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap' }}>{label}</div>
+        <div style={{ position: 'absolute', left: gx, top: gy + gh + 5, fontSize: 11, fontWeight: 700, color: '#F9A94D', background: 'rgba(0,0,0,0.65)', padding: '2px 7px', borderRadius: 4, whiteSpace: 'nowrap' }}>{label}</div>
       )}
       <div onClick={onClose} style={{ position: 'absolute', right: 6, top: 6, width: 22, height: 22, borderRadius: 6, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', pointerEvents: 'all', color: '#fff', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✕</div>
     </div>
@@ -2113,7 +2113,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               </button>
               <button
                 onClick={() => { setShowGoHomeConfirm(false); onGoHome ? onGoHome() : onBack() }}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#9F48CE,#C084FC)', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
               >
                 나가기
               </button>
@@ -2244,7 +2244,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           <div className="shrink-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
               <button onClick={() => setShowGoHomeConfirm(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-all">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}>
                   <Sparkles className="w-3.5 h-3.5 text-white" />
                 </div>
                 <span className="text-sm font-bold text-gray-800">KK Studio</span>
@@ -2292,7 +2292,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 <div style={{ position: 'relative' }}>
                   <button
                     onClick={() => { setFrameHInput(String(canvasH)); setShowFrameSizePopover(v => !v) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${showFrameSizePopover ? '#9F48CE' : '#e5e7eb'}`, background: showFrameSizePopover ? '#F3E8FF' : '#fff', color: showFrameSizePopover ? '#9F48CE' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${showFrameSizePopover ? '#F15A24' : '#e5e7eb'}`, background: showFrameSizePopover ? '#FFF0E5' : '#fff', color: showFrameSizePopover ? '#F15A24' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                   >
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
@@ -2308,7 +2308,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           <span style={{ fontSize: 14, color: '#9ca3af' }}>{canvasW}</span>
                         </div>
                         {/* H — 수정 가능 */}
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderRadius: 8, background: '#fff', border: '1.5px solid #9F48CE' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderRadius: 8, background: '#fff', border: '1.5px solid #F15A24' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>H</span>
                           <input
                             type="number"
@@ -2333,7 +2333,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             }
                             setShowFrameSizePopover(false)
                           }}
-                          style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#9F48CE', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
+                          style={{ flex: 1, padding: '9px 0', borderRadius: 8, border: 'none', background: '#F15A24', fontSize: 13, fontWeight: 600, color: '#fff', cursor: 'pointer' }}
                         >적용</button>
                       </div>
                     </div>
@@ -2344,7 +2344,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               <div style={{ position: 'relative' }}>
                 <button
                   onClick={() => { const next = !showGuide; setShowGuide(next); if (!next) setLogoGuide(null) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${(showGuide || (isLogoTab && logoGuide)) ? '#9F48CE' : '#e5e7eb'}`, background: (showGuide || (isLogoTab && logoGuide)) ? '#F3E8FF' : '#fff', color: (showGuide || (isLogoTab && logoGuide)) ? '#9F48CE' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 8, border: `1.5px solid ${(showGuide || (isLogoTab && logoGuide)) ? '#F15A24' : '#e5e7eb'}`, background: (showGuide || (isLogoTab && logoGuide)) ? '#FFF0E5' : '#fff', color: (showGuide || (isLogoTab && logoGuide)) ? '#F15A24' : '#6b7280', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/>
@@ -2356,7 +2356,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '6px', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 110 }}>
                     {['가로형', '심볼형'].map(type => (
                       <button key={type} onClick={() => { setLogoGuide(g => g === type ? null : type) }}
-                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${logoGuide === type ? '#9F48CE' : 'transparent'}`, background: logoGuide === type ? '#f3e8ff' : 'transparent', color: logoGuide === type ? '#7c3aed' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${logoGuide === type ? '#F15A24' : 'transparent'}`, background: logoGuide === type ? '#FFF0E5' : 'transparent', color: logoGuide === type ? '#D44117' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {type}
                       </button>
                     ))}
@@ -2377,7 +2377,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       : [['layout', '레이아웃 가이드'], ['text', '텍스트 미리보기']]
                     ).map(([mode, label]) => (
                       <button key={mode} onClick={() => setB6GuideMode(m => m === mode ? null : mode)}
-                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${b6GuideMode === mode ? '#9F48CE' : 'transparent'}`, background: b6GuideMode === mode ? '#f3e8ff' : 'transparent', color: b6GuideMode === mode ? '#7c3aed' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${b6GuideMode === mode ? '#F15A24' : 'transparent'}`, background: b6GuideMode === mode ? '#FFF0E5' : 'transparent', color: b6GuideMode === mode ? '#D44117' : '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left', whiteSpace: 'nowrap' }}>
                         {label}
                       </button>
                     ))}
@@ -2400,7 +2400,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 </button>
               )}
               <div style={{ position: 'relative' }}>
-                <button onClick={() => setShowDlPopup(v => !v)} disabled={dlSelectedIds.size === 0} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+                <button onClick={() => setShowDlPopup(v => !v)} disabled={dlSelectedIds.size === 0} className="flex items-center gap-2 px-8 py-2 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}>
                   <Download className="w-4 h-4" />
                   {dlSelectedIds.size <= 1 ? '이미지 다운로드' : `${dlSelectedIds.size}개 ZIP 다운로드`}
                   <ChevronDown className="w-3.5 h-3.5" style={{ transform: showDlPopup ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
@@ -2410,12 +2410,12 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>파일 형식</p>
                     {hasLogoSelected ? (
                       <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                        <div style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1.5px solid #9F48CE', background: '#f3e8ff', color: '#7c3aed', textAlign: 'center' }}>PNG</div>
+                        <div style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1.5px solid #F15A24', background: '#FFF0E5', color: '#D44117', textAlign: 'center' }}>PNG</div>
                       </div>
                     ) : (
                     <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                       {['JPG','PNG','PDF'].map(fmt => (
-                        <button key={fmt} onClick={() => setDlFormat(fmt)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: dlFormat === fmt ? '1.5px solid #9F48CE' : '1.5px solid #e5e7eb', background: dlFormat === fmt ? '#f3e8ff' : '#fff', color: dlFormat === fmt ? '#7c3aed' : '#6b7280', cursor: 'pointer' }}>{fmt}</button>
+                        <button key={fmt} onClick={() => setDlFormat(fmt)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 12, fontWeight: 600, border: dlFormat === fmt ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb', background: dlFormat === fmt ? '#FFF0E5' : '#fff', color: dlFormat === fmt ? '#D44117' : '#6b7280', cursor: 'pointer' }}>{fmt}</button>
                       ))}
                     </div>
                     )}
@@ -2425,20 +2425,20 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>해상도</p>
                         <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
                           {[['x1','1배 (원본)'],['x2','2배 (고화질)']].map(([sc, label]) => (
-                            <button key={sc} onClick={() => setDlScale(sc)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: dlScale === sc ? '1.5px solid #9F48CE' : '1.5px solid #e5e7eb', background: dlScale === sc ? '#f3e8ff' : '#fff', color: dlScale === sc ? '#7c3aed' : '#6b7280', cursor: 'pointer' }}>{label}</button>
+                            <button key={sc} onClick={() => setDlScale(sc)} style={{ flex: 1, padding: '7px 0', borderRadius: 8, fontSize: 11, fontWeight: 600, border: dlScale === sc ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb', background: dlScale === sc ? '#FFF0E5' : '#fff', color: dlScale === sc ? '#D44117' : '#6b7280', cursor: 'pointer' }}>{label}</button>
                           ))}
                         </div>
                       </>
                     )}
-                    {dlEffectiveFmt === 'PDF' && <p style={{ fontSize: 11, color: '#9F48CE', marginBottom: 12, textAlign: 'center' }}>300dpi 고화질 출력</p>}
+                    {dlEffectiveFmt === 'PDF' && <p style={{ fontSize: 11, color: '#F15A24', marginBottom: 12, textAlign: 'center' }}>300dpi 고화질 출력</p>}
                     {currentTemplateId === 'b3' && dlSelectedIds.has('b3') && (
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 500 }}>
                         <input type="checkbox" checked={b3WithPreview} onChange={e => setB3WithPreview(e.target.checked)}
-                          style={{ width: 15, height: 15, accentColor: '#9F48CE', cursor: 'pointer', flexShrink: 0 }} />
+                          style={{ width: 15, height: 15, accentColor: '#F15A24', cursor: 'pointer', flexShrink: 0 }} />
                         메인배너 텍스트 미리보기 함께 다운로드
                       </label>
                     )}
-                    <button onClick={() => { setShowDlPopup(false); handleDownloadZip() }} style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                    <button onClick={() => { setShowDlPopup(false); handleDownloadZip() }} style={{ width: '100%', padding: '10px 0', borderRadius: 10, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                       <Download style={{ width: 14, height: 14 }} />
                       {dlSelectedIds.size <= 1 ? '다운로드' : `${dlSelectedIds.size}개 다운로드`}
                     </button>
@@ -2527,8 +2527,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
                         style={{
                           background: isSyncing
-                            ? 'linear-gradient(270deg, #9F48CE, #C084FC, #9F48CE)'
-                            : 'linear-gradient(135deg,#9F48CE,#C084FC)',
+                            ? 'linear-gradient(270deg, #F6A23A, #E94E1B, #F6A23A)'
+                            : 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)',
                           backgroundSize: isSyncing ? '200% 200%' : '100%',
                           animation: isSyncing ? 'syncPulse 1s ease infinite' : 'none',
                           color: '#fff',
@@ -2597,7 +2597,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         )}
                         {mediaTab === 'ai' && (
                           <div className="text-center py-6">
-                            <div className="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#9F48CE,#C084FC)' }}>
+                            <div className="w-10 h-10 mx-auto mb-2 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}>
                               <Sparkles className="w-5 h-5 text-white" />
                             </div>
                             <p className="text-xs font-medium text-gray-500">Creagen AI 이미지 생성</p>
@@ -2642,8 +2642,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           return (
                           <button key={label} onClick={() => setLogoGuide(active ? null : label)}
                             className="flex flex-col items-start gap-0.5 py-2.5 px-3 rounded-xl border transition-all text-left"
-                            style={{ background: active ? '#f3e8ff' : '#fff', borderColor: active ? '#9F48CE' : '#e5e7eb' }}>
-                            <span className="text-xs font-semibold" style={{ color: active ? '#7c3aed' : '#374151' }}>{label}</span>
+                            style={{ background: active ? '#FFF0E5' : '#fff', borderColor: active ? '#F15A24' : '#e5e7eb' }}>
+                            <span className="text-xs font-semibold" style={{ color: active ? '#D44117' : '#374151' }}>{label}</span>
                             <span className="text-[10px] text-gray-400">{sublabel}</span>
                           </button>
                           )
@@ -2703,7 +2703,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <Icon className={`w-5 h-5 ${isRemovingBg && label.includes('처리 중') ? 'text-primary-500' : 'text-gray-400'}`} />
                             <span className={`text-xs ${isRemovingBg && label.includes('처리 중') ? 'text-primary-600 font-medium' : 'text-gray-500'}`}>{label}</span>
                             {comingSoon && (
-                              <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, color: '#9F48CE', background: '#F3E8FF', borderRadius: 4, padding: '1px 5px', lineHeight: 1.4, whiteSpace: 'nowrap' }}>준비중</span>
+                              <span style={{ position: 'absolute', top: 6, right: 6, fontSize: 9, fontWeight: 700, color: '#F15A24', background: '#FFF0E5', borderRadius: 4, padding: '1px 5px', lineHeight: 1.4, whiteSpace: 'nowrap' }}>준비중</span>
                             )}
                           </button>
                           )
@@ -2782,9 +2782,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-500 shrink-0">색상</span>
                               <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: '#1E2023' } : l))}
-                                style={{ width: 28, height: 28, borderRadius: 6, background: '#1E2023', border: selectedLayer.color === '#1E2023' || selectedLayer.color === '#1e2023' ? '2.5px solid #9F48CE' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="블랙" />
+                                style={{ width: 28, height: 28, borderRadius: 6, background: '#1E2023', border: selectedLayer.color === '#1E2023' || selectedLayer.color === '#1e2023' ? '2.5px solid #F15A24' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="블랙" />
                               <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: '#ffffff' } : l))}
-                                style={{ width: 28, height: 28, borderRadius: 6, background: '#ffffff', border: selectedLayer.color === '#ffffff' ? '2.5px solid #9F48CE' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="화이트" />
+                                style={{ width: 28, height: 28, borderRadius: 6, background: '#ffffff', border: selectedLayer.color === '#ffffff' ? '2.5px solid #F15A24' : '2px solid #e5e7eb', cursor: 'pointer', flexShrink: 0 }} title="화이트" />
                               <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
                                 <div style={{ width: 28, height: 28, borderRadius: 6, background: selectedLayer.color, border: '2px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#9ca3af' }}>+</div>
                                 <input type="color" value={selectedLayer.color} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, color: e.target.value } : l))} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }} />
@@ -2867,9 +2867,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   const currentLangCopy = langCopies.find(lc => lc.id === currentTemplateId)
                   const currentSuggestions = langSuggestions[currentTemplateId] || []
                   const translationPanel = currentLangCopy && currentSuggestions.length > 0 ? (
-                    <div key="trans" style={{ background: 'linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%)', borderRadius: 12, border: '1.5px solid #C084FC', padding: '12px 12px 14px' }}>
+                    <div key="trans" style={{ background: 'linear-gradient(135deg, #FFF0E5 0%, #FEF7E6 100%)', borderRadius: 12, border: '1.5px solid #F9A94D', padding: '12px 12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                        <div style={{ width: 20, height: 20, borderRadius: 6, background: 'linear-gradient(135deg,#9F48CE,#C084FC)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: 6, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Sparkles style={{ width: 11, height: 11, color: '#fff' }} />
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#7e22ce' }}>{currentLangCopy.lang} 번역 제안</span>
@@ -2889,9 +2889,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             return (
                               <button key={si}
                                 onClick={() => updateLayers(layers.map(l => l.id === item.layerId ? { ...l, text: sug } : l))}
-                                style={{ width: '100%', textAlign: 'left', padding: '7px 10px', marginBottom: 4, borderRadius: 8, border: isApplied ? '1.5px solid #9F48CE' : '1.5px solid #e9d5ff', background: isApplied ? '#ede9fe' : '#fff', cursor: 'pointer', fontSize: 11, color: isApplied ? '#7e22ce' : '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: 'flex', alignItems: 'flex-start', gap: 6 }}
+                                style={{ width: '100%', textAlign: 'left', padding: '7px 10px', marginBottom: 4, borderRadius: 8, border: isApplied ? '1.5px solid #F15A24' : '1.5px solid #e9d5ff', background: isApplied ? '#FEF7E6' : '#fff', cursor: 'pointer', fontSize: 11, color: isApplied ? '#7e22ce' : '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', display: 'flex', alignItems: 'flex-start', gap: 6 }}
                               >
-                                {isApplied && <span style={{ color: '#9F48CE', flexShrink: 0, marginTop: 1 }}>✓</span>}
+                                {isApplied && <span style={{ color: '#F15A24', flexShrink: 0, marginTop: 1 }}>✓</span>}
                                 <span>{sug}</span>
                               </button>
                             )
@@ -2995,7 +2995,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                     { label: '↔', end: true,  start: true  },
                                   ].map(opt => (
                                     <button key={opt.label} onClick={() => updateLayers(layers.map(l => l.id === selectedLayerId ? { ...l, arrowEnd: opt.end, arrowStart: opt.start } : l))}
-                                      style={{ flex: 1, padding: '3px 0', borderRadius: 6, fontSize: 13, border: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '1.5px solid #9F48CE' : '1px solid #e5e7eb', background: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#F3E8FF' : '#fff', cursor: 'pointer', color: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#9F48CE' : '#4b5563' }}>
+                                      style={{ flex: 1, padding: '3px 0', borderRadius: 6, fontSize: 13, border: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '1.5px solid #F15A24' : '1px solid #e5e7eb', background: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#FFF0E5' : '#fff', cursor: 'pointer', color: (selectedLayer.arrowEnd === opt.end && selectedLayer.arrowStart === opt.start) ? '#F15A24' : '#4b5563' }}>
                                       {opt.label}
                                     </button>
                                   ))}
@@ -3064,7 +3064,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           e.stopPropagation()
                         }}
                         onClick={(e) => e.stopPropagation()}
-                        style={{ fontSize: 13, fontWeight: 600, color: '#374151', border: 'none', borderBottom: '2px solid #9F48CE', outline: 'none', background: 'transparent', minWidth: 120, padding: '0 2px' }}
+                        style={{ fontSize: 13, fontWeight: 600, color: '#374151', border: 'none', borderBottom: '2px solid #F15A24', outline: 'none', background: 'transparent', minWidth: 120, padding: '0 2px' }}
                       />
                     ) : (
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>
@@ -3207,7 +3207,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             return null
                           })()}
                           {layer.type === 'text' && layer.id === selectedLayerId && editingTextId !== layer.id && (
-                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none', borderRadius: 1 }} />
+                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #F15A24', pointerEvents: 'none', borderRadius: 1 }} />
                           )}
                           {layer.type === 'text' && (
                             editingTextId === layer.id ? (
@@ -3217,7 +3217,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                 onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Escape') { commitHistory(layers); setEditingTextId(null) } }}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={(e) => e.stopPropagation()}
-                                style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, background: 'rgba(255,255,255,0.15)', border: '1px dashed #9F48CE', outline: 'none', resize: 'none', padding: 4, boxSizing: 'border-box', cursor: 'text' }}
+                                style={{ width: '100%', height: '100%', fontSize: layer.fontSize, color: layer.color, fontFamily: layer.fontFamily || 'Pretendard', fontWeight: layer.fontWeight || (layer.bold ? '700' : '400'), textDecoration: layer.underline ? 'underline' : 'none', textAlign: layer.align || 'left', letterSpacing: `${layer.letterSpacing || 0}px`, lineHeight: layer.lineHeight || 1.4, background: 'rgba(255,255,255,0.15)', border: '1px dashed #F15A24', outline: 'none', resize: 'none', padding: 4, boxSizing: 'border-box', cursor: 'text' }}
                               />
                             ) : (
                               layer.bgColor ? (
@@ -3237,8 +3237,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {/* 스마트 가이드선 */}
                     {(guides.x.length > 0 || guides.y.length > 0) && (
                       <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 80, overflow: 'visible' }}>
-                        {guides.x.map((gx, i) => <div key={`gx-${i}`} style={{ position: 'absolute', left: gx - 0.5, top: 0, width: 1, height: canvasH, background: '#9F48CE', opacity: 0.85 }} />)}
-                        {guides.y.map((gy, i) => <div key={`gy-${i}`} style={{ position: 'absolute', top: gy - 0.5, left: 0, height: 1, width: canvasW, background: '#9F48CE', opacity: 0.85 }} />)}
+                        {guides.x.map((gx, i) => <div key={`gx-${i}`} style={{ position: 'absolute', left: gx - 0.5, top: 0, width: 1, height: canvasH, background: '#F15A24', opacity: 0.85 }} />)}
+                        {guides.y.map((gy, i) => <div key={`gy-${i}`} style={{ position: 'absolute', top: gy - 0.5, left: 0, height: 1, width: canvasW, background: '#F15A24', opacity: 0.85 }} />)}
                       </div>
                     )}
 
@@ -3341,19 +3341,19 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
                         <input type="number" value={selectedLayer.fontSize} min={8} max={200} onChange={(e) => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, fontSize: Number(e.target.value) } : l))} style={{ width: 54, fontSize: 15, border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 6px', textAlign: 'center' }} />
                         <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
-                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, bold: !l.bold } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.bold ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.bold ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.bold ? '#9F48CE' : '#4b5563' }}>
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, bold: !l.bold } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.bold ? '1.5px solid #F15A24' : '1px solid transparent', background: selectedLayer.bold ? '#FFF0E5' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.bold ? '#F15A24' : '#4b5563' }}>
                           <Bold style={{ width: 15, height: 15 }} />
                         </button>
-                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, underline: !l.underline } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.underline ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.underline ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.underline ? '#9F48CE' : '#4b5563' }}>
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, underline: !l.underline } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.underline ? '1.5px solid #F15A24' : '1px solid transparent', background: selectedLayer.underline ? '#FFF0E5' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.underline ? '#F15A24' : '#4b5563' }}>
                           <Underline style={{ width: 15, height: 15 }} />
                         </button>
                         <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
                         {[{ v: 'left', Icon: AlignLeft }, { v: 'center', Icon: AlignCenter }, { v: 'right', Icon: AlignRight }].map(({ v, Icon }) => (
-                          <button key={v} onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, align: v } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: (selectedLayer.align || 'left') === v ? '1.5px solid #9F48CE' : '1px solid transparent', background: (selectedLayer.align || 'left') === v ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (selectedLayer.align || 'left') === v ? '#9F48CE' : '#4b5563' }}>
+                          <button key={v} onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, align: v } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: (selectedLayer.align || 'left') === v ? '1.5px solid #F15A24' : '1px solid transparent', background: (selectedLayer.align || 'left') === v ? '#FFF0E5' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: (selectedLayer.align || 'left') === v ? '#F15A24' : '#4b5563' }}>
                             <Icon style={{ width: 15, height: 15 }} />
                           </button>
                         ))}
-                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, verticalCenter: !l.verticalCenter } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.verticalCenter ? '1.5px solid #9F48CE' : '1px solid transparent', background: selectedLayer.verticalCenter ? '#F3E8FF' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.verticalCenter ? '#9F48CE' : '#4b5563' }} title="수직 중앙 정렬">
+                        <button onClick={() => updateLayers(layers.map((l) => l.id === selectedLayerId ? { ...l, verticalCenter: !l.verticalCenter } : l))} style={{ width: 32, height: 32, borderRadius: 6, border: selectedLayer.verticalCenter ? '1.5px solid #F15A24' : '1px solid transparent', background: selectedLayer.verticalCenter ? '#FFF0E5' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: selectedLayer.verticalCenter ? '#F15A24' : '#4b5563' }} title="수직 중앙 정렬">
                           <AlignCenterVertical style={{ width: 15, height: 15 }} />
                         </button>
                         <div style={{ width: 1, height: 22, background: '#e5e7eb', margin: '0 4px' }} />
@@ -3394,18 +3394,18 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       const imageAreaW = canvasW - imageAreaX
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', left: 0, top: 0, width: marginX, height: canvasH, background: 'rgba(159,72,206,0.1)', borderRight: '2px dashed rgba(159,72,206,0.6)' }} />
-                          <div style={{ position: 'absolute', left: 0, top: 10, width: marginX, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#9F48CE' }}>← 120px →</div>
-                          <div style={{ position: 'absolute', left: marginX, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#9F48CE', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #C084FC' }}>텍스트 영역 {textW}px</div>
-                          <div style={{ position: 'absolute', left: marginX, top: startY, width: textW, height: totalH, border: '2px dashed #9F48CE', borderRadius: 4 }}>
-                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: mainH, background: 'rgba(159,72,206,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>메인카피 (48px Bold · 최대 2줄)</span>
+                          <div style={{ position: 'absolute', left: 0, top: 0, width: marginX, height: canvasH, background: 'rgba(241,90,36,0.08)', borderRight: '2px dashed rgba(241,90,36,0.5)' }} />
+                          <div style={{ position: 'absolute', left: 0, top: 10, width: marginX, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#F15A24' }}>← 120px →</div>
+                          <div style={{ position: 'absolute', left: marginX, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#F15A24', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #F9A94D' }}>텍스트 영역 {textW}px</div>
+                          <div style={{ position: 'absolute', left: marginX, top: startY, width: textW, height: totalH, border: '2px dashed #F15A24', borderRadius: 4 }}>
+                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: mainH, background: 'rgba(241,90,36,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: '#D44117', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>메인카피 (48px Bold · 최대 2줄)</span>
                             </div>
-                            <div style={{ position: 'absolute', left: 0, top: mainH, width: '100%', height: gap, background: 'rgba(159,72,206,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 10, color: '#9F48CE', fontWeight: 600 }}>gap {gap}px</span>
+                            <div style={{ position: 'absolute', left: 0, top: mainH, width: '100%', height: gap, background: 'rgba(241,90,36,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 10, color: '#F15A24', fontWeight: 600 }}>gap {gap}px</span>
                             </div>
-                            <div style={{ position: 'absolute', left: 0, top: mainH + gap, width: '100%', height: subH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>서브카피 (28px Regular)</span>
+                            <div style={{ position: 'absolute', left: 0, top: mainH + gap, width: '100%', height: subH, background: 'rgba(241,90,36,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: '#D44117', background: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 4 }}>서브카피 (28px Regular)</span>
                             </div>
                           </div>
                           <div style={{ position: 'absolute', left: imageAreaX, top: 0, width: imageAreaW, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
@@ -3440,7 +3440,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {/* 배경 제거 중 로딩 오버레이 */}
                     {isLogoTab && isRemovingBg && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 2 }}>
-                        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#C084FC', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                        <div style={{ width: 32, height: 32, border: '3px solid rgba(255,255,255,0.3)', borderTopColor: '#F9A94D', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>배경 제거 중…</span>
                       </div>
                     )}
@@ -3479,8 +3479,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#b45309', background: 'rgba(254,243,199,0.95)', borderRadius: 3, padding: '1px 4px', fontFamily: 'system-ui, sans-serif', writingMode: 'vertical-rl' }}>{TEXT_MARGIN}</span>
                           </div>
                           {/* 텍스트 영역 */}
-                          <div style={{ position: 'absolute', left: textStartX, top: 8, width: textAreaW, height: canvasH - 16, border: '2px dashed #9F48CE', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ background: 'rgba(159,72,206,0.85)', borderRadius: 6, padding: '4px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <div style={{ position: 'absolute', left: textStartX, top: 8, width: textAreaW, height: canvasH - 16, border: '2px dashed #F15A24', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: 'rgba(241,90,36,0.85)', borderRadius: 6, padding: '4px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>텍스트 영역</span>
                               <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.85)', fontFamily: 'system-ui, sans-serif' }}>BOS 시스템 폰트</span>
                             </div>
@@ -3532,8 +3532,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
                           {/* 외부 안전 여백 선 */}
-                          <div style={{ position: 'absolute', left: SAFE, top: SAFE, width: canvasW - SAFE * 2, height: canvasH - SAFE * 2, border: '1.5px dashed rgba(159,72,206,0.6)', boxSizing: 'border-box', pointerEvents: 'none' }}>
-                            <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'rgba(159,72,206,0.85)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                          <div style={{ position: 'absolute', left: SAFE, top: SAFE, width: canvasW - SAFE * 2, height: canvasH - SAFE * 2, border: '1.5px dashed rgba(241,90,36,0.5)', boxSizing: 'border-box', pointerEvents: 'none' }}>
+                            <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'rgba(241,90,36,0.85)', borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' }}>
                               <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>안전 여백 {SAFE}px</span>
                             </div>
                           </div>
@@ -3601,8 +3601,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             </div>
                           </div>
                           {/* T 텍스트 영역 */}
-                          <div style={{ position: 'absolute', left: T_X, top: 4, width: T_W, height: canvasH - 8, border: '2px dashed #9F48CE', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ background: 'rgba(159,72,206,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                          <div style={{ position: 'absolute', left: T_X, top: 4, width: T_W, height: canvasH - 8, border: '2px dashed #F15A24', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ background: 'rgba(241,90,36,0.85)', borderRadius: 6, padding: '3px 10px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                               <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: 'system-ui, sans-serif' }}>텍스트 영역</span>
                             </div>
                           </div>
@@ -3618,7 +3618,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A1_W}</span>
                           </div>
                           <div style={{ position: 'absolute', bottom: 2, left: T_X, width: T_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(159,72,206,0.9)', fontFamily: 'system-ui, sans-serif' }}>{T_W}</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(241,90,36,0.9)', fontFamily: 'system-ui, sans-serif' }}>{T_W}</span>
                           </div>
                           <div style={{ position: 'absolute', bottom: 2, left: A2_X, width: A2_W, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span style={{ fontSize: 9, fontWeight: 700, color: 'rgba(59,130,246,0.9)', fontFamily: 'system-ui, sans-serif' }}>{A2_W}</span>
@@ -3727,27 +3727,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <div style={{ position: 'absolute', bottom: -20, left: 0, fontSize: 10, fontWeight: 700, color: '#b45309', whiteSpace: 'nowrap', background: 'rgba(254,243,199,0.95)', padding: '1px 6px', borderRadius: 3 }}>그라디언트 {B11_GRAD_W}px</div>
                           </div>
                           {/* 텍스트 영역 */}
-                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#9F48CE', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #C084FC' }}>텍스트 영역 {B11_TEXT_W}px</div>
-                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY, width: B11_TEXT_W, height: totalH, border: '2px dashed #9F48CE', borderRadius: 4 }}>
+                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY - 24, fontSize: 11, fontWeight: 700, color: '#F15A24', background: 'rgba(243,232,255,0.95)', padding: '2px 8px', borderRadius: 4, border: '1px solid #F9A94D' }}>텍스트 영역 {B11_TEXT_W}px</div>
+                          <div style={{ position: 'absolute', left: B11_TEXT_X, top: startY, width: B11_TEXT_W, height: totalH, border: '2px dashed #F15A24', borderRadius: 4 }}>
                             {/* 서브타이틀 */}
-                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: subH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
-                              <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>서브타이틀 (34px · 선택)</span>
+                            <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: subH, background: 'rgba(241,90,36,0.08)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: '#D44117', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>서브타이틀 (34px · 선택)</span>
                             </div>
                             {/* gap1 */}
-                            <div style={{ position: 'absolute', left: 0, top: subH, width: '100%', height: gap1, background: 'rgba(159,72,206,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 9, color: '#9F48CE', fontWeight: 600 }}>{gap1}px</span>
+                            <div style={{ position: 'absolute', left: 0, top: subH, width: '100%', height: gap1, background: 'rgba(241,90,36,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 9, color: '#F15A24', fontWeight: 600 }}>{gap1}px</span>
                             </div>
                             {/* 타이틀 */}
-                            <div style={{ position: 'absolute', left: 0, top: subH + gap1, width: '100%', height: titleH, background: 'rgba(159,72,206,0.18)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>타이틀 (56px Bold · 최대 2줄 · 필수)</span>
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1, width: '100%', height: titleH, background: 'rgba(241,90,36,0.12)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#D44117', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>타이틀 (56px Bold · 최대 2줄 · 필수)</span>
                             </div>
                             {/* gap2 */}
-                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH, width: '100%', height: gap2, background: 'rgba(159,72,206,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <span style={{ fontSize: 9, color: '#9F48CE', fontWeight: 600 }}>{gap2}px</span>
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH, width: '100%', height: gap2, background: 'rgba(241,90,36,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: 9, color: '#F15A24', fontWeight: 600 }}>{gap2}px</span>
                             </div>
                             {/* 상세내용 */}
-                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH + gap2, width: '100%', height: detailH, background: 'rgba(159,72,206,0.12)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
-                              <span style={{ fontSize: 10, fontWeight: 600, color: '#7c3aed', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>상세내용 (32px · opacity 80% · 선택)</span>
+                            <div style={{ position: 'absolute', left: 0, top: subH + gap1 + titleH + gap2, width: '100%', height: detailH, background: 'rgba(241,90,36,0.08)', display: 'flex', alignItems: 'center', paddingLeft: 6 }}>
+                              <span style={{ fontSize: 10, fontWeight: 600, color: '#D44117', background: 'rgba(255,255,255,0.8)', padding: '1px 6px', borderRadius: 3 }}>상세내용 (32px · opacity 80% · 선택)</span>
                             </div>
                           </div>
                         </div>
@@ -3767,8 +3767,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             <span style={{ position: 'absolute', left: 0, bottom: 'calc(100% + 4px)', fontSize: 9, fontWeight: 700, color: '#1e2023', background: 'rgba(255,255,255,0.92)', padding: '1px 6px', borderRadius: 3, whiteSpace: 'nowrap' }}>배지 24px ExtraBold · 142×43</span>
                           </div>
                           {/* 타이틀 x=51 y=111 648×53 */}
-                          <div style={{ position: 'absolute', left: 51, top: 111, width: 648, height: 53, background: 'rgba(159,72,206,0.08)', border: '2px dashed rgba(159,72,206,0.5)', borderRadius: 3 }}>
-                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#7c3aed', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>타이틀 44px ExtraBold · 648×53</span>
+                          <div style={{ position: 'absolute', left: 51, top: 111, width: 648, height: 53, background: 'rgba(241,90,36,0.06)', border: '2px dashed rgba(241,90,36,0.5)', borderRadius: 3 }}>
+                            <span style={{ position: 'absolute', left: 0, top: 1, fontSize: 9, fontWeight: 700, color: '#D44117', background: 'rgba(255,255,255,0.9)', padding: '1px 6px', borderRadius: 2, whiteSpace: 'nowrap' }}>타이틀 44px ExtraBold · 648×53</span>
                           </div>
                           {/* 본문 x=111 y=226 529×132 */}
                           <div style={{ position: 'absolute', left: 111, top: 226, width: 529, height: 132, background: 'rgba(55,65,81,0.07)', border: '1.5px dashed rgba(55,65,81,0.4)', borderRadius: 3 }}>
@@ -3789,7 +3789,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {/* 텍스트 선택 테두리 (b10은 핸들 오버레이가 대신함) */}
                     {selectedLayer?.type === 'text' && !isNoImageTemplate && (
                       <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 100 }}>
-                        <div style={{ position: 'absolute', left: selectedLayer.x - 2, top: selectedLayer.y - 2, width: selectedLayer.width + 4, height: selectedLayer.height + 4, border: '2px solid #9F48CE', borderRadius: 3, pointerEvents: 'none' }} />
+                        <div style={{ position: 'absolute', left: selectedLayer.x - 2, top: selectedLayer.y - 2, width: selectedLayer.width + 4, height: selectedLayer.height + 4, border: '2px solid #F15A24', borderRadius: 3, pointerEvents: 'none' }} />
                       </div>
                     )}
 
@@ -3863,7 +3863,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             ))}
                             {/* z4: frame resize handles (8, purple square) */}
                             {fHandles.map(h => (
-                              <div key={h.id} style={{ position: 'absolute', left: h.l, top: h.t, width: 10, height: 10, background: '#fff', border: '1.5px solid #9F48CE', borderRadius: 2, cursor: h.cur, pointerEvents: 'all', zIndex: 4 }}
+                              <div key={h.id} style={{ position: 'absolute', left: h.l, top: h.t, width: 10, height: 10, background: '#fff', border: '1.5px solid #F15A24', borderRadius: 2, cursor: h.cur, pointerEvents: 'all', zIndex: 4 }}
                                 onClick={stop} onMouseDown={e => startDrag(e, h.fn)} />
                             ))}
                           </div>
@@ -3871,7 +3871,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           <div style={{ position: 'absolute', left: fX + fW / 2, top: Math.max(0, fY - 52), transform: 'translateX(-50%)', zIndex: 250, background: '#18181b', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', pointerEvents: 'all', whiteSpace: 'nowrap', boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}>
                             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontFamily: 'system-ui, sans-serif' }}>크롭 모드</span>
                             <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.18)' }} />
-                            <button onClick={e => { stop(e); applyCrop() }} style={{ padding: '4px 13px', background: '#9F48CE', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'system-ui, sans-serif' }}>적용</button>
+                            <button onClick={e => { stop(e); applyCrop() }} style={{ padding: '4px 13px', background: '#F15A24', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'system-ui, sans-serif' }}>적용</button>
                             <button onClick={e => { stop(e); cancelCrop() }} style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'system-ui, sans-serif' }}>취소</button>
                           </div>
                         </>
@@ -3887,14 +3887,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       return (
                         <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', overflow: 'visible', zIndex: 100 }}>
                           <div style={{ position: 'absolute', left: selectedLayer.x, top: selectedLayer.y, width: selectedLayer.width, height: selectedLayer.height, transform: `rotate(${selectedLayer.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
-                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #9F48CE', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', inset: -1, border: '2px solid #F15A24', pointerEvents: 'none' }} />
                             {visibleHandles.map((h) => (
                               <div key={h.id} onMouseDown={(e) => onMouseDownResize(e, selectedLayer.id, h.id, h.corner)}
-                                style={{ position: 'absolute', left: `calc(${h.cx * 100}% - ${HS / 2}px)`, top: `calc(${h.cy * 100}% - ${HS / 2}px)`, width: HS, height: HS, background: '#ffffff', border: '2px solid #9F48CE', borderRadius: '50%', cursor: h.cursor, pointerEvents: 'all', zIndex: 110 }} />
+                                style={{ position: 'absolute', left: `calc(${h.cx * 100}% - ${HS / 2}px)`, top: `calc(${h.cy * 100}% - ${HS / 2}px)`, width: HS, height: HS, background: '#ffffff', border: '2px solid #F15A24', borderRadius: '50%', cursor: h.cursor, pointerEvents: 'all', zIndex: 110 }} />
                             ))}
                             {!isB1B2Text && <>
-                              <div style={{ position: 'absolute', left: '100%', top: '50%', width: 24, height: 1, background: '#9F48CE', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-                              <div onMouseDown={(e) => onMouseDownRotate(e, selectedLayer.id)} style={{ position: 'absolute', left: '100%', top: '50%', marginLeft: 24, transform: 'translateY(-50%)', width: 24, height: 24, background: '#9F48CE', border: '2px solid #fff', borderRadius: '50%', cursor: 'grab', pointerEvents: 'all', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
+                              <div style={{ position: 'absolute', left: '100%', top: '50%', width: 24, height: 1, background: '#F15A24', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                              <div onMouseDown={(e) => onMouseDownRotate(e, selectedLayer.id)} style={{ position: 'absolute', left: '100%', top: '50%', marginLeft: 24, transform: 'translateY(-50%)', width: 24, height: 24, background: '#F15A24', border: '2px solid #fff', borderRadius: '50%', cursor: 'grab', pointerEvents: 'all', zIndex: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}>
                                 <RotateCw style={{ width: 12, height: 12, color: '#fff' }} />
                               </div>
                             </>}
@@ -3926,7 +3926,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     <div style={{ background: 'rgba(255,255,255,0.97)', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 4px 20px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
                       <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>레이어</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#9F48CE', background: '#f3e8ff', borderRadius: 99, padding: '1px 7px' }}>{layers.length}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#F15A24', background: '#FFF0E5', borderRadius: 99, padding: '1px 7px' }}>{layers.length}</span>
                       </div>
                       <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                         {[...layers].reverse().map((layer, i) => {
@@ -3962,7 +3962,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               onMouseEnter={() => setHoverLayerId(layer.id)}
                               onMouseLeave={() => setHoverLayerId(null)}
                               onClick={() => setSelectedLayerId(layer.id)}
-                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#f3e8ff' : 'transparent', borderLeft: isSelected ? '2.5px solid #9F48CE' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #9F48CE' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : layer.visible === false ? 0.4 : 1, transition: 'all 0.1s' }}>
+                              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#FFF0E5' : 'transparent', borderLeft: isSelected ? '2.5px solid #F15A24' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #F15A24' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : layer.visible === false ? 0.4 : 1, transition: 'all 0.1s' }}>
                               <span style={{ fontSize: 10, color: '#d1d5db', flexShrink: 0 }}>⠿</span>
                               <div style={{ width: 26, height: 26, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 {layer.type === 'background'
@@ -3997,9 +3997,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                   e.stopPropagation()
                                   updateLayers(layers.map(l => l.id === layer.id ? { ...l, visible: l.visible === false ? true : false } : l))
                                 }}
-                                style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: 'pointer', color: layer.visible === false ? '#9F48CE' : '#d1d5db', padding: 0, flexShrink: 0, opacity: isHovered || isSelected || layer.visible === false ? 1 : 0, transition: 'opacity 0.12s' }}
-                                onMouseEnter={e => { e.currentTarget.style.background = '#f3e8ff'; e.currentTarget.style.color = '#9F48CE' }}
-                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = layer.visible === false ? '#9F48CE' : '#d1d5db' }}
+                                style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: 'pointer', color: layer.visible === false ? '#F15A24' : '#d1d5db', padding: 0, flexShrink: 0, opacity: isHovered || isSelected || layer.visible === false ? 1 : 0, transition: 'opacity 0.12s' }}
+                                onMouseEnter={e => { e.currentTarget.style.background = '#FFF0E5'; e.currentTarget.style.color = '#F15A24' }}
+                                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = layer.visible === false ? '#F15A24' : '#d1d5db' }}
                               >
                                 {layer.visible === false
                                   ? <EyeOff style={{ width: 12, height: 12 }} />
@@ -4021,7 +4021,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                     setSelectedLayerId(newId)
                                   }}
                                   style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', borderRadius: 4, cursor: 'pointer', color: '#9ca3af', padding: 0 }}
-                                  onMouseEnter={e => { e.currentTarget.style.background = '#f3e8ff'; e.currentTarget.style.color = '#9F48CE' }}
+                                  onMouseEnter={e => { e.currentTarget.style.background = '#FFF0E5'; e.currentTarget.style.color = '#F15A24' }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af' }}
                                 >
                                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -4072,7 +4072,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                           setDlSelectedIds(new Set(allDisplayTemplates.map(t => t.id)))
                         }
                       }}
-                      style={{ fontSize: 11, fontWeight: 600, color: dlSelectedIds.size === allDisplayTemplates.length ? '#9ca3af' : '#9F48CE', background: dlSelectedIds.size === allDisplayTemplates.length ? '#f3f4f6' : '#f3e8ff', border: 'none', borderRadius: 99, padding: '2px 10px', cursor: 'pointer' }}
+                      style={{ fontSize: 11, fontWeight: 600, color: dlSelectedIds.size === allDisplayTemplates.length ? '#9ca3af' : '#F15A24', background: dlSelectedIds.size === allDisplayTemplates.length ? '#f3f4f6' : '#FFF0E5', border: 'none', borderRadius: 99, padding: '2px 10px', cursor: 'pointer' }}
                     >
                       {dlSelectedIds.size === allDisplayTemplates.length ? '전체 해제' : '전체 선택'}
                     </button>
@@ -4105,7 +4105,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </button>
                     )}
                   </div>
-                  <button onClick={() => setShowAddTemplatePopup(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#9F48CE', background: '#f3e8ff', border: 'none', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
+                  <button onClick={() => setShowAddTemplatePopup(true)} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#F15A24', background: '#FFF0E5', border: 'none', borderRadius: 99, padding: '3px 10px', cursor: 'pointer' }}>
                     <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> 템플릿 추가
                   </button>
                 </div>
@@ -4144,11 +4144,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         onDragEnd={() => { setDragTplId(null); setDragOverTplId(null) }}
                         onClick={() => { setActivePreviewTab(i); setSelectedLayerId(null); setLogoGuide(null); setShowGuide(false); setB6GuideMode(null) }}
                         className="shrink-0 flex flex-col items-start gap-1"
-                        style={{ cursor: 'grab', opacity: dragTplId === tmpl.id ? 0.4 : 1, borderLeft: dragOverTplId === tmpl.id && dragTplId !== tmpl.id ? '3px solid #9F48CE' : '3px solid transparent', transition: 'all 0.1s' }}
+                        style={{ cursor: 'grab', opacity: dragTplId === tmpl.id ? 0.4 : 1, borderLeft: dragOverTplId === tmpl.id && dragTplId !== tmpl.id ? '3px solid #F15A24' : '3px solid transparent', transition: 'all 0.1s' }}
                       >
-                        <div style={{ width: CARD_W, height: CARD_H, borderRadius: 4, outline: isActive ? '2.5px solid #9F48CE' : '2.5px solid transparent', outlineOffset: '2px', background: tmpl.logoPair === 'white' ? '#3a3a3a' : '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', boxShadow: isActive ? '0 0 0 4px #C084FC22' : 'none' }}>
+                        <div style={{ width: CARD_W, height: CARD_H, borderRadius: 4, outline: isActive ? '2.5px solid #F15A24' : '2.5px solid transparent', outlineOffset: '2px', background: tmpl.logoPair === 'white' ? '#3a3a3a' : '#e9e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative', boxShadow: isActive ? '0 0 0 4px #F9A94D22' : 'none' }}>
                           <div onClick={(e) => { e.stopPropagation(); setDlSelectedIds((prev) => { const next = new Set(prev); if (next.has(tmpl.id)) next.delete(tmpl.id); else next.add(tmpl.id); return next }) }}
-                            style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 4, border: isDlChecked ? '2px solid #9F48CE' : '2px solid #d1d5db', background: isDlChecked ? '#9F48CE' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', transition: 'all 0.15s' }}>
+                            style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: 4, border: isDlChecked ? '2px solid #F15A24' : '2px solid #d1d5db', background: isDlChecked ? '#F15A24' : 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', transition: 'all 0.15s' }}>
                             {isDlChecked && <Check style={{ width: 10, height: 10, color: '#fff' }} />}
                           </div>
                           <div style={{ width: bW, height: bH, ...(tIsTransparent ? (tmpl.logoPair === 'white' ? { backgroundImage: 'linear-gradient(45deg,#555 25%,transparent 25%),linear-gradient(-45deg,#555 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#555 75%),linear-gradient(-45deg,transparent 75%,#555 75%)', backgroundSize: '8px 8px', backgroundPosition: '0 0,0 4px,4px -4px,-4px 0px', backgroundColor: '#3a3a3a' } : { backgroundImage: 'linear-gradient(45deg,#ccc 25%,transparent 25%),linear-gradient(-45deg,#ccc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ccc 75%),linear-gradient(-45deg,transparent 75%,#ccc 75%)', backgroundSize: '8px 8px', backgroundPosition: '0 0,0 4px,4px -4px,-4px 0px', backgroundColor: '#f0f0f0' }) : { background: tBg }), position: 'relative', overflow: 'hidden', borderRadius: 2, opacity: isDlChecked ? 1 : 0.4, transition: 'opacity 0.15s' }}>
@@ -4172,7 +4172,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         <div style={{ width: CARD_W, marginTop: 4 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             <p className="text-xs font-medium text-gray-700 truncate" style={{ flex: 1, minWidth: 0 }}>{i + 1}.{tmpl.name}</p>
-                            {tmpl.lang && <span style={{ fontSize: 9, fontWeight: 700, color: '#9F48CE', background: '#f3e8ff', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{tmpl.lang}</span>}
+                            {tmpl.lang && <span style={{ fontSize: 9, fontWeight: 700, color: '#F15A24', background: '#FFF0E5', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{tmpl.lang}</span>}
                             {tmpl.logoPair && <span style={{ fontSize: 9, fontWeight: 700, color: tmpl.logoPair === 'black' ? '#1f2937' : '#6b7280', background: tmpl.logoPair === 'black' ? '#f3f4f6' : '#e5e7eb', borderRadius: 4, padding: '1px 5px', flexShrink: 0 }}>{tmpl.logoPair === 'black' ? '●BLK' : '○WHT'}</span>}
                           </div>
                           <p className="text-xs text-gray-400">{tmpl.size.replace('\u00d7', ' \u00d7 ')}</p>

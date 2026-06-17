@@ -5,20 +5,20 @@
 
 export const PAGE_COLORS = {
   home: {
-    base: '#9F48CE',
-    light: '#F3E8FF',
-    dark: '#7B2FA8',
-    shadow: 'rgba(159,72,206,0.25)',
-    gradient: 'linear-gradient(135deg, #9F48CE 0%, #C084FC 100%)',
-    ring: 'rgba(159,72,206,0.3)',
+    base: '#F15A24',
+    light: '#FFF0E5',
+    dark: '#D44117',
+    shadow: 'rgba(233,78,27,0.25)',
+    gradient: 'linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%)',
+    ring: 'rgba(233,78,27,0.3)',
   },
   banner: {
-    base: '#968AD1',
-    light: '#EDE9F8',
-    dark: '#7060B8',
-    shadow: 'rgba(150,138,209,0.25)',
-    gradient: 'linear-gradient(135deg, #968AD1 0%, #C4B5FD 100%)',
-    ring: 'rgba(150,138,209,0.3)',
+    base: '#F15A24',
+    light: '#FFF0E5',
+    dark: '#D44117',
+    shadow: 'rgba(233,78,27,0.25)',
+    gradient: 'linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%)',
+    ring: 'rgba(233,78,27,0.3)',
   },
   product: {
     base: '#685BAD',

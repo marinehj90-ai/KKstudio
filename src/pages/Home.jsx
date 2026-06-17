@@ -75,22 +75,39 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #9F48CE 0%, #C084FC 100%)' }}>
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 left-20 w-32 h-32 rounded-full bg-white/20 blur-2xl" />
-          <div className="absolute bottom-5 right-40 w-48 h-48 rounded-full bg-purple-300/30 blur-3xl" />
-          <div className="absolute top-5 right-20 w-24 h-24 rounded-full bg-pink-300/20 blur-2xl" />
+      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #4A8FA3 0%, #F6A23A 55%, #E94E1B 100%)' }}>
+        <div className="absolute inset-0">
+          <div className="absolute top-0 right-0 w-64 h-full opacity-20" style={{ background: 'linear-gradient(to left, rgba(0,0,0,0.25), transparent)' }} />
         </div>
-        <div className="relative max-w-6xl mx-auto px-8 py-10">
-          <p className="inline-block px-3 py-1 mb-3 text-xs font-bold bg-white/90 rounded-full" style={{ color: '#7B2FA8' }}>
-            AI-POWERED
-          </p>
-          <h1 className="text-3xl font-extrabold text-white leading-tight mb-2">
-            신세계면세점 이미지 제작,<br />AI로 빠르게 만들어보세요
-          </h1>
-          <p className="text-primary-100 text-sm max-w-2xl">
-            사진을 업로드하시거나, URL 분석으로 배너, 기획전, 이벤트, 상세페이지까지 제작할 수 있어요.<br />템플릿을 선택하고 이미지를 올리면 끝!
-          </p>
+        <div className="relative max-w-6xl mx-auto px-8 py-14 flex items-center justify-between gap-8">
+          {/* Left: copy */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-extrabold text-white leading-tight mb-2" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
+              신세계면세점 이미지 제작,<br />AI로 빠르게 만들어보세요
+            </h1>
+            <p className="text-white/85 text-sm max-w-2xl" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
+              사진을 업로드하시거나, URL 분석으로 배너, 기획전, 이벤트, 상세페이지까지 제작할 수 있어요.<br />템플릿을 선택하고 이미지를 올리면 끝!
+            </p>
+          </div>
+          {/* Right: brand logo — hidden on mobile */}
+          <div
+            className="hidden md:flex shrink-0 items-center justify-center"
+            style={{
+              width: 200,
+              padding: '16px 20px',
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.10)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.22)',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+            }}
+          >
+            <img
+              src="/assets/logos/shinsegae-dutyfree-logo.png"
+              alt="SHINSEGAE DUTY FREE"
+              style={{ display: 'block', width: '100%', maxWidth: 180, height: 'auto', objectFit: 'contain', margin: '0 auto', opacity: 1, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))', transform: 'translateY(-11px)' }}
+            />
+          </div>
         </div>
       </div>
 
@@ -104,7 +121,7 @@ export default function Home() {
                 className="flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all"
                 style={
                   i === 0
-                    ? { backgroundColor: '#9F48CE', color: '#fff', boxShadow: '0 4px 12px rgba(159,72,206,0.35)' }
+                    ? { background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', boxShadow: '0 4px 12px rgba(233,78,27,0.4)' }
                     : { backgroundColor: '#f3f4f6', color: '#9ca3af' }
                 }
               >
@@ -140,7 +157,7 @@ export default function Home() {
               className="px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={
                 deviceFilter === d
-                  ? { backgroundColor: '#9F48CE', color: '#fff', boxShadow: '0 2px 8px rgba(159,72,206,0.35)' }
+                  ? { background: 'linear-gradient(135deg,#F6A23A 0%,#E94E1B 100%)', color: '#fff', boxShadow: '0 2px 8px rgba(233,78,27,0.4)' }
                   : { backgroundColor: '#fff', color: '#4b5563', border: '1px solid #e5e7eb' }
               }
             >
@@ -176,7 +193,7 @@ export default function Home() {
                     style={
                       activeGroup === g.id
                         ? { backgroundColor: 'rgba(255,255,255,0.25)', color: '#fff' }
-                        : { backgroundColor: '#F3E8FF', color: '#9F48CE' }
+                        : { backgroundColor: '#FFF0E5', color: '#E94E1B' }
                     }
                   >
                     {count}
@@ -198,7 +215,7 @@ export default function Home() {
                 className="group relative rounded-2xl overflow-hidden transition-all text-left"
                 style={
                   isSelected
-                    ? { border: `2px solid ${currentGroupData?.hex || '#9F48CE'}`, boxShadow: `0 4px 20px ${currentGroupData?.hex || '#9F48CE'}30, 0 0 0 3px ${currentGroupData?.hex || '#9F48CE'}20` }
+                    ? { border: `2px solid ${currentGroupData?.hex || '#FF6A24'}`, boxShadow: `0 4px 20px ${currentGroupData?.hex || '#FF6A24'}30, 0 0 0 3px ${currentGroupData?.hex || '#FF6A24'}20` }
                     : { border: '2px solid #e5e7eb' }
                 }
               >
@@ -219,8 +236,8 @@ export default function Home() {
                         <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
                       </div>
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${currentGroupData?.hex || '#9F48CE'}` }}>
-                          <Check className="w-3.5 h-3.5" style={{ color: currentGroupData?.hex || '#9F48CE' }} />
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${currentGroupData?.hex || '#FF6A24'}` }}>
+                          <Check className="w-3.5 h-3.5" style={{ color: currentGroupData?.hex || '#FF6A24' }} />
                         </div>
                       )}
                       <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">{t.device}</div>
@@ -242,7 +259,7 @@ export default function Home() {
             <button
               onClick={() => setStep(1)}
               className="flex items-center gap-2 px-8 py-3.5 text-white rounded-2xl font-semibold transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: currentGroupData?.hex || '#9F48CE', boxShadow: `0 8px 24px ${currentGroupData?.hex || '#9F48CE'}55` }}
+              style={{ background: currentGroupData?.gradient || 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', boxShadow: `0 8px 24px rgba(233,78,27,0.45)` }}
             >
               {selectedTemplates.length}개 템플릿 선택 완료
               <ArrowRight className="w-4 h-4" />

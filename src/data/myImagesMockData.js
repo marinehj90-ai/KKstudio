@@ -160,7 +160,7 @@ export const mockImages = [
     thumbnailUrl: 'https://picsum.photos/seed/kk-payment-01/400/400',
     downloadUrl: '/mock-exports/product-01-750x750.jpg',
     isFavorite: false, status: 'completed',
-    previewConfig: { fallbackBg: 'linear-gradient(90deg, #6D28D9, #9F48CE)' },
+    previewConfig: { fallbackBg: 'linear-gradient(90deg, #F8D28A, #FF6A24)' },
   },
   {
     id: '638201',

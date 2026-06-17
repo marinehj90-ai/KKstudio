@@ -52,12 +52,12 @@ const CATEGORY_ICONS = {
 }
 
 const CATEGORY_COLORS = {
-  '배너':        { hex: '#9F48CE', light: '#F3E8FF' },
-  '브랜드애셋':  { hex: '#3B82F6', light: '#EFF6FF' },
-  '기획전':      { hex: '#F38C5C', light: '#FEF0E8' },
-  '이벤트·상세': { hex: '#FBBA4B', light: '#FEF7E6' },
-  '상품이미지':  { hex: '#685BAD', light: '#EBE8F8' },
-  '메인공지팝업': { hex: '#7B2FA8', light: '#F3E8FF' },
+  '배너':        { hex: '#F15A24', light: '#FFF0E5' },
+  '브랜드애셋':  { hex: '#F6A23A', light: '#FFF7EF' },
+  '기획전':      { hex: '#F15A24', light: '#FFF0E5' },
+  '이벤트·상세': { hex: '#F6A23A', light: '#FFF7EF' },
+  '상품이미지':  { hex: '#F6A23A', light: '#FFF7EF' },
+  '메인공지팝업': { hex: '#F6A23A', light: '#FFF7EF' },
 }
 
 // ─── 유틸 ────────────────────────────────────────────────────────────────────

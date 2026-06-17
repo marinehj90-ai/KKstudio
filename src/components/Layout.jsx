@@ -9,17 +9,17 @@ const navItems = [
 ]
 
 const templateCategories = [
-  { to: '/templates/banner',     icon: Layers,        label: '배너',        count: 9,  hex: '#9F48CE', light: '#F3E8FF' },
-  { to: '/templates/brand',      icon: BookImage,     label: '브랜드어셋',   count: 3,  hex: '#3B82F6', light: '#EFF6FF' },
-  { to: '/templates/exhibition', icon: CalendarRange, label: '기획전',       count: 4,  hex: '#F38C5C', light: '#FEF0E8' },
-  { to: '/templates/event',      icon: Sparkles,      label: '이벤트·상세', count: 3,  hex: '#FBBA4B', light: '#FEF7E6' },
-  { to: '/templates/product',    icon: Image,         label: '상품이미지',   count: 2,  hex: '#685BAD', light: '#EBE8F8' },
-  { to: '/templates/notice',     icon: BellDot,       label: '메인공지팝업', count: 1,  hex: '#7B2FA8', light: '#F3E8FF' },
+  { to: '/templates/banner',     icon: Layers,        label: '배너',        count: 9,  hex: '#F15A24', light: '#FFF0E5' },
+  { to: '/templates/brand',      icon: BookImage,     label: '브랜드어셋',   count: 3,  hex: '#F6A23A', light: '#FFF7EF' },
+  { to: '/templates/exhibition', icon: CalendarRange, label: '기획전',       count: 4,  hex: '#F15A24', light: '#FFF0E5' },
+  { to: '/templates/event',      icon: Sparkles,      label: '이벤트·상세', count: 3,  hex: '#F6A23A', light: '#FFF7EF' },
+  { to: '/templates/product',    icon: Image,         label: '상품이미지',   count: 2,  hex: '#F6A23A', light: '#FFF7EF' },
+  { to: '/templates/notice',     icon: BellDot,       label: '메인공지팝업', count: 1,  hex: '#F6A23A', light: '#FFF7EF' },
 ]
 
 // 홈 포인트 컬러
-const HOME_COLOR = '#9F48CE'
-const HOME_LIGHT = '#F3E8FF'
+const HOME_COLOR = '#E94E1B'
+const HOME_LIGHT = '#FFF0E5'
 
 export default function Layout() {
   const location = useLocation()
@@ -33,7 +33,7 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #9F48CE 0%, #C084FC 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #F6A23A 0%, #E94E1B 100%)' }}
             >
               <Sparkles className="w-4 h-4 text-white" />
             </div>
@@ -52,8 +52,8 @@ export default function Layout() {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
                 style={({ isActive: active }) =>
                   active
-                    ? { backgroundColor: HOME_LIGHT, color: HOME_COLOR }
-                    : { color: '#6b7280' }
+                    ? { backgroundColor: HOME_LIGHT, color: HOME_COLOR, fontWeight: 600 }
+                    : { color: '#374151' }
                 }
               >
                 <Icon className="w-5 h-5" />
@@ -100,18 +100,18 @@ export default function Layout() {
         </nav>
 
         {/* Pro Status */}
-        <div className="p-4 mx-3 mb-3 rounded-xl" style={{ background: 'linear-gradient(135deg, #F3E8FF 0%, #EDE9F8 100%)' }}>
+        <div className="p-4 mx-3 mb-3 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFF7EF 0%, #FFF0E5 100%)', border: '1px solid #FECBA8' }}>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-4 h-4" style={{ color: HOME_COLOR }} />
-            <span className="text-sm font-semibold" style={{ color: '#5B1A8A' }}>Pro Account</span>
+            <span className="text-sm font-semibold" style={{ color: '#B33612' }}>Pro Account</span>
           </div>
           <div className="w-full h-2 bg-white rounded-full overflow-hidden">
             <div
               className="h-full w-3/4 rounded-full"
-              style={{ background: `linear-gradient(90deg, ${HOME_COLOR} 0%, #C084FC 100%)` }}
+              style={{ background: 'linear-gradient(90deg, #F6A23A 0%, #E94E1B 100%)' }}
             />
           </div>
-          <p className="mt-1.5 text-xs" style={{ color: HOME_COLOR }}>750 / 1,000 AI 생성 남음</p>
+          <p className="mt-1.5 text-xs font-medium" style={{ color: HOME_COLOR }}>750 / 1,000 AI 생성 남음</p>
         </div>
       </aside>
 

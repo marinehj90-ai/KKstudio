@@ -47,12 +47,12 @@ export default function SiteMap() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f8f7fc' }}>
+    <div className="min-h-screen" style={{ background: '#F8F5F1' }}>
       {/* 헤더 */}
       <div className="bg-white border-b border-gray-100 px-8 py-5">
         <div className="max-w-[1600px] mx-auto">
           <div className="flex items-center gap-2 mb-1">
-            <MapPin className="w-5 h-5" style={{ color: '#9F48CE' }} />
+            <MapPin className="w-5 h-5" style={{ color: '#F15A24' }} />
             <h1 className="text-xl font-bold text-gray-900">영역 찾기</h1>
           </div>
           <p className="text-sm text-gray-500">
@@ -71,7 +71,7 @@ export default function SiteMap() {
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={
                 platform === id
-                  ? { background: 'linear-gradient(135deg,#9F48CE,#C084FC)', color: '#fff', boxShadow: '0 4px 16px #9F48CE44' }
+                  ? { background: 'linear-gradient(135deg,#F8D28A 0%,#F9A94D 45%,#F15A24 100%)', color: '#fff', boxShadow: '0 4px 16px rgba(233,78,27,0.3)' }
                   : { background: '#fff', color: '#4b5563', border: '1px solid #e5e7eb' }
               }
             >
@@ -83,11 +83,11 @@ export default function SiteMap() {
           {/* 범례 */}
           <div className="ml-auto flex items-center gap-4 px-4 py-2 bg-white rounded-xl border border-gray-100" style={{ flexShrink: 0 }}>
             <div className="flex items-center gap-1.5">
-              <div style={{ width: 12, height: 12, borderRadius: 2, border: '2px solid #9F48CE', background: 'rgba(159,72,206,0.12)' }} />
+              <div style={{ width: 12, height: 12, borderRadius: 2, border: '2px solid #F15A24', background: 'rgba(233,78,27,0.12)' }} />
               <span className="text-xs text-gray-500">배너 영역</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div style={{ width: 12, height: 12, borderRadius: 2, border: '2px solid #9F48CE', background: 'rgba(159,72,206,0.3)' }} />
+              <div style={{ width: 12, height: 12, borderRadius: 2, border: '2px solid #F15A24', background: 'rgba(233,78,27,0.3)' }} />
               <span className="text-xs text-gray-500">선택됨</span>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function SiteMap() {
               <span
                 key={id}
                 className="px-4 py-1.5 rounded-lg text-sm font-semibold"
-                style={{ background: 'rgba(159,72,206,0.12)', color: '#9F48CE', border: '1px solid rgba(159,72,206,0.3)' }}
+                style={{ background: 'rgba(233,78,27,0.10)', color: '#F15A24', border: '1px solid rgba(233,78,27,0.25)' }}
               >
                 {label}
               </span>
@@ -301,7 +301,7 @@ export default function SiteMap() {
                     <button
                       onClick={() => handleCreate(selectedZone)}
                       className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
-                      style={{ background: `linear-gradient(135deg, ${selectedZone.color}, #C084FC)` }}
+                      style={{ background: 'linear-gradient(135deg,#F8D28A 0%,#F9A94D 45%,#F15A24 100%)' }}
                     >
                       이 배너 제작하기 <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -311,8 +311,8 @@ export default function SiteMap() {
             ) : (
               /* 미선택 상태 안내 */
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center sticky top-6">
-                <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: '#F3E8FF' }}>
-                  <MapPin className="w-6 h-6" style={{ color: '#9F48CE' }} />
+                <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: '#FEF0E8' }}>
+                  <MapPin className="w-6 h-6" style={{ color: '#F15A24' }} />
                 </div>
                 <p className="text-sm font-semibold text-gray-700 mb-1">영역을 선택하세요</p>
                 <p className="text-xs text-gray-400 leading-relaxed">

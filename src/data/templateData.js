@@ -80,6 +80,7 @@ export const templateGroups = [
       { id: 'e2', name: '기획전 상단 비주얼 (PC)',       size: '1000×500', device: 'PC',   preview: PV_STD,  heightResizable: true },
       { id: 'e3', name: '기획전 상단 비주얼 (MO)',       size: '750×500',  device: 'MO',   preview: PV_RICH, heightResizable: true },
       { id: 'e4', name: '기획전 모듈용 썸네일',         size: '750×750',  device: '공통', preview: PV_WARM, heightResizable: true },
+      { id: 'e5', name: '기획전 MD추천 모듈',           size: '1440×1048', device: 'PC',   preview: PV_DEEP, heightResizable: true },
     ],
   },
   {

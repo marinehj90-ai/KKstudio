@@ -489,6 +489,71 @@ const E3GuideOverlay = memo(function E3GuideOverlay({ canvasW, canvasH }) {
   )
 })
 
+// e5: 기획전 MD추천 모듈 1440×1048 가이드 오버레이 (Figma 6436-1073)
+const E5GuideOverlay = memo(function E5GuideOverlay({ canvasW, canvasH }) {
+  const sc  = canvasW / 1440
+  const ysc = canvasH / 1048
+
+  const CARD_X  = Math.round(213 * sc), CARD_Y = Math.round(87 * ysc)
+  const CARD_W  = Math.round(474 * sc), CARD_H = Math.round(760 * ysc)
+  const BOX_H   = Math.round(114 * ysc)
+  const R_X     = Math.round(756 * sc), R_Y = Math.round(87 * ysc), R_W = Math.round(533 * sc)
+  const LIST_Y  = Math.round(306 * ysc)
+  const LIST_H  = Math.round(Math.max(1, 1 * ysc))
+  const THUMB_W = Math.round(106 * sc), THUMB_H = Math.round(106 * ysc)
+  const ROW_GAP = Math.round(136 * ysc) // 106 + 15 + 15
+  const LINE_YS = [Math.round(427*ysc), Math.round(563*ysc), Math.round(699*ysc), Math.round(835*ysc)]
+
+  const ORANGE = '#F15A24'
+  const DARK   = '#D44117'
+  const BLUE   = 'rgba(60,100,180,0.7)'
+
+  const label = (txt, x, y, extra = {}) => (
+    <div style={{ position: 'absolute', left: x, top: y, fontSize: 11, fontWeight: 700, color: '#fff', background: DARK, padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap', zIndex: 2, ...extra }}>{txt}</div>
+  )
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+      {/* 좌측 메인 이미지 슬롯 */}
+      <div style={{ position: 'absolute', left: CARD_X, top: CARD_Y, width: CARD_W, height: CARD_H, border: `2px dashed ${ORANGE}`, background: 'rgba(243,140,92,0.08)' }}>
+        {label(`메인 이미지 슬롯 ${Math.round(474*sc)}×${CARD_H}px`, 4, 4)}
+      </div>
+      {/* 카드 텍스트 박스 */}
+      <div style={{ position: 'absolute', left: CARD_X, top: CARD_Y + CARD_H, width: CARD_W, height: BOX_H, border: `1.5px dashed rgba(243,140,92,0.7)`, background: 'rgba(255,255,255,0.06)' }}>
+        {label('상품 카드 텍스트', 4, 2)}
+      </div>
+      {/* 우측 타이틀 영역 */}
+      <div style={{ position: 'absolute', left: R_X, top: R_Y, width: R_W, height: Math.round(200*ysc), border: `2px dashed ${BLUE}`, background: 'rgba(60,100,180,0.06)' }}>
+        {label('타이틀 영역', 4, 4, { background: BLUE })}
+      </div>
+      {/* 우측 상품 리스트 */}
+      <div style={{ position: 'absolute', left: R_X, top: LIST_Y, width: R_W, height: canvasH - LIST_Y - Math.round(24*ysc), border: `1.5px dashed ${BLUE}`, background: 'rgba(60,100,180,0.04)' }}>
+        {label('상품 리스트 (5개)', 4, 4, { background: BLUE })}
+      </div>
+      {/* 썸네일 슬롯 표시 */}
+      {[0,1,2,3,4].map(i => {
+        const ty = Math.round(306*ysc) + i * ROW_GAP
+        return (
+          <div key={i} style={{ position: 'absolute', left: R_X, top: ty, width: THUMB_W, height: THUMB_H, border: `1.5px dashed ${ORANGE}`, background: 'rgba(243,140,92,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: DARK }}>{i+1}</span>
+          </div>
+        )
+      })}
+      {/* 구분선 위치 */}
+      {LINE_YS.map((ly, i) => (
+        <div key={i} style={{ position: 'absolute', left: R_X, top: ly, width: R_W, height: Math.max(1, LIST_H), background: 'rgba(212,212,212,0.9)', borderTop: '1px dashed rgba(100,100,100,0.5)' }} />
+      ))}
+      {/* 치수 레이블 */}
+      <div style={{ position: 'absolute', left: CARD_X, top: CARD_Y - 20, fontSize: 11, fontWeight: 700, color: ORANGE, background: 'rgba(254,240,232,0.95)', padding: '1px 6px', borderRadius: 4, border: `1px solid ${ORANGE}` }}>
+        좌 카드: x={213}, y={87}, {474}×{760}
+      </div>
+      <div style={{ position: 'absolute', left: R_X, top: R_Y - 20, fontSize: 11, fontWeight: 700, color: '#3c64b4', background: 'rgba(232,238,254,0.95)', padding: '1px 6px', borderRadius: 4, border: '1px solid #3c64b4' }}>
+        우 섹션: x={756}, w={533}
+      </div>
+    </div>
+  )
+})
+
 function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   const isSymbol = guide === '심볼형'
   const SYMBOL_W = 160
@@ -512,7 +577,7 @@ function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
 }
 
 export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, onGoHome, toggleTemplate }) {
-  const isNoImageTemplate = selectedTemplateIds.every(id => id === 'b10')
+  const isNoImageTemplate = selectedTemplateIds.every(id => id === 'b10' || id === 'e5')
   const [step, setStep] = useState(() => isNoImageTemplate ? STEP_EDITOR : STEP_IMAGE)
   const [inputMode, setInputMode] = useState('upload')
   const [urlInput, setUrlInput] = useState('')
@@ -526,6 +591,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [isExtractingColors, setIsExtractingColors] = useState(false)
   const [editingTextId, setEditingTextId] = useState(null)
   const [selectedLayerId, setSelectedLayerId] = useState(null)
+  const [selectedLayerIds, setSelectedLayerIds] = useState(() => new Set())
+  const selectedLayerIdsRef = useRef(new Set())
   const [dlFormat, setDlFormat] = useState('PNG')
   const [dlScale, setDlScale] = useState('x1')
   const [dragLayerId, setDragLayerId] = useState(null)
@@ -571,6 +638,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const applyCropRef = useRef(null)
   const cancelCropRef = useRef(null)
   const cropLayerRef = useRef(null)  // { x, y, width, height } — crop 중인 레이어 bounds
+  const slotUploadInputRef = useRef(null) // isUploadSlot 레이어 파일 선택용
+  const [pendingSlotLayerId, setPendingSlotLayerId] = useState(null)
+  const [hoveredSlotLayerId, setHoveredSlotLayerId] = useState(null)
   const cropTempRef = useRef(null)
   const scaleRef = useRef(1)
   const canvasAreaRef = useRef(null)
@@ -593,6 +663,25 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       return next
     })
   }, [selectedTemplateIds.join(','), langCopies.map(lc => lc.id).join(','), logoPairs.map(lp => lp.id).join(',')])
+
+  // selectedLayerIds ref 동기화
+  useEffect(() => { selectedLayerIdsRef.current = selectedLayerIds }, [selectedLayerIds])
+
+  // selectedLayerId 변경 시 selectedLayerIds 동기화
+  useEffect(() => {
+    if (selectedLayerId === null) {
+      setSelectedLayerIds(new Set())
+    } else {
+      setSelectedLayerIds(prev => prev.has(selectedLayerId) ? prev : new Set([selectedLayerId]))
+    }
+  }, [selectedLayerId])
+
+  // isNoImageTemplate(e5, b10)은 이미지 업로드 단계가 없으므로 에디터 진입 시 다운로드 선택 목록에 자동 추가
+  useEffect(() => {
+    if (isNoImageTemplate) {
+      setDlSelectedIds(new Set(selectedTemplateIds))
+    }
+  }, [isNoImageTemplate, selectedTemplateIds.join(',')])
 
   const selectedTemplateDetails = [...allTemplates.filter((t) => selectedTemplateIds.includes(t.id))].sort((a, b) => {
     const ai = templateOrder.indexOf(a.id)
@@ -750,6 +839,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               ctx.rect(clipX, clipY, clipW, clipH)
               ctx.clip()
               ctx.drawImage(img, -lw / 2, -lh / 2, lw, lh)
+              ctx.restore()
+            } else if (layer.objectFit === 'cover' && !layer.cropOrigW) {
+              // objectFit cover — crop data 없을 때: 이미지를 슬롯에 꽉 채워 중앙 크롭
+              const scale = Math.max(lw / img.naturalWidth, lh / img.naturalHeight)
+              const iW = img.naturalWidth * scale, iH = img.naturalHeight * scale
+              const br = (layer.borderRadius || 0) * multiplier
+              ctx.save()
+              ctx.beginPath()
+              if (br > 0 && ctx.roundRect) { ctx.roundRect(-lw / 2, -lh / 2, lw, lh, br) } else { ctx.rect(-lw / 2, -lh / 2, lw, lh) }
+              ctx.clip()
+              ctx.drawImage(img, -iW / 2, -iH / 2, iW, iH)
               ctx.restore()
             } else {
               const cX = layer.cropX ?? 0
@@ -1133,7 +1233,32 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       selectedTemplateDetails.forEach((tmpl) => {
         const [w, h] = tmpl.size.split('×').map(Number)
         const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
-        const noImgLayers = tmpl.id === 'b10' ? (() => {
+        const noImgLayers = tmpl.id === 'e5' ? (() => {
+          // e5: 기획전 MD추천 모듈 — Figma 6436-1073 개별 레이어
+          // 배경 텍스처 이미지 (최하단, export 포함)
+          const bgTex = { id: 'e5-bg-texture', name: 'Figma 배경 텍스처', type: 'image', src: '/assets/templates/e5/bg-texture.png', objectFit: 'cover', x: 0, y: 0, width: 1440, height: 1048, rotation: 0 }
+          // 좌측 메인 이미지 — 기본 Figma 예시 이미지 + 클릭 시 교체 가능
+          const mainImg  = { id: 'e5-main-image', name: '메인 상품 이미지', type: 'image', isUploadSlot: true, src: '/assets/templates/e5/main-image.png', objectFit: 'cover', x: 213, y: 87, width: 474, height: 760, borderRadius: 10, rotation: 0 }
+          // 좌측 카드 텍스트
+          const cardBox  = { id: 'e5-card-box', name: '카드 텍스트 박스', type: 'rect', color: 'rgba(255,255,255,0.8)', x: 213, y: 847, width: 474, height: 114, borderRadius: 10, rotation: 0 }
+          const mdsStory = { id: 'e5-mds-story', name: "MD's STORY", type: 'text', text: "MD's STORY", x: 249, y: 876, width: 418, height: 26, fontSize: 22, fontWeight: '700', color: 'rgba(68,68,68,0.5)', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.44, lineHeight: 1.2, rotation: 0 }
+          const quote    = { id: 'e5-quote', name: '카드 카피', type: 'text', text: '"상큼한 봄, 한 겹의 향을 더하는 데 집중"', x: 249, y: 904, width: 418, height: 30, fontSize: 22, fontWeight: '700', color: '#222222', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2, rotation: 0 }
+          // 우측 타이틀·설명
+          const title1   = { id: 'e5-title-1', name: '메인 타이틀 1', type: 'text', text: 'MD가 직접 고른', x: 756, y: 87, width: 533, height: 43, fontSize: 33, fontWeight: '600', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.66, lineHeight: 1.3, rotation: 0 }
+          const title2   = { id: 'e5-title-2', name: '메인 타이틀 2', type: 'text', text: '나의 봄 향수', x: 756, y: 132, width: 533, height: 59, fontSize: 45, fontWeight: '800', color: '#FF5E4F', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.9, lineHeight: 1.3, rotation: 0 }
+          const subtitle = { id: 'e5-subtitle', name: '서브 타이틀', type: 'text', text: '12년차 뷰티 MD가 봄철 환절기에 직접 써본 후 골라낸 향수.\n제품 설명서가 아니라, 사용기에 가까운 리스트입니다.', x: 756, y: 209, width: 533, height: 84, fontSize: 20, fontWeight: '400', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.4, lineHeight: 1.42, opacity: 0.8, rotation: 0 }
+          // 상품 리스트 (5개, y: 306/442/578/714/850) — 썸네일은 투명 upload slot
+          const productRows = [306, 442, 578, 714, 850].flatMap((iy, i) => {
+            const n = i + 1
+            return [
+              { id: `e5-thumb-${n}`, name: `상품 썸네일 ${n}`, type: 'image', isUploadSlot: true, src: '/assets/templates/e5/thumb.png', objectFit: 'cover', x: 756, y: iy, width: 106, height: 106, borderRadius: 10, rotation: 0 },
+              { id: `e5-pname-${n}`, name: `상품명 ${n}`, type: 'text', text: '워터뱅크 블루\n하이알루로닉 크림 50ml', x: 888, y: iy, width: 379, height: 59, fontSize: 21, fontWeight: '700', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.42, lineHeight: 1.4, opacity: 0.8, rotation: 0 },
+              { id: `e5-pdesc-${n}`, name: `상품 설명 ${n}`, type: 'text', text: '12년차 뷰티 MD가 봄철 환절기에 직접 써본', x: 888, y: iy + 76, width: 379, height: 29, fontSize: 20, fontWeight: '400', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.4, lineHeight: 1.42, opacity: 0.8, rotation: 0 },
+              ...(n < 5 ? [{ id: `e5-line-${n}`, name: `구분선 ${n}`, type: 'rect', color: '#D4D4D4', x: 756, y: iy + 121, width: 511, height: 1, rotation: 0 }] : []),
+            ]
+          })
+          return [bgTex, mainImg, cardBox, mdsStory, quote, title1, title2, subtitle, ...productRows]
+        })() : tmpl.id === 'b10' ? (() => {
           // Figma 1148:315 기준 (750×559)
           return [
             { id: 'b10-gray-box', type: 'rect', color: '#F3F3F3', borderRadius: 20, x: 36, y: 193, width: 678, height: 263, rotation: 0 },
@@ -1574,7 +1699,37 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const onMouseDownLayer = (e, id) => {
     if (isSpaceDown) return
     e.stopPropagation()
-    setSelectedLayerId(id)
+
+    // Shift+클릭: 다중 선택 토글
+    if (e.shiftKey) {
+      const layer = layers.find(l => l.id === id)
+      if (!layer || layer.type === 'background') return
+      setSelectedLayerIds(prev => {
+        const next = new Set(prev)
+        if (next.has(id)) {
+          next.delete(id)
+          if (selectedLayerId === id) {
+            const remaining = [...next]
+            setSelectedLayerId(remaining.length > 0 ? remaining[remaining.length - 1] : null)
+          }
+        } else {
+          next.add(id)
+          setSelectedLayerId(id)
+        }
+        return next
+      })
+      return
+    }
+
+    // 이미 다중 선택 중인 레이어 클릭 → 선택 유지하고 드래그 시작
+    const isMultiDrag = selectedLayerIds.has(id) && selectedLayerIds.size > 1
+    if (isMultiDrag) {
+      setSelectedLayerId(id)
+    } else {
+      setSelectedLayerId(id)
+      setSelectedLayerIds(new Set([id]))
+    }
+
     const layer = layers.find((l) => l.id === id)
     // b11은 텍스트 위치 고정 (레이아웃 유지), 나머지는 자유 이동
     const isB11Template = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
@@ -1583,40 +1738,59 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     const startX = e.clientX, startY = e.clientY
     const SNAP = 6
     let dragging = false
+
+    // 멀티드래그: 선택된 모든 레이어의 초기 위치 캡처
+    const dragSet = isMultiDrag ? new Set(selectedLayerIds) : new Set([id])
+    const origPositions = {}
+    ;(allLayers[currentTemplateId] || []).forEach(l => {
+      if (dragSet.has(l.id)) origPositions[l.id] = { x: l.x, y: l.y }
+    })
+
     const onMove = (ev) => {
       if (!dragging) {
         const dist = Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY)
         if (dist < 4) return
         dragging = true
       }
-      let nx = Math.round(origX + (ev.clientX - startX) / scale)
-      let ny = Math.round(origY + (ev.clientY - startY) / scale)
-      const others = (allLayers[currentTemplateId] || []).filter((l) => l.id !== id)
-      const xTargets = [0, Math.round(canvasW / 2), canvasW, ...others.flatMap((l) => [l.x, Math.round(l.x + l.width / 2), l.x + l.width])]
-      const xEdges = [{ val: nx, offset: 0 }, { val: Math.round(nx + lW / 2), offset: -Math.round(lW / 2) }, { val: nx + lW, offset: -lW }]
-      const newGuidesX = []
-      let bestX = SNAP + 1
-      for (const tgt of xTargets) {
-        for (const edge of xEdges) {
-          const d = Math.abs(edge.val - tgt)
-          if (d < bestX) { bestX = d; nx = tgt + edge.offset; newGuidesX.length = 0; newGuidesX.push(tgt) }
+      if (isMultiDrag) {
+        // 다중 선택: 스냅 없이 동일 delta로 모두 이동
+        const dx = Math.round((ev.clientX - startX) / scale)
+        const dy = Math.round((ev.clientY - startY) / scale)
+        setAllLayers((prev) => {
+          const cur = prev[currentTemplateId] || []
+          return { ...prev, [currentTemplateId]: cur.map((l) => origPositions[l.id] ? { ...l, x: origPositions[l.id].x + dx, y: origPositions[l.id].y + dy } : l) }
+        })
+      } else {
+        // 단일 선택: 기존 스냅 로직
+        let nx = Math.round(origX + (ev.clientX - startX) / scale)
+        let ny = Math.round(origY + (ev.clientY - startY) / scale)
+        const others = (allLayers[currentTemplateId] || []).filter((l) => l.id !== id)
+        const xTargets = [0, Math.round(canvasW / 2), canvasW, ...others.flatMap((l) => [l.x, Math.round(l.x + l.width / 2), l.x + l.width])]
+        const xEdges = [{ val: nx, offset: 0 }, { val: Math.round(nx + lW / 2), offset: -Math.round(lW / 2) }, { val: nx + lW, offset: -lW }]
+        const newGuidesX = []
+        let bestX = SNAP + 1
+        for (const tgt of xTargets) {
+          for (const edge of xEdges) {
+            const d = Math.abs(edge.val - tgt)
+            if (d < bestX) { bestX = d; nx = tgt + edge.offset; newGuidesX.length = 0; newGuidesX.push(tgt) }
+          }
         }
-      }
-      const yTargets = [0, Math.round(canvasH / 2), canvasH, ...others.flatMap((l) => [l.y, Math.round(l.y + l.height / 2), l.y + l.height])]
-      const yEdges = [{ val: ny, offset: 0 }, { val: Math.round(ny + lH / 2), offset: -Math.round(lH / 2) }, { val: ny + lH, offset: -lH }]
-      const newGuidesY = []
-      let bestY = SNAP + 1
-      for (const tgt of yTargets) {
-        for (const edge of yEdges) {
-          const d = Math.abs(edge.val - tgt)
-          if (d < bestY) { bestY = d; ny = tgt + edge.offset; newGuidesY.length = 0; newGuidesY.push(tgt) }
+        const yTargets = [0, Math.round(canvasH / 2), canvasH, ...others.flatMap((l) => [l.y, Math.round(l.y + l.height / 2), l.y + l.height])]
+        const yEdges = [{ val: ny, offset: 0 }, { val: Math.round(ny + lH / 2), offset: -Math.round(lH / 2) }, { val: ny + lH, offset: -lH }]
+        const newGuidesY = []
+        let bestY = SNAP + 1
+        for (const tgt of yTargets) {
+          for (const edge of yEdges) {
+            const d = Math.abs(edge.val - tgt)
+            if (d < bestY) { bestY = d; ny = tgt + edge.offset; newGuidesY.length = 0; newGuidesY.push(tgt) }
+          }
         }
+        setGuides({ x: newGuidesX, y: newGuidesY })
+        setAllLayers((prev) => {
+          const cur = prev[currentTemplateId] || []
+          return { ...prev, [currentTemplateId]: cur.map((l) => l.id === id ? { ...l, x: nx, y: ny } : l) }
+        })
       }
-      setGuides({ x: newGuidesX, y: newGuidesY })
-      setAllLayers((prev) => {
-        const cur = prev[currentTemplateId] || []
-        return { ...prev, [currentTemplateId]: cur.map((l) => l.id === id ? { ...l, x: nx, y: ny } : l) }
-      })
     }
     const onUp = () => {
       const cur = allLayers[currentTemplateId] || []
@@ -1909,6 +2083,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const deleteLayer = (id) => {
     updateLayers(layers.filter((l) => l.id !== id))
     setSelectedLayerId(null)
+    setSelectedLayerIds(new Set())
   }
 
   useEffect(() => {
@@ -1983,32 +2158,34 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         return
       }
 
-      // Delete / Backspace — 선택된 레이어 삭제
+      // Delete / Backspace — 선택된 레이어 전체 삭제
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (!selectedLayerId) return
+        const ids = selectedLayerIdsRef.current
+        if (!ids.size && !selectedLayerId) return
         e.preventDefault()
+        const toDelete = ids.size > 0 ? ids : new Set([selectedLayerId])
         setAllLayers(prev => {
           const cur = prev[currentTemplateId] || []
-          const target = cur.find(l => l.id === selectedLayerId)
-          if (!target || target.type === 'background') return prev
-          const updated = cur.filter(l => l.id !== selectedLayerId)
+          const updated = cur.filter(l => l.type === 'background' || !toDelete.has(l.id))
+          if (updated.length === cur.length) return prev
           return { ...prev, [currentTemplateId]: updated }
         })
         setSelectedLayerId(null)
+        setSelectedLayerIds(new Set())
         return
       }
 
-      // 화살표 키 — 선택된 레이어 이동
+      // 화살표 키 — 선택된 레이어 전체 이동
       const arrows = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
       if (!arrows.includes(e.key)) return
       e.preventDefault()
+      const moveIds = selectedLayerIdsRef.current.size > 0 ? selectedLayerIdsRef.current : (selectedLayerId ? new Set([selectedLayerId]) : new Set())
+      if (!moveIds.size) return
+      const step = e.shiftKey ? 10 : 1
       setAllLayers(prev => {
         const cur = prev[currentTemplateId] || []
-        const selId = cur.find(l => l.id === selectedLayerId) ? selectedLayerId : null
-        if (!selId) return prev
-        const step = e.shiftKey ? 10 : 1
         const updated = cur.map(l => {
-          if (l.id !== selId) return l
+          if (!moveIds.has(l.id)) return l
           if (e.key === 'ArrowUp')    return { ...l, y: l.y - step }
           if (e.key === 'ArrowDown')  return { ...l, y: l.y + step }
           if (e.key === 'ArrowLeft')  return { ...l, x: l.x - step }
@@ -2469,7 +2646,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && currentTemplateId !== 'e5' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -3127,7 +3304,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 ref={canvasAreaRef}
                 className="flex-1 overflow-hidden"
                 style={{ position: 'relative', cursor: isSpaceDown ? (isPanning ? 'grabbing' : 'grab') : 'default', background: isLogoTab && currentTemplate?.logoPair === 'white' ? '#2d2d2d' : '#f1f0f5' }}
-                onClick={(e) => { if (!isPanning) { if (cropLayerId) { cancelCrop(); return } setSelectedLayerId(null); setEditingTextId(null); setShowDlPopup(false) } }}
+                onClick={(e) => { if (!isPanning) { if (cropLayerId) { cancelCrop(); return } setSelectedLayerId(null); setSelectedLayerIds(new Set()); setEditingTextId(null); setShowDlPopup(false) } }}
                 onMouseDown={handleCanvasMouseDown}
                 onWheel={handleCanvasWheel}
               >
@@ -3170,6 +3347,43 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                   <div style={{ position: 'relative', overflow: 'visible' }}>
 
                     {/* 실제 캔버스 */}
+                    <input
+                      ref={slotUploadInputRef}
+                      type="file"
+                      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        const slotId = pendingSlotLayerId
+                        if (!file || !slotId) return
+                        e.target.value = ''
+                        const allowed = ['image/jpeg', 'image/png']
+                        const ext = file.name.split('.').pop()?.toLowerCase()
+                        if (!allowed.includes(file.type) || !['jpg','jpeg','png'].includes(ext)) {
+                          alert('JPG 또는 PNG 파일만 업로드할 수 있습니다.')
+                          setPendingSlotLayerId(null)
+                          return
+                        }
+                        const reader = new FileReader()
+                        reader.onload = ev => {
+                          const url = ev.target.result
+                          const tmpImg = new window.Image()
+                          tmpImg.onload = () => {
+                            const slotLayer = (allLayers[currentTemplateId] || []).find(l => l.id === slotId)
+                            if (!slotLayer) return
+                            const sw = slotLayer.width, sh = slotLayer.height
+                            const scale = Math.max(sw / tmpImg.naturalWidth, sh / tmpImg.naturalHeight)
+                            updateLayers((allLayers[currentTemplateId] || []).map(l => l.id === slotId
+                              ? { ...l, src: url, cropOrigW: tmpImg.naturalWidth, cropOrigH: tmpImg.naturalHeight, cropScale: scale, cropX: 0, cropY: 0 }
+                              : l
+                            ))
+                            setPendingSlotLayerId(null)
+                          }
+                          tmpImg.src = url
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                    />
                     <div id="editor-canvas" style={{ position: 'relative', width: canvasW, height: canvasH, border: '1px solid #e5e7eb', overflow: 'hidden', backgroundImage: isLogoTab && currentTemplate?.logoPair === 'white' ? 'linear-gradient(45deg, #444 25%, transparent 25%), linear-gradient(-45deg, #444 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #444 75%), linear-gradient(-45deg, transparent 75%, #444 75%)' : 'linear-gradient(45deg, #e0e0e0 25%, transparent 25%), linear-gradient(-45deg, #e0e0e0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e0e0e0 75%), linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)', backgroundSize: '16px 16px', backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0px', backgroundColor: isLogoTab && currentTemplate?.logoPair === 'white' ? '#333' : '#f8f8f8' }}>
                       {layers.map((layer, layerIdx) => {
                         // 배경색 레이어 렌더링
@@ -3199,7 +3413,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                             if (layer.type === 'text') { setEditingTextId(layer.id); setSelectedLayerId(layer.id) }
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          style={{ position: 'absolute', left: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameX : layer.x, top: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameY : layer.y, width: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameW : layer.width, height: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameH : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1, overflow: layer.type === 'image' ? (cropLayerId === layer.id ? 'visible' : 'hidden') : undefined, opacity: layer.opacity !== undefined ? layer.opacity : undefined, display: layer.visible === false ? 'none' : undefined }}>
+                          onMouseEnter={() => { if (layer.isUploadSlot) setHoveredSlotLayerId(layer.id) }}
+                          onMouseLeave={() => { if (layer.isUploadSlot) setHoveredSlotLayerId(null) }}
+                          style={{ position: 'absolute', left: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameX : layer.x, top: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameY : layer.y, width: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameW : layer.width, height: (cropLayerId === layer.id && cropTemp) ? cropTemp.frameH : layer.height, transform: `rotate(${layer.rotation || 0}deg)`, transformOrigin: 'center center', cursor: layer.type === 'text' ? (editingTextId === layer.id ? 'text' : 'default') : 'move', userSelect: editingTextId === layer.id ? 'text' : 'none', zIndex: layerIdx + 1, overflow: layer.type === 'image' ? (cropLayerId === layer.id ? 'visible' : 'hidden') : undefined, opacity: layer.opacity !== undefined ? layer.opacity : undefined, display: layer.visible === false ? 'none' : undefined, borderRadius: layer.type === 'image' && layer.borderRadius ? layer.borderRadius : undefined }}>
+                          {layer.type === 'image' && layer.isUploadSlot && !layer.src && (
+                            <div
+                              style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, cursor: 'pointer', background: 'transparent' }}
+                              onMouseDown={e => e.stopPropagation()}
+                              onClick={e => { e.stopPropagation(); setPendingSlotLayerId(layer.id); slotUploadInputRef.current?.click() }}
+                            />
+                          )}
                           {layer.type === 'image' && (() => {
                             const isB11Layout = currentTemplateId === 'b11' || langCopies.find(lc => lc.id === currentTemplateId)?.baseId === 'b11'
                             if (isB11Layout) {
@@ -3230,7 +3453,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                                     const imgTop  = isCropping ? ((cropTemp?.imageY ?? 0) - (cropTemp?.frameY ?? 0) - iH / 2) : (curFH / 2 - iH / 2 + cropY)
                                     return <img src={layer.src} alt="" draggable={false} style={{ position: 'absolute', left: imgLeft, top: imgTop, width: iW, height: iH, maxWidth: 'none', maxHeight: 'none', objectFit: 'fill', display: 'block', pointerEvents: 'none', filter: logoFilter }} />
                                   }
-                                  return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: layer.isReference ? 'cover' : 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
+                                  return <img src={layer.src} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: (layer.isReference || (layer.objectFit === 'cover' && !oW)) ? 'cover' : 'fill', display: 'block', pointerEvents: 'none', transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`, transformOrigin: 'center center', filter: logoFilter }} />
                                 })()}
                                 {layer.isB7A1 && (
                                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', pointerEvents: 'none' }}>
@@ -3525,6 +3748,9 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     {/* 기획전 상단 비주얼 (MO) e3 가이드 오버레이 */}
                     {showGuide && !isLogoTab && currentTemplateId === 'e3' && (
                       <E3GuideOverlay canvasW={canvasW} canvasH={canvasH} />
+                    )}
+                    {showGuide && !isLogoTab && currentTemplateId === 'e5' && (
+                      <E5GuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
 
                     {/* 배경 제거 중 로딩 오버레이 */}
@@ -3968,6 +4194,17 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       )
                     })()}
 
+                    {/* 다중 선택 테두리 — 주 선택(selectedLayerId) 제외한 나머지 */}
+                    {selectedLayerIds.size > 1 && [...selectedLayerIds].filter(sid => sid !== selectedLayerId).map(sid => {
+                      const sl = layers.find(l => l.id === sid)
+                      if (!sl || sl.visible === false) return null
+                      return (
+                        <div key={`ms-${sid}`} style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.width, height: sl.height, zIndex: 99, transform: `rotate(${sl.rotation || 0}deg)`, transformOrigin: 'center center', pointerEvents: 'none' }}>
+                          <div style={{ position: 'absolute', inset: -1, border: '2px dashed #F15A24', opacity: 0.65, pointerEvents: 'none', borderRadius: sl.borderRadius || 0 }} />
+                        </div>
+                      )
+                    })}
+
                     {/* 핸들 오버레이 */}
                     {(() => {
                       const isB1B2Text = selectedLayer?.type === 'text' && (isB1Template || isB2Template)
@@ -3992,6 +4229,28 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                         </div>
                       )
                     })()}
+
+                    {/* 업로드 슬롯 CTA 오버레이 — 항상 표시, 모든 슬롯 */}
+                    {layers.filter(l => l.isUploadSlot).map(sl => {
+                      const isLarge = sl.width >= 200
+                      return (
+                        <div
+                          key={`cta-${sl.id}`}
+                          style={{ position: 'absolute', left: sl.x, top: sl.y, width: sl.width, height: sl.height, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', borderRadius: sl.borderRadius || 0, overflow: 'hidden' }}
+                        >
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: isLarge ? 8 : 4, background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color: '#fff', fontSize: isLarge ? 14 : 11, fontWeight: 700, fontFamily: 'Pretendard', padding: isLarge ? '11px 22px' : '6px 10px', borderRadius: isLarge ? 10 : 6, cursor: 'pointer', boxShadow: '0 4px 16px rgba(241,90,36,0.55)', whiteSpace: 'nowrap', userSelect: 'none', pointerEvents: 'all' }}
+                            onMouseDown={e => e.stopPropagation()}
+                            onClick={e => { e.stopPropagation(); setPendingSlotLayerId(sl.id); slotUploadInputRef.current?.click() }}
+                          >
+                            <svg width={isLarge ? 16 : 12} height={isLarge ? 16 : 12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                            이미지 교체
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -4020,7 +4279,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                       <div style={{ maxHeight: 200, overflowY: 'auto' }}>
                         {[...layers].reverse().map((layer, i) => {
-                          const isSelected = layer.id === selectedLayerId
+                          const isSelected = selectedLayerIds.has(layer.id)
                           const idx = layers.length - i
                           const isDragOver = dragOverLayerId === layer.id && dragLayerId !== layer.id
                           const isHovered = hoverLayerId === layer.id
@@ -4051,7 +4310,27 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                               onDragEnd={() => { setDragLayerId(null); setDragOverLayerId(null) }}
                               onMouseEnter={() => setHoverLayerId(layer.id)}
                               onMouseLeave={() => setHoverLayerId(null)}
-                              onClick={() => setSelectedLayerId(layer.id)}
+                              onClick={(e) => {
+                                if (e.shiftKey && layer.type !== 'background') {
+                                  setSelectedLayerIds(prev => {
+                                    const next = new Set(prev)
+                                    if (next.has(layer.id)) {
+                                      next.delete(layer.id)
+                                      if (selectedLayerId === layer.id) {
+                                        const rem = [...next]
+                                        setSelectedLayerId(rem.length > 0 ? rem[rem.length - 1] : null)
+                                      }
+                                    } else {
+                                      next.add(layer.id)
+                                      setSelectedLayerId(layer.id)
+                                    }
+                                    return next
+                                  })
+                                } else {
+                                  setSelectedLayerId(layer.id)
+                                  setSelectedLayerIds(new Set([layer.id]))
+                                }
+                              }}
                               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', cursor: 'grab', background: isSelected ? '#faf5ff' : isDragOver ? '#FFF0E5' : 'transparent', borderLeft: isSelected ? '2.5px solid #F15A24' : '2.5px solid transparent', borderTop: isDragOver ? '2px solid #F15A24' : '2px solid transparent', opacity: dragLayerId === layer.id ? 0.4 : layer.visible === false ? 0.4 : 1, transition: 'all 0.1s' }}>
                               <span style={{ fontSize: 10, color: '#d1d5db', flexShrink: 0 }}>⠿</span>
                               <div style={{ width: 26, height: 26, borderRadius: 4, background: '#f3f4f6', border: '1px solid #e5e7eb', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

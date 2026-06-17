@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1048" width="1440" height="1048">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1208"/>
+      <stop offset="60%" stop-color="#2B2B2B"/>
+      <stop offset="100%" stop-color="#3a2a1a"/>
+    </linearGradient>
+    <linearGradient id="imgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c8b89a"/>
+      <stop offset="50%" stop-color="#a89070"/>
+      <stop offset="100%" stop-color="#7a6048"/>
+    </linearGradient>
+    <linearGradient id="cardTextGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.85)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.75)"/>
+    </linearGradient>
+    <clipPath id="cardClip">
+      <rect x="213" y="87" width="474" height="874"/>
+    </clipPath>
+    <filter id="shadow">
+      <feDropShadow dx="10" dy="10" stdDeviation="10" flood-color="rgba(0,0,0,0.15)"/>
+    </filter>
+  </defs>
+
+  <!-- 배경 -->
+  <rect width="1440" height="1048" fill="url(#bgGrad)"/>
+
+  <!-- 배경 텍스처 패턴 -->
+  <rect x="0" y="0" width="1440" height="1048" fill="none" opacity="0.05"/>
+  <circle cx="100" cy="200" r="280" fill="#c8a060" opacity="0.08"/>
+  <circle cx="1300" cy="800" r="200" fill="#8060a0" opacity="0.06"/>
+
+  <!-- 좌측 카드 그림자 -->
+  <rect x="223" y="97" width="474" height="874" rx="10" fill="rgba(0,0,0,0.3)" filter="url(#shadow)"/>
+
+  <!-- 좌측 카드 — 메인 이미지 영역 -->
+  <rect x="213" y="87" width="474" height="760" rx="10" fill="url(#imgGrad)"/>
+
+  <!-- 이미지 영역 오버레이 — 세련된 패턴 -->
+  <rect x="213" y="87" width="474" height="760" fill="rgba(40,30,20,0.2)"/>
+
+  <!-- 이미지 영역 중앙 업로드 아이콘 표시 -->
+  <rect x="349" y="391" width="202" height="140" rx="8" fill="rgba(0,0,0,0.35)"/>
+  <!-- 카메라 아이콘 -->
+  <rect x="420" y="411" width="60" height="46" rx="6" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5"/>
+  <circle cx="450" cy="434" r="12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2.5"/>
+  <rect x="436" y="407" width="18" height="8" rx="3" fill="rgba(255,255,255,0.7)"/>
+  <!-- 텍스트 -->
+  <text x="450" y="477" text-anchor="middle" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="rgba(255,255,255,0.85)">이미지 업로드</text>
+  <text x="450" y="496" text-anchor="middle" font-family="Pretendard, -apple-system, sans-serif" font-size="11" fill="rgba(255,255,255,0.55)">클릭하여 이미지 선택</text>
+
+  <!-- 좌측 카드 — 텍스트 박스 -->
+  <rect x="213" y="847" width="474" height="114" fill="rgba(255,255,255,0.82)"/>
+  <!-- 카드 텍스트 -->
+  <text x="241" y="877" font-family="Pretendard, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#111827">상품명을 입력하세요</text>
+  <text x="241" y="900" font-family="Pretendard, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#4B5563">간략한 상품 설명을 입력해주세요</text>
+  <text x="241" y="920" font-family="Pretendard, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#4B5563">브랜드명 · 카테고리</text>
+
+  <!-- 우측 상단 — 타이틀 영역 x=756, y=87 -->
+  <!-- 타이틀 라인 1 -->
+  <text x="756" y="128" font-family="Pretendard, -apple-system, sans-serif" font-size="33" font-weight="600" fill="#000000" letter-spacing="-0.66">MD가 직접 고른</text>
+  <!-- 타이틀 라인 2 -->
+  <text x="756" y="187" font-family="Pretendard, -apple-system, sans-serif" font-size="45" font-weight="800" fill="#FF5E4F" letter-spacing="-0.9">나의 봄 향수</text>
+
+  <!-- 서브 타이틀 -->
+  <text x="756" y="226" font-family="Pretendard, -apple-system, sans-serif" font-size="17" font-weight="400" fill="rgba(0,0,0,0.75)">12년차 뷰티 MD가 봄철 환절기에 직접 써본 후 골라낸 향수.</text>
+  <text x="756" y="248" font-family="Pretendard, -apple-system, sans-serif" font-size="17" font-weight="400" fill="rgba(0,0,0,0.75)">제품 설명서가 아니라, 사용기에 가까운 리스트입니다.</text>
+
+  <!-- 우측 하단 — 상품 리스트 영역 x=756, y=306 -->
+
+  <!-- 상품 1 — y=306 -->
+  <rect x="756" y="306" width="106" height="106" rx="4" fill="#c8b89a"/>
+  <rect x="756" y="306" width="106" height="106" rx="4" fill="rgba(0,0,0,0.1)"/>
+  <!-- 썸네일 아이콘 -->
+  <rect x="780" y="326" width="58" height="46" rx="4" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <circle cx="809" cy="349" r="9" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <!-- 상품 텍스트 -->
+  <text x="888" y="323" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#111827">CHANEL No.5 EDP 100ml</text>
+  <text x="888" y="343" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">샤넬 · 향수</text>
+  <text x="888" y="363" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">봄의 싱그러운 플로럴 향, 오래가는 잔향이 매력</text>
+  <!-- 구분선 1 -->
+  <line x1="756" y1="427" x2="1267" y2="427" stroke="#D4D4D4" stroke-width="1"/>
+
+  <!-- 상품 2 — y=442 -->
+  <rect x="756" y="442" width="106" height="106" rx="4" fill="#b8a898"/>
+  <rect x="756" y="442" width="106" height="106" rx="4" fill="rgba(0,0,0,0.1)"/>
+  <rect x="780" y="462" width="58" height="46" rx="4" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <circle cx="809" cy="485" r="9" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <text x="888" y="459" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#111827">DIOR Miss Dior EDP 50ml</text>
+  <text x="888" y="479" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">디올 · 향수</text>
+  <text x="888" y="499" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">달콤한 장미향과 우디한 베이스가 조화로운 향수</text>
+  <!-- 구분선 2 -->
+  <line x1="756" y1="563" x2="1267" y2="563" stroke="#D4D4D4" stroke-width="1"/>
+
+  <!-- 상품 3 — y=578 -->
+  <rect x="756" y="578" width="106" height="106" rx="4" fill="#a09080"/>
+  <rect x="756" y="578" width="106" height="106" rx="4" fill="rgba(0,0,0,0.1)"/>
+  <rect x="780" y="598" width="58" height="46" rx="4" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <circle cx="809" cy="621" r="9" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <text x="888" y="595" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#111827">GUERLAIN Mon Guerlain EDP 100ml</text>
+  <text x="888" y="615" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">겔랑 · 향수</text>
+  <text x="888" y="635" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">부드러운 라벤더와 바닐라의 따뜻한 조화</text>
+  <!-- 구분선 3 -->
+  <line x1="756" y1="699" x2="1267" y2="699" stroke="#D4D4D4" stroke-width="1"/>
+
+  <!-- 상품 4 — y=714 -->
+  <rect x="756" y="714" width="106" height="106" rx="4" fill="#988070"/>
+  <rect x="756" y="714" width="106" height="106" rx="4" fill="rgba(0,0,0,0.1)"/>
+  <rect x="780" y="734" width="58" height="46" rx="4" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <circle cx="809" cy="757" r="9" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <text x="888" y="731" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#111827">YSL Black Opium EDP 90ml</text>
+  <text x="888" y="751" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">입생로랑 · 향수</text>
+  <text x="888" y="771" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">강렬한 커피향과 달콤한 바닐라의 매혹적인 향수</text>
+  <!-- 구분선 4 -->
+  <line x1="756" y1="835" x2="1267" y2="835" stroke="#D4D4D4" stroke-width="1"/>
+
+  <!-- 상품 5 — y=850 -->
+  <rect x="756" y="850" width="106" height="106" rx="4" fill="#887060"/>
+  <rect x="756" y="850" width="106" height="106" rx="4" fill="rgba(0,0,0,0.1)"/>
+  <rect x="780" y="870" width="58" height="46" rx="4" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <circle cx="809" cy="893" r="9" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+  <text x="888" y="867" font-family="Pretendard, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#111827">BURBERRY Her EDP 100ml</text>
+  <text x="888" y="887" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">버버리 · 향수</text>
+  <text x="888" y="907" font-family="Pretendard, -apple-system, sans-serif" font-size="12" fill="#6B7280">생동감 있는 레드베리와 앰버의 청순한 향기</text>
+</svg>

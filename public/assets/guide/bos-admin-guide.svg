@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" width="760" height="320" font-family="Arial, sans-serif">
+  <!-- 배경 -->
+  <rect width="760" height="320" fill="#f0f0f0"/>
+
+  <!-- 섹션 헤더 -->
+  <rect x="0" y="0" width="760" height="36" fill="#5a7fa8"/>
+  <text x="16" y="23" fill="white" font-size="13" font-weight="bold">✓  4. 통합컨텐츠 상세화면 구성</text>
+
+  <!-- 버튼 행 -->
+  <rect x="0" y="36" width="760" height="32" fill="#e8e8e8"/>
+  <rect x="10" y="44" width="52" height="20" rx="3" fill="#6b8cba" stroke="#5a7fa8" stroke-width="1"/>
+  <text x="36" y="58" fill="white" font-size="11" text-anchor="middle">모듈추가</text>
+  <rect x="68" y="44" width="46" height="20" rx="3" fill="#6b8cba" stroke="#5a7fa8" stroke-width="1"/>
+  <text x="91" y="58" fill="white" font-size="11" text-anchor="middle">행삭제</text>
+
+  <!-- 테이블 헤더 -->
+  <rect x="0" y="68" width="760" height="28" fill="#8da8c5"/>
+  <text x="28" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">»</text>
+  <text x="70" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">☐</text>
+  <text x="150" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">모듈번호</text>
+  <text x="290" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">모듈종류선택 ●</text>
+  <text x="450" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">모듈하위타입</text>
+  <text x="565" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">모듈위치 ●</text>
+  <text x="635" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">매체구분 ●</text>
+  <text x="695" y="86" fill="white" font-size="11" font-weight="bold" text-anchor="middle">전시순서</text>
+
+  <!-- 행 1: 이미지 모듈 -->
+  <rect x="0" y="96" width="760" height="44" fill="#fff9e6" stroke="#ddd" stroke-width="0.5"/>
+  <!-- 행번호 -->
+  <text x="28" y="122" fill="#333" font-size="12" text-anchor="middle">1</text>
+  <!-- 모듈번호 링크 -->
+  <text x="150" y="122" fill="#1a5276" font-size="11" text-anchor="middle" text-decoration="underline">M26060517743</text>
+  <!-- 모듈종류 -->
+  <text x="290" y="122" fill="#333" font-size="12" text-anchor="middle">이미지</text>
+  <!-- 하위타입 -->
+  <text x="450" y="122" fill="#333" font-size="12" text-anchor="middle">가로 1440px</text>
+  <!-- 모듈위치 -->
+  <text x="565" y="122" fill="#888" font-size="11" text-anchor="middle">선택안함</text>
+  <!-- 매체구분 -->
+  <text x="635" y="122" fill="#333" font-size="12" text-anchor="middle">공통</text>
+  <!-- 전시순서 -->
+  <text x="695" y="122" fill="#333" font-size="12" text-anchor="middle">100</text>
+  <!-- 주석 라벨 -->
+  <rect x="2" y="97" width="4" height="42" fill="#f39c12"/>
+  <text x="12" y="108" fill="#e67e22" font-size="9" font-weight="bold">①</text>
+
+  <!-- 행 2: HTML 모듈 -->
+  <rect x="0" y="140" width="760" height="44" fill="#e8f4e8" stroke="#ddd" stroke-width="0.5"/>
+  <!-- 행번호 -->
+  <text x="28" y="166" fill="#333" font-size="12" text-anchor="middle">2</text>
+  <!-- 모듈번호 링크 -->
+  <text x="150" y="166" fill="#1a5276" font-size="11" text-anchor="middle" text-decoration="underline">M26060517749</text>
+  <!-- 모듈종류 -->
+  <text x="290" y="166" fill="#333" font-size="12" text-anchor="middle">HTML</text>
+  <!-- 빈칸 -->
+  <text x="450" y="166" fill="#aaa" font-size="11" text-anchor="middle">—</text>
+  <!-- 모듈위치 -->
+  <text x="565" y="166" fill="#888" font-size="11" text-anchor="middle">선택안함</text>
+  <!-- 매체구분 -->
+  <text x="635" y="166" fill="#333" font-size="12" text-anchor="middle">공통</text>
+  <!-- 전시순서 -->
+  <text x="695" y="166" fill="#333" font-size="12" text-anchor="middle">100</text>
+  <!-- 주석 라벨 -->
+  <rect x="2" y="141" width="4" height="42" fill="#27ae60"/>
+  <text x="12" y="152" fill="#27ae60" font-size="9" font-weight="bold">②</text>
+
+  <!-- 구분선 -->
+  <line x1="0" y1="184" x2="760" y2="184" stroke="#ccc" stroke-width="1"/>
+
+  <!-- 범례 영역 -->
+  <rect x="0" y="184" width="760" height="136" fill="#fafafa"/>
+
+  <!-- 범례 제목 -->
+  <text x="20" y="208" fill="#333" font-size="12" font-weight="bold">등록 순서 안내</text>
+
+  <!-- 범례 1 -->
+  <rect x="20" y="218" width="8" height="8" fill="#f39c12" rx="1"/>
+  <text x="35" y="227" fill="#333" font-size="11" font-weight="bold">① 이미지 모듈</text>
+  <text x="35" y="242" fill="#555" font-size="10">md-recommend-module.png 를 이미지 서버에 업로드 → 발급된 이미지 URL 복사</text>
+
+  <!-- 화살표 -->
+  <text x="370" y="250" fill="#999" font-size="18" text-anchor="middle">↓</text>
+
+  <!-- 범례 2 -->
+  <rect x="20" y="258" width="8" height="8" fill="#27ae60" rx="1"/>
+  <text x="35" y="267" fill="#333" font-size="11" font-weight="bold">② HTML 모듈</text>
+  <text x="35" y="282" fill="#555" font-size="10">index.html 에서 img src를 복사한 이미지 URL로 교체 → HTML 전체를 모듈에 붙여넣기</text>
+
+  <!-- 예시 코드 -->
+  <rect x="20" y="290" width="720" height="22" rx="3" fill="#2d2d2d"/>
+  <text x="30" y="305" fill="#f8c555" font-size="9.5" font-family="monospace">src="여기에_업로드한_이미지_URL을_넣어주세요"</text>
+  <text x="340" y="305" fill="#aaa" font-size="9.5" font-family="monospace"> → </text>
+  <text x="360" y="305" fill="#7ec8e3" font-size="9.5" font-family="monospace">src="https://img.ssgdfs.com/upload/..."</text>
+</svg>

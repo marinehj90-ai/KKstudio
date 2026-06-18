@@ -598,6 +598,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [linkInfoModalSlotId, setLinkInfoModalSlotId] = useState(null)
   const [linkInputModalSlotId, setLinkInputModalSlotId] = useState(null)
   const [linkInputValue, setLinkInputValue] = useState('')
+  const [showHtmlGuideModal, setShowHtmlGuideModal] = useState(false)
   const [dragLayerId, setDragLayerId] = useState(null)
   const [dragOverLayerId, setDragOverLayerId] = useState(null)
   const [hoverLayerId, setHoverLayerId] = useState(null)
@@ -1200,10 +1201,20 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       const x2 = Math.round(l.x + l.width), y2 = Math.round(l.y + l.height)
       return `    <area shape="rect" coords="${x1},${y1},${x2},${y2}" href="${l.linkUrl}" alt="${l.name || ''}" />`
     }).join('\n')
+    const guideComment = [
+      `    <!--`,
+      `      [필수 수정]`,
+      `      ZIP 안의 md-recommend-module.png를 이미지 서버에 업로드한 뒤,`,
+      `      발급된 이미지 URL을 아래 img src 값에 넣어주세요.`,
+      `      예: src="https://img.ssgdfs.com/upload/..."`,
+      `    -->`,
+    ].join('\n')
+    const imgTag = `    <img\n      src="여기에_업로드한_이미지_URL을_넣어주세요"\n      usemap="#md-recommend-map"\n      width="${canvasW}"\n      height="${imgH}"\n      alt="기획전 MD추천 모듈"\n      style="display:block; width:${canvasW}px; height:${imgH}px; border:0; margin:0; padding:0;"\n    />`
     const htmlString = [
       `<div style="width:100%; position:relative; overflow:visible; text-align:left;">`,
       `  <div style="position:relative; left:50%; margin-left:-${halfW}px; width:${canvasW}px; height:${imgH}px;">`,
-      `    <img src="./md-recommend-module.png" usemap="#md-recommend-map" width="${canvasW}" height="${imgH}" alt="기획전 MD추천 모듈" style="display:block; width:${canvasW}px; height:${imgH}px; border:0; margin:0; padding:0;" />`,
+      guideComment,
+      imgTag,
       `    <map name="md-recommend-map" id="md-recommend-map">`,
       areas,
       `    </map>`,
@@ -1219,7 +1230,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     link.href = URL.createObjectURL(zipBlob)
     link.click()
     URL.revokeObjectURL(link.href)
-    setTimeout(() => alert('ZIP 안의 md-recommend-module.png를 사내몰 이미지 서버에 업로드한 뒤, index.html의 img src 경로를 업로드된 이미지 URL로 변경해 사용하세요.'), 300)
+    setTimeout(() => setShowHtmlGuideModal(true), 300)
   }
 
   const exhibitionEventGroupIds = ['exhibition', 'event']
@@ -2560,6 +2571,137 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
               이미지 생성하기 <ArrowRight className="w-4 h-4" />
             </button>
           )}
+        </div>
+      )}
+
+      {/* HTML 사용 가이드 모달 */}
+      {showHtmlGuideModal && (
+        <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 800, background: 'rgba(0,0,0,0.55)' }} onClick={() => setShowHtmlGuideModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl flex flex-col" style={{ width: '100%', maxWidth: 740, maxHeight: '85vh', margin: '0 16px' }} onClick={e => e.stopPropagation()}>
+            {/* 헤더 고정 */}
+            <div className="flex items-center gap-3 px-7 py-5 border-b border-gray-100 flex-shrink-0">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#FFF0E5' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F15A24" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-gray-900">HTML 파일 사용 방법</h2>
+                <p className="text-xs text-gray-400 mt-0.5">당사몰 BOS/어드민 등록 가이드</p>
+              </div>
+            </div>
+
+            {/* 본문 스크롤 */}
+            <div className="overflow-y-auto flex-1 px-7 py-6" style={{ lineHeight: 1.8 }}>
+
+              {/* ZIP 구성 */}
+              <section className="mb-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white flex-shrink-0" style={{ background: '#F15A24' }}>1</span>
+                  ZIP 파일 구성
+                </h3>
+                <div className="rounded-xl p-4 text-sm text-gray-700" style={{ background: '#f8f9fa', border: '1px solid #e9ecef' }}>
+                  <p className="mb-2">ZIP 안에는 아래 2개 파일이 들어 있습니다.</p>
+                  <ul className="space-y-1.5 ml-2">
+                    <li><span className="font-mono text-xs font-bold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">md-recommend-module.png</span> <span className="text-gray-500 ml-1">— 실제 화면에 노출될 이미지 파일</span></li>
+                    <li><span className="font-mono text-xs font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">index.html</span> <span className="text-gray-500 ml-1">— 몰 어드민에 등록할 HTML 파일</span></li>
+                  </ul>
+                </div>
+              </section>
+
+              {/* 엑박 안내 */}
+              <section className="mb-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white flex-shrink-0" style={{ background: '#F15A24' }}>2</span>
+                  index.html을 바로 열면 이미지가 엑박으로 보일 수 있습니다
+                </h3>
+                <div className="rounded-xl p-4 text-sm" style={{ background: '#fffbeb', border: '1px solid #fde68a' }}>
+                  <p className="text-amber-800 font-medium mb-1">⚠ 이는 오류가 아닙니다.</p>
+                  <p className="text-amber-700 text-xs leading-relaxed">
+                    index.html은 몰 등록용 파일이며, 이미지 서버 URL을 넣기 전에는 이미지 경로가 placeholder 상태입니다.<br />
+                    이미지가 정상으로 보이게 하려면 아래 등록 순서를 따라 이미지 서버 URL을 img src에 입력해야 합니다.
+                  </p>
+                </div>
+              </section>
+
+              {/* 등록 순서 */}
+              <section className="mb-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white flex-shrink-0" style={{ background: '#F15A24' }}>3</span>
+                  당사몰 BOS/어드민 등록 순서
+                </h3>
+
+                {/* 스텝 1 */}
+                <div className="flex gap-3 mb-4">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <span className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white" style={{ background: '#f39c12' }}>①</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800 mb-1">이미지 모듈 — PNG 업로드 및 URL 발급</p>
+                    <ul className="text-xs text-gray-600 space-y-1 leading-relaxed">
+                      <li>• 통합콘텐츠 상세화면에서 <strong>모듈종류선택 → 이미지</strong> 모듈을 추가합니다.</li>
+                      <li>• <span className="font-mono font-bold text-orange-600">md-recommend-module.png</span> 를 이미지 서버에 업로드합니다.</li>
+                      <li>• 업로드 후 발급된 <strong>이미지 URL을 복사</strong>합니다. (이 URL이 HTML img src에 들어갑니다)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex justify-center my-2 text-gray-300 text-lg">↓</div>
+
+                {/* 스텝 2 */}
+                <div className="flex gap-3 mb-4">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <span className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center text-white" style={{ background: '#27ae60' }}>②</span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-gray-800 mb-1">HTML 모듈 — img src 교체 후 등록</p>
+                    <ul className="text-xs text-gray-600 space-y-1 leading-relaxed">
+                      <li>• <strong>모듈종류선택 → HTML</strong> 모듈을 추가합니다.</li>
+                      <li>• <span className="font-mono font-bold text-blue-600">index.html</span> 파일을 열고, 아래 부분을 찾아 교체합니다.</li>
+                    </ul>
+                    <div className="mt-2 rounded-lg overflow-hidden text-xs font-mono" style={{ background: '#1e1e1e' }}>
+                      <div className="px-3 py-1.5 text-gray-400" style={{ background: '#2d2d2d', fontSize: 10 }}>교체 전</div>
+                      <div className="px-3 py-2 text-yellow-300">src="여기에_업로드한_이미지_URL을_넣어주세요"</div>
+                      <div className="px-3 py-1.5 text-gray-400" style={{ background: '#2d2d2d', fontSize: 10 }}>교체 후 (예시)</div>
+                      <div className="px-3 py-2 text-green-300">src="https://img.ssgdfs.com/upload/..."</div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">• 교체 후 index.html의 <strong>HTML 전체를 복사</strong>해서 HTML 모듈에 붙여넣고 등록합니다.</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* 어드민 화면 가이드 이미지 */}
+              <section className="mb-6">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center text-white flex-shrink-0" style={{ background: '#F15A24' }}>4</span>
+                  당사몰 BOS 화면 예시
+                </h3>
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <img src="/assets/guide/bos-admin-guide.svg" alt="당사몰 BOS 어드민 화면 예시" style={{ width: '100%', display: 'block' }} />
+                </div>
+                <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                  <span style={{ color: '#f39c12' }}>■</span> 이미지 모듈: PNG를 업로드하고 이미지 URL을 발급받는 영역&nbsp;&nbsp;
+                  <span style={{ color: '#27ae60' }}>■</span> HTML 모듈: 이미지 URL을 반영한 index.html 내용을 등록하는 영역
+                </p>
+              </section>
+
+              {/* 정리 */}
+              <div className="rounded-xl p-4 text-sm font-medium text-gray-700" style={{ background: 'linear-gradient(135deg, #FFF0E5, #FFF7F0)', border: '1.5px solid #F15A24' }}>
+                💡 정리하면, <strong>PNG는 이미지 서버에 업로드</strong>하고, <strong>HTML은 해당 이미지 URL을 넣은 뒤 HTML 모듈에 등록</strong>하면 됩니다.
+              </div>
+            </div>
+
+            {/* 하단 버튼 고정 */}
+            <div className="px-7 py-4 border-t border-gray-100 flex-shrink-0">
+              <button
+                onClick={() => setShowHtmlGuideModal(false)}
+                className="w-full py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

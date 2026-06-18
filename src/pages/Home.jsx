@@ -41,7 +41,7 @@ export default function Home() {
       if (prev.includes(id)) return prev.filter((t) => t !== id)
       const prevGroup = templateGroups.find(g => g.templates.some(t => t.id === prev[0]))
       if (prev.length > 0 && prevGroup?.id !== targetGroup?.id) return [id]
-      const SOLO_IDS = ['b10', 'b8']
+      const SOLO_IDS = ['b10', 'b8', 'e5']
       if (SOLO_IDS.includes(id) && prev.length > 0) return [id]
       if (prev.some(p => SOLO_IDS.includes(p))) return [id]
       return [...prev, id]
@@ -242,7 +242,7 @@ export default function Home() {
                         <img
                           src={t.previewImage}
                           alt={t.name}
-                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block' }}
+                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block', ...(t.invertPreview ? { filter: 'invert(1)' } : {}) }}
                           draggable={false}
                         />
                       ) : (
@@ -261,7 +261,12 @@ export default function Home() {
                 })()}
                 <div className="p-3 bg-white">
                   <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{t.size}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-gray-400">{t.size}</p>
+                    {t.singleSelectOnly && (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#E94E1B', background: '#FFF0E5', border: '1px solid #F6A23A55', borderRadius: 4, padding: '0px 5px', letterSpacing: 0, lineHeight: '18px', whiteSpace: 'nowrap' }}>단독 편집</span>
+                    )}
+                  </div>
                 </div>
               </button>
             )
@@ -272,7 +277,16 @@ export default function Home() {
         {selectedTemplates.length > 0 && (
           <div className="sticky bottom-6 flex justify-center">
             <button
-              onClick={() => setStep(1)}
+              onClick={() => {
+                const SOLO_IDS = ['b10', 'b8', 'e5']
+                const hasSolo = selectedTemplates.some(id => SOLO_IDS.includes(id))
+                if (hasSolo && selectedTemplates.length > 1) {
+                  const soloId = selectedTemplates.find(id => SOLO_IDS.includes(id))
+                  setSelectedTemplates([soloId])
+                  return
+                }
+                setStep(1)
+              }}
               className="flex items-center gap-2 px-8 py-3.5 text-white rounded-2xl font-semibold transition-all hover:scale-[1.02]"
               style={{ background: currentGroupData?.gradient || 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', boxShadow: `0 8px 24px rgba(233,78,27,0.45)` }}
             >

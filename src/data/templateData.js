@@ -18,7 +18,7 @@ export const templateGroups = [
     gradient: 'linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%)',
     templates: [
       { id: 'b1',  name: '최상단 띠배너 (PC)',         size: '1712×80',   device: 'PC',   preview: PV_DEEP, previewImage: '/assets/templates/previews/top-strip-banner-pc.png' },
-      { id: 'b2',  name: '최상단 띠배너 (MO)',         size: '1536×140',  device: 'MO',   preview: PV_RICH },
+      { id: 'b2',  name: '최상단 띠배너 (MO)',         size: '1536×140',  device: 'MO',   preview: PV_RICH, previewImage: '/assets/templates/previews/top-strip-banner-mo.png' },
       { id: 'b3',  name: '메인 대배너',               size: '750×750',   device: '공통', preview: PV_STD  },
       { id: 'b4',  name: 'PC 와이드 대배너',           size: '1440×480',  device: 'PC',   preview: PV_DEEP },
       { id: 'b5',  name: '통컨 기본배너',             size: '750×750',   device: '공통', preview: PV_WARM },
@@ -49,7 +49,7 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #FFD58A 0%, #F6A23A 55%, #F15A24 100%)',
     templates: [
-      { id: 'b8',  name: '브랜드 필수배너 (로고)',           size: '320×120',  device: '공통', preview: PV_DEEP },
+      { id: 'b8',  name: '브랜드 필수배너 (로고)',           size: '320×120',  device: '공통', preview: PV_DEEP, previewImage: '/assets/templates/previews/brand-logo-ferragamo-preview.png', invertPreview: true, singleSelectOnly: true },
       { id: 'b9',  name: '브랜드 필수배너 이미지 (정사각)', size: '750×750',  device: '공통', preview: PV_STD  },
       { id: 'b9r', name: '브랜드 필수배너 이미지 (직사각)', size: '1000×600', device: '공통', preview: PV_WARM },
     ],
@@ -79,7 +79,7 @@ export const templateGroups = [
       { id: 'e1', name: '기획전 상단 비주얼 (PC와이드)', size: '1440×500',  device: 'PC',   preview: PV_DEEP, heightResizable: true },
       { id: 'e2', name: '기획전 상단 비주얼 (PC)',       size: '1000×500',  device: 'PC',   preview: PV_STD,  heightResizable: true, previewImage: '/assets/templates/previews/e2-preview.png' },
       { id: 'e3', name: '기획전 상단 비주얼 (MO)',       size: '750×500',   device: 'MO',   preview: PV_RICH, heightResizable: true, previewImage: '/assets/templates/previews/e3-preview.png' },
-      { id: 'e5', name: '기획전 MD추천 모듈',           size: '1440×1048', device: 'PC',   preview: PV_DEEP, heightResizable: true },
+      { id: 'e5', name: '기획전 MD추천 모듈',           size: '1440×1048', device: 'PC',   preview: PV_DEEP, heightResizable: true, singleSelectOnly: true },
     ],
   },
   {

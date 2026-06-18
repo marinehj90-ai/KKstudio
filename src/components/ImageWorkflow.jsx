@@ -1299,7 +1299,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   }
 
   useEffect(() => {
-    console.log('[init effect] step:', step, 'templates:', selectedTemplateDetails.map(t => t.id), 'uploadedUrl:', uploadedImage?.url?.slice(0,40))
     if (step !== STEP_EDITOR) return
     // 이미지 불필요 템플릿(b10) 전용 초기화
     if (isNoImageTemplate) {
@@ -1484,11 +1483,10 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     }
     if (!uploadedImage?.url) return
     const allImages = [{ url: uploadedImage.url }, ...(uploadedImage.extra || [])]
-    const loadImage = (url) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = url })
+    const loadImage = (url) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = (e) => rej(e); i.src = url })
     Promise.all(allImages.map(({ url }) => loadImage(url))).then((imgs) => {
       const initAllLayers = {}
       const initAllHistory = {}
-      console.log('[ImageWorkflow] 초기화 시작', { selectedTemplateIds, activeTemplateId })
       selectedTemplateDetails.forEach((tmpl) => {
         const [w, h] = tmpl.size.split('\u00d7').map(Number)
 
@@ -1789,7 +1787,6 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
           .finally(() => setIsRemovingBg(false))
       }
 
-      console.log('[setAllLayers]', Object.fromEntries(Object.entries(initAllLayers).map(([k, v]) => [k, v.map(l => l.type + ':' + l.id)])))
       setAllLayers(initAllLayers)
       setAllHistory(initAllHistory)
       setSelectedLayerId('img-1')

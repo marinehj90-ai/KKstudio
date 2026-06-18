@@ -97,7 +97,7 @@ export default function Templates() {
   }
 
   const toggleTemplate = (id) => {
-    const SOLO_IDS = ['b10', 'b8']
+    const SOLO_IDS = ['b10', 'b8', 'e5']
     setSelectedTemplates((prev) => {
       if (prev.includes(id)) return prev.filter((t) => t !== id)
       if (SOLO_IDS.includes(id) && prev.length > 0) return [id]
@@ -282,7 +282,7 @@ export default function Templates() {
                         <img
                           src={t.previewImage}
                           alt={t.name}
-                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block' }}
+                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block', ...(t.invertPreview ? { filter: 'invert(1)' } : {}) }}
                           draggable={false}
                         />
                       ) : t.guideImage ? (
@@ -310,7 +310,12 @@ export default function Templates() {
                 })()}
                 <div className="p-3 bg-white">
                   <p className="text-sm font-medium text-gray-800 truncate">{t.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{t.size}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-gray-400">{t.size}</p>
+                    {t.singleSelectOnly && (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#E94E1B', background: '#FFF0E5', border: '1px solid #F6A23A55', borderRadius: 4, padding: '0px 5px', letterSpacing: 0, lineHeight: '18px', whiteSpace: 'nowrap' }}>단독 편집</span>
+                    )}
+                  </div>
                 </div>
               </button>
             )
@@ -329,7 +334,17 @@ export default function Templates() {
       {selectedTemplates.length > 0 && (
         <div className="sticky bottom-6 flex justify-center pointer-events-none">
           <button
-            onClick={() => setStep(1)}
+            onClick={() => {
+              // 방어: singleSelectOnly 템플릿이 포함된 경우 반드시 단독 선택
+              const SOLO_IDS = ['b10', 'b8', 'e5']
+              const hasSolo = selectedTemplates.some(id => SOLO_IDS.includes(id))
+              if (hasSolo && selectedTemplates.length > 1) {
+                const soloId = selectedTemplates.find(id => SOLO_IDS.includes(id))
+                setSelectedTemplates([soloId])
+                return
+              }
+              setStep(1)
+            }}
             className="pointer-events-auto flex items-center gap-2 px-8 py-3.5 rounded-2xl font-semibold transition-all hover:scale-[1.02] text-white"
             style={{ background: c.gradient || 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', boxShadow: '0 8px 24px rgba(233,78,27,0.45)' }}
           >

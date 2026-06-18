@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1048" width="1440" height="1048">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1208"/>
+      <stop offset="55%" stop-color="#2B2B2B"/>
+      <stop offset="100%" stop-color="#3a2a1a"/>
+    </linearGradient>
+    <linearGradient id="cardImg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c8b89a"/>
+      <stop offset="50%" stop-color="#a89070"/>
+      <stop offset="100%" stop-color="#7a6048"/>
+    </linearGradient>
+    <clipPath id="mainClip"><rect x="213" y="87" width="474" height="760" rx="10"/></clipPath>
+  </defs>
+  <!-- 배경 -->
+  <rect width="1440" height="1048" fill="url(#bg)"/>
+  <circle cx="100" cy="200" r="300" fill="#c8a060" fill-opacity="0.07"/>
+  <circle cx="1300" cy="800" r="220" fill="#8060a0" fill-opacity="0.05"/>
+  <!-- 좌측 메인 이미지 카드 -->
+  <rect x="213" y="87" width="474" height="760" rx="10" fill="url(#cardImg)" clip-path="url(#mainClip)"/>
+  <rect x="213" y="87" width="474" height="760" rx="10" fill="rgba(0,0,0,0.15)"/>
+  <!-- 하단 흰 텍스트 박스 -->
+  <rect x="213" y="847" width="474" height="114" rx="10" fill="rgba(255,255,255,0.85)"/>
+  <text x="241" y="876" font-family="Arial,sans-serif" font-size="15" font-weight="700" fill="#111827">MD's STORY</text>
+  <text x="241" y="900" font-family="Arial,sans-serif" font-size="13" fill="#4B5563">"상큼한 봄, 한 겹의 향을 더하는 데 집중"</text>
+  <!-- 우측 타이틀 영역 -->
+  <text x="756" y="140" font-family="Arial,sans-serif" font-size="33" font-weight="600" fill="#ffffff">MD가 직접 고른</text>
+  <text x="756" y="197" font-family="Arial,sans-serif" font-size="46" font-weight="800" fill="#FF5E4F">나의 봄 향수</text>
+  <text x="756" y="238" font-family="Arial,sans-serif" font-size="17" fill="rgba(255,255,255,0.7)">12년차 뷰티 MD가 봄철 환절기에 직접 써본 후 골라낸 향수.</text>
+  <text x="756" y="262" font-family="Arial,sans-serif" font-size="17" fill="rgba(255,255,255,0.7)">제품 설명서가 아니라, 사용기에 가까운 리스트입니다.</text>
+  <!-- 상품 리스트 행 -->
+  <!-- 상품 1 -->
+  <rect x="756" y="306" width="106" height="106" rx="4" fill="#b8a888"/>
+  <line x1="756" y1="427" x2="1267" y2="427" stroke="#555" stroke-width="1"/>
+  <rect x="884" y="310" width="360" height="14" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="884" y="332" width="240" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <rect x="884" y="350" width="300" height="10" rx="3" fill="rgba(255,255,255,0.12)"/>
+  <!-- 상품 2 -->
+  <rect x="756" y="442" width="106" height="106" rx="4" fill="#a89878"/>
+  <line x1="756" y1="563" x2="1267" y2="563" stroke="#555" stroke-width="1"/>
+  <rect x="884" y="446" width="340" height="14" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="884" y="468" width="220" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <rect x="884" y="486" width="280" height="10" rx="3" fill="rgba(255,255,255,0.12)"/>
+  <!-- 상품 3 -->
+  <rect x="756" y="578" width="106" height="106" rx="4" fill="#988868"/>
+  <line x1="756" y1="699" x2="1267" y2="699" stroke="#555" stroke-width="1"/>
+  <rect x="884" y="582" width="380" height="14" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="884" y="604" width="200" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <rect x="884" y="622" width="260" height="10" rx="3" fill="rgba(255,255,255,0.12)"/>
+  <!-- 상품 4 -->
+  <rect x="756" y="714" width="106" height="106" rx="4" fill="#887858"/>
+  <line x1="756" y1="835" x2="1267" y2="835" stroke="#555" stroke-width="1"/>
+  <rect x="884" y="718" width="320" height="14" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="884" y="740" width="240" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <rect x="884" y="758" width="290" height="10" rx="3" fill="rgba(255,255,255,0.12)"/>
+  <!-- 상품 5 -->
+  <rect x="756" y="850" width="106" height="106" rx="4" fill="#786848"/>
+  <rect x="884" y="854" width="300" height="14" rx="3" fill="rgba(255,255,255,0.25)"/>
+  <rect x="884" y="876" width="200" height="10" rx="3" fill="rgba(255,255,255,0.15)"/>
+  <rect x="884" y="894" width="270" height="10" rx="3" fill="rgba(255,255,255,0.12)"/>
+</svg>

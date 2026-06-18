@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, NavLink, useNavigate } from 'react-router-dom'
 import { Search, Check, ArrowRight, Monitor, Smartphone, Globe, AlertTriangle } from 'lucide-react'
+import { TemplateCardPreview, PREVIEW_LAYERS } from '../components/TemplateCardPreview'
 
 function NavigationGuardModal({ onProceed, onCancel }) {
   return (
@@ -269,25 +270,41 @@ export default function Templates() {
                   let boxH = ratio > cW / cH ? boxW / ratio : cH * 0.82
                   boxH = Math.max(boxH, cH * 0.12)
                   boxW = Math.max(boxW, cW * 0.10)
+                  const hasStaticPreview = !!t.previewImage
+                  const hasLivePreview = !!PREVIEW_LAYERS[t.id] && !hasStaticPreview
+                  const hasBg = hasLivePreview || hasStaticPreview
                   return (
-                    <div className="relative h-40 flex items-center justify-center overflow-hidden" style={{ background: t.preview }}>
-                      {t.guideImage && (
+                    <div className="relative h-40 flex items-center justify-center overflow-hidden" style={{ background: hasBg ? '#F6F1EA' : t.preview }}>
+                      {/* 라이브 미리보기: 실제 레이어 데이터로 CSS 렌더링 */}
+                      {hasLivePreview ? (
+                        <TemplateCardPreview t={t} />
+                      ) : hasStaticPreview ? (
+                        <img
+                          src={t.previewImage}
+                          alt={t.name}
+                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block' }}
+                          draggable={false}
+                        />
+                      ) : t.guideImage ? (
                         <img
                           src={t.guideImage}
                           alt="guide"
                           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
                           draggable={false}
                         />
+                      ) : null}
+                      {/* 사이즈 박스: 라이브 미리보기·previewImage·guideImage 없을 때만 표시 */}
+                      {!hasLivePreview && !hasStaticPreview && !t.guideImage && (
+                        <div style={{ position: 'relative', zIndex: 1, width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                        </div>
                       )}
-                      <div style={{ position: 'relative', zIndex: 1, width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: t.guideImage ? 'transparent' : 'rgba(255,255,255,0.15)', border: t.guideImage ? 'none' : '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {!t.guideImage && <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>}
-                      </div>
                       {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${c.hex}` }}>
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${c.hex}`, zIndex: 2 }}>
                           <Check className="w-3.5 h-3.5" style={{ color: c.hex }} />
                         </div>
                       )}
-                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium">{t.device}</div>
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/30 text-white text-xs font-medium" style={{ zIndex: 2 }}>{t.device}</div>
                     </div>
                   )
                 })()}

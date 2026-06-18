@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { templateGroups as _templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
+import { TemplateCardPreview, PREVIEW_LAYERS } from '../components/TemplateCardPreview'
 
 const GROUP_ORDER = ['banner', 'brand', 'exhibition', 'event', 'product', 'notice']
 const templateGroups = [..._templateGroups].sort(
@@ -227,14 +228,28 @@ export default function Home() {
                   let boxH = ratio > cW / cH ? boxW / ratio : cH * 0.82
                   boxH = Math.max(boxH, cH * 0.12)
                   boxW = Math.max(boxW, cW * 0.10)
+                  const hasStaticPreview = !!t.previewImage
+                  const hasLivePreview = !!PREVIEW_LAYERS[t.id] && !hasStaticPreview
+                  const hasBg = hasLivePreview || hasStaticPreview
                   return (
                     <div
-                      className="relative h-40 flex items-center justify-center"
-                      style={{ background: t.preview }}
+                      className="relative h-40 flex items-center justify-center overflow-hidden"
+                      style={{ background: hasBg ? '#F6F1EA' : t.preview }}
                     >
-                      <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
-                      </div>
+                      {hasLivePreview ? (
+                        <TemplateCardPreview t={t} />
+                      ) : hasStaticPreview ? (
+                        <img
+                          src={t.previewImage}
+                          alt={t.name}
+                          style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain', objectPosition: 'center center', display: 'block' }}
+                          draggable={false}
+                        />
+                      ) : (
+                        <div style={{ width: `${(boxW / cW * 100).toFixed(1)}%`, height: `${(boxH / cH * 100).toFixed(1)}%`, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.5)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'monospace', userSelect: 'none' }}>{t.size}</span>
+                        </div>
+                      )}
                       {isSelected && (
                         <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center shadow-md" style={{ backgroundColor: '#fff', border: `2px solid ${currentGroupData?.hex || '#FF6A24'}` }}>
                           <Check className="w-3.5 h-3.5" style={{ color: currentGroupData?.hex || '#FF6A24' }} />

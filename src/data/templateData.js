@@ -17,7 +17,7 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%)',
     templates: [
-      { id: 'b1',  name: '최상단 띠배너 (PC)',         size: '1712×80',   device: 'PC',   preview: PV_DEEP },
+      { id: 'b1',  name: '최상단 띠배너 (PC)',         size: '1712×80',   device: 'PC',   preview: PV_DEEP, previewImage: '/assets/templates/previews/top-strip-banner-pc.png' },
       { id: 'b2',  name: '최상단 띠배너 (MO)',         size: '1536×140',  device: 'MO',   preview: PV_RICH },
       { id: 'b3',  name: '메인 대배너',               size: '750×750',   device: '공통', preview: PV_STD  },
       { id: 'b4',  name: 'PC 와이드 대배너',           size: '1440×480',  device: 'PC',   preview: PV_DEEP },
@@ -25,7 +25,7 @@ export const templateGroups = [
       { id: 'b6',  name: '통컨 띠배너 A (MO)',         size: '750×140',   device: 'MO',   preview: PV_RICH },
       { id: 'b7',  name: '통컨 띠배너 B (PC)',         size: '1520×130',  device: 'PC',   preview: PV_STD  },
       { id: 'b11', name: '메인 팝업 프로모션',         size: '750×560',   device: '공통', preview: PV_WARM },
-      { id: 'b12', name: '메인 퀵메뉴 이미지',         size: '300×300',   device: '공통', preview: PV_STD  },
+      { id: 'b12', name: '메인 퀵메뉴 이미지',         size: '300×300',   device: '공통', preview: PV_STD, previewImage: '/assets/templates/previews/quick-menu-300.jpg'  },
     ],
   },
   {
@@ -76,10 +76,9 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #F6A23A 0%, #F15A24 55%, #E94E1B 100%)',
     templates: [
-      { id: 'e1', name: '기획전 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC',   preview: PV_DEEP, heightResizable: true },
-      { id: 'e2', name: '기획전 상단 비주얼 (PC)',       size: '1000×500', device: 'PC',   preview: PV_STD,  heightResizable: true },
-      { id: 'e3', name: '기획전 상단 비주얼 (MO)',       size: '750×500',  device: 'MO',   preview: PV_RICH, heightResizable: true },
-      { id: 'e4', name: '기획전 모듈용 썸네일',         size: '750×750',  device: '공통', preview: PV_WARM, heightResizable: true },
+      { id: 'e1', name: '기획전 상단 비주얼 (PC와이드)', size: '1440×500',  device: 'PC',   preview: PV_DEEP, heightResizable: true },
+      { id: 'e2', name: '기획전 상단 비주얼 (PC)',       size: '1000×500',  device: 'PC',   preview: PV_STD,  heightResizable: true, previewImage: '/assets/templates/previews/e2-preview.png' },
+      { id: 'e3', name: '기획전 상단 비주얼 (MO)',       size: '750×500',   device: 'MO',   preview: PV_RICH, heightResizable: true, previewImage: '/assets/templates/previews/e3-preview.png' },
       { id: 'e5', name: '기획전 MD추천 모듈',           size: '1440×1048', device: 'PC',   preview: PV_DEEP, heightResizable: true },
     ],
   },

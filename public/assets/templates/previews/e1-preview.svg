@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 500" width="1440" height="500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1208"/>
+      <stop offset="50%" stop-color="#2d2010"/>
+      <stop offset="100%" stop-color="#3a2a1a"/>
+    </linearGradient>
+    <linearGradient id="imgGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c8a878"/>
+      <stop offset="100%" stop-color="#8a6840"/>
+    </linearGradient>
+    <clipPath id="imgClip"><rect x="900" y="40" width="460" height="420" rx="8"/></clipPath>
+  </defs>
+  <rect width="1440" height="500" fill="url(#bg)"/>
+  <!-- 배경 원형 장식 -->
+  <circle cx="200" cy="500" r="350" fill="#c8a060" fill-opacity="0.07"/>
+  <circle cx="1300" cy="0" r="250" fill="#8060a0" fill-opacity="0.05"/>
+  <!-- 우측 이미지 영역 -->
+  <rect x="900" y="40" width="460" height="420" rx="8" fill="url(#imgGrad)" clip-path="url(#imgClip)"/>
+  <rect x="900" y="40" width="460" height="420" rx="8" fill="rgba(0,0,0,0.15)"/>
+  <!-- 좌측 텍스트 -->
+  <text x="80" y="155" font-family="Arial, sans-serif" font-size="18" font-weight="400" fill="rgba(255,255,255,0.55)" letter-spacing="3">SPRING COLLECTION 2025</text>
+  <text x="80" y="235" font-family="Arial, sans-serif" font-size="62" font-weight="800" fill="#ffffff" letter-spacing="-1">봄의 시작,</text>
+  <text x="80" y="310" font-family="Arial, sans-serif" font-size="62" font-weight="800" fill="#FF8C5A" letter-spacing="-1">새로운 향</text>
+  <text x="80" y="375" font-family="Arial, sans-serif" font-size="18" fill="rgba(255,255,255,0.6)" letter-spacing="0.5">12년차 뷰티 MD가 직접 고른 봄 향수 컬렉션</text>
+  <!-- CTA 버튼 -->
+  <rect x="80" y="410" width="180" height="50" rx="25" fill="#FF5E4F"/>
+  <text x="170" y="441" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="white" text-anchor="middle">지금 보러가기 →</text>
+</svg>

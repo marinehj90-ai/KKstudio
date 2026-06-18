@@ -1488,8 +1488,36 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     Promise.all(allImages.map(({ url }) => loadImage(url))).then((imgs) => {
       const initAllLayers = {}
       const initAllHistory = {}
+      console.log('[ImageWorkflow] 초기화 시작', { selectedTemplateIds, activeTemplateId })
       selectedTemplateDetails.forEach((tmpl) => {
         const [w, h] = tmpl.size.split('\u00d7').map(Number)
+
+        // ── e5 전용 초기화 (이미지 업로드 불필요, 다른 템플릿과 함께 선택돼도 구조 유지) ──
+        if (tmpl.id === 'e5') {
+          const bgLayer = { id: 'background', type: 'background', color: '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
+          const bgTex   = { id: 'e5-bg-texture', name: 'Figma 배경 텍스처', type: 'image', src: '/assets/templates/e5/bg-texture.png', objectFit: 'cover', x: 0, y: 0, width: 1440, height: 1048, rotation: 0 }
+          const mainImg = { id: 'e5-main-image', name: '메인 상품 이미지', type: 'image', isUploadSlot: true, src: '/assets/templates/e5/main-image.png', objectFit: 'cover', x: 213, y: 87, width: 474, height: 760, borderRadius: 10, rotation: 0 }
+          const cardBox  = { id: 'e5-card-box',  name: '카드 텍스트 박스', type: 'rect', color: 'rgba(255,255,255,0.8)', x: 213, y: 847, width: 474, height: 114, borderRadius: 10, rotation: 0 }
+          const mdsStory = { id: 'e5-mds-story', name: "MD's STORY", type: 'text', text: "MD's STORY", x: 249, y: 876, width: 418, height: 26, fontSize: 22, fontWeight: '700', color: 'rgba(68,68,68,0.5)', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.44, lineHeight: 1.2, rotation: 0 }
+          const quote    = { id: 'e5-quote',     name: '카드 카피', type: 'text', text: '"상큼한 봄, 한 겹의 향을 더하는 데 집중"', x: 249, y: 904, width: 418, height: 30, fontSize: 22, fontWeight: '700', color: '#222222', fontFamily: 'Pretendard', align: 'center', letterSpacing: 0, lineHeight: 1.2, rotation: 0 }
+          const title1   = { id: 'e5-title-1',  name: '메인 타이틀 1', type: 'text', text: 'MD가 직접 고른', x: 756, y: 87, width: 533, height: 43, fontSize: 33, fontWeight: '600', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.66, lineHeight: 1.3, rotation: 0 }
+          const title2   = { id: 'e5-title-2',  name: '메인 타이틀 2', type: 'text', text: '나의 봄 향수', x: 756, y: 132, width: 533, height: 59, fontSize: 45, fontWeight: '800', color: '#FF5E4F', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.9, lineHeight: 1.3, rotation: 0 }
+          const subtitle = { id: 'e5-subtitle', name: '서브 타이틀', type: 'text', text: '12년차 뷰티 MD가 봄철 환절기에 직접 써본 후 골라낸 향수.\n제품 설명서가 아니라, 사용기에 가까운 리스트입니다.', x: 756, y: 209, width: 533, height: 84, fontSize: 20, fontWeight: '400', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.4, lineHeight: 1.42, opacity: 0.8, rotation: 0 }
+          const productRows = [306, 442, 578, 714, 850].flatMap((iy, i) => {
+            const n = i + 1
+            return [
+              { id: `e5-thumb-${n}`,  name: `상품 썸네일 ${n}`, type: 'image', isUploadSlot: true, src: '/assets/templates/e5/thumb.png', objectFit: 'cover', x: 756, y: iy, width: 106, height: 106, borderRadius: 10, rotation: 0 },
+              { id: `e5-pname-${n}`,  name: `상품명 ${n}`, type: 'text', text: '워터뱅크 블루\n하이알루로닉 크림 50ml', x: 888, y: iy, width: 379, height: 59, fontSize: 21, fontWeight: '700', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.42, lineHeight: 1.4, opacity: 0.8, rotation: 0 },
+              { id: `e5-pdesc-${n}`,  name: `상품 설명 ${n}`, type: 'text', text: '12년차 뷰티 MD가 봄철 환절기에 직접 써본', x: 888, y: iy + 76, width: 379, height: 29, fontSize: 20, fontWeight: '400', color: '#000000', fontFamily: 'Pretendard', align: 'left', letterSpacing: -0.4, lineHeight: 1.42, opacity: 0.8, rotation: 0 },
+              ...(n < 5 ? [{ id: `e5-line-${n}`, name: `구분선 ${n}`, type: 'rect', color: '#D4D4D4', x: 756, y: iy + 121, width: 511, height: 1, rotation: 0 }] : []),
+            ]
+          })
+          const e5init = [bgLayer, bgTex, mainImg, cardBox, mdsStory, quote, title1, title2, subtitle, ...productRows]
+          initAllLayers[tmpl.id] = e5init
+          initAllHistory[tmpl.id] = { history: [JSON.parse(JSON.stringify(e5init))], index: 0 }
+          return // forEach early-return: 이미지 기반 레이어 처리 스킵
+        }
+
         // 배경색 레이어 (최하단)
         const bgLayer = { id: 'background', type: 'background', color: (tmpl.id === 'b1' || tmpl.id === 'b2') ? '#777777' : tmpl.id === 'b12' ? '#F3F3F3' : '#ffffff', x: 0, y: 0, width: w, height: h, rotation: 0 }
         // b4 전용 레이아웃 상수는 파일 상단 전역 상수 사용

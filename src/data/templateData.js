@@ -37,7 +37,7 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #FFD58A 0%, #F6A23A 55%, #F15A24 100%)',
     templates: [
-      { id: 'b10', name: '메인 팝업 공지', size: '750×560', device: '공통', preview: PV_WARM },
+      { id: 'b10', name: '메인 팝업 공지', size: '750×560', device: '공통', preview: PV_WARM, previewImage: '/assets/templates/previews/main-notice-popup.jpg' },
     ],
   },
   {
@@ -50,8 +50,8 @@ export const templateGroups = [
     gradient: 'linear-gradient(135deg, #FFD58A 0%, #F6A23A 55%, #F15A24 100%)',
     templates: [
       { id: 'b8',  name: '브랜드 필수배너 (로고)',           size: '320×120',  device: '공통', preview: PV_DEEP, previewImage: '/assets/templates/previews/brand-logo-ferragamo-preview.png', invertPreview: true, singleSelectOnly: true },
-      { id: 'b9',  name: '브랜드 필수배너 이미지 (정사각)', size: '750×750',  device: '공통', preview: PV_STD  },
-      { id: 'b9r', name: '브랜드 필수배너 이미지 (직사각)', size: '1000×600', device: '공통', preview: PV_WARM },
+      { id: 'b9',  name: '브랜드 필수배너 이미지 (정사각)', size: '750×750',  device: '공통', preview: PV_STD, previewImage: '/assets/templates/previews/brand-home-square-750x750.jpg' },
+      { id: 'b9r', name: '브랜드 필수배너 이미지 (직사각)', size: '1000×600', device: '공통', preview: PV_WARM, previewImage: '/assets/templates/previews/brand-home-rectangle-1000x600.jpg' },
     ],
   },
   {
@@ -63,8 +63,8 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #FFD58A 0%, #F6A23A 55%, #F15A24 100%)',
     templates: [
-      { id: 'p1', name: '상품 대표이미지', size: '1500×1500', device: '공통', preview: PV_RICH },
-      { id: 'p2', name: 'GWP 대표이미지', size: '1500×1500', device: '공통', preview: PV_DEEP },
+      { id: 'p1', name: '상품 대표이미지', size: '1500×1500', device: '공통', preview: PV_RICH, previewImage: '/assets/templates/previews/product-main-image-1500.jpg' },
+      { id: 'p2', name: 'GWP 대표이미지', size: '1500×1500', device: '공통', preview: PV_DEEP, previewImage: '/assets/templates/previews/gwp-main-image-1500.jpg' },
     ],
   },
   {

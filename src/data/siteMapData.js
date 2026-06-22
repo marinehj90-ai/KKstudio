@@ -1,6 +1,35 @@
 // 신세계면세점 사이트 영역별 배너 배치 정보
 // pos: 가이드 이미지 기준 % 위치값 (미세조정 필요 시 수정)
 
+// PC > 기획전 탭 — Figma node 6430-2751 전체 프레임 export (1440×5780)
+export const pcExhibitionConfig = {
+  image: '/guide/pc-exhibition-map.png',
+  pxFrame: { width: 1440, height: 5780 },
+  label: 'PC 기획전',
+  zones: [
+    {
+      id: 'pc-exhibition-top-visual',
+      code: 'E1',
+      name: '기획전 상단 비주얼',
+      size: '1440×500',
+      templateId: 'e1',
+      color: '#F15A24',
+      // Figma 6430:2764 "Frame 1" — x:0, y:264, w:1440, h:512
+      pos: { top: 264, left: 0, width: 1440, height: 512 },
+    },
+    {
+      id: 'pc-exhibition-md-recommend',
+      code: 'E5',
+      name: '기획전 MD추천 모듈',
+      size: '1440×1048',
+      templateId: 'e5',
+      color: '#3B82F6',
+      // Figma 6430:2781 "BG" — x:0, y:852, w:1440, h:1048
+      pos: { top: 852, left: 0, width: 1440, height: 1048 },
+    },
+  ],
+}
+
 export const siteMapConfig = {
   PC: {
     image: '/guide/pc-main.webp',

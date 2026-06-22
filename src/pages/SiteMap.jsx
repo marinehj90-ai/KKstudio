@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Monitor, Smartphone, AppWindow, X, ArrowRight, MapPin } from 'lucide-react'
-import { siteMapConfig } from '../data/siteMapData'
+import { siteMapConfig, pcExhibitionConfig } from '../data/siteMapData'
 import { templateGroups } from '../data/templateData'
 
 const allTemplates = templateGroups.flatMap((g) => g.templates)
@@ -14,10 +14,11 @@ const PLATFORM_TABS = [
 
 const SUB_TABS = {
   PC:  [
-    { id: 'main',    label: '메인',   active: true },
-    { id: 'beauty',  label: '뷰티',   active: false },
-    { id: 'fashion', label: '패션',   active: false },
-    { id: 'luxury',  label: '럭셔리', active: false },
+    { id: 'main',       label: '메인',   active: true },
+    { id: 'exhibition', label: '기획전', active: true },
+    { id: 'beauty',     label: '뷰티',   active: false },
+    { id: 'fashion',    label: '패션',   active: false },
+    { id: 'luxury',     label: '럭셔리', active: false },
   ],
   MO:  [
     { id: 'main',    label: '메인',   active: true },
@@ -34,10 +35,14 @@ const SUB_TABS = {
 export default function SiteMap() {
   const navigate = useNavigate()
   const [platform, setPlatform] = useState('PC')
+  const [selectedSubTab, setSelectedSubTab] = useState('main')
   const [selectedZone, setSelectedZone] = useState(null)
   const [hoveredZone, setHoveredZone] = useState(null)
 
-  const config = siteMapConfig[platform]
+  const config =
+    platform === 'PC' && selectedSubTab === 'exhibition'
+      ? pcExhibitionConfig
+      : siteMapConfig[platform]
   const isComingSoon = SUB_TABS[platform].every((t) => !t.active)
 
   const handleCreate = (zone) => {
@@ -67,7 +72,7 @@ export default function SiteMap() {
           {PLATFORM_TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => { setPlatform(id); setSelectedZone(null) }}
+              onClick={() => { setPlatform(id); setSelectedSubTab('main'); setSelectedZone(null) }}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
               style={
                 platform === id
@@ -97,13 +102,18 @@ export default function SiteMap() {
         <div className="flex gap-1.5 mb-5">
           {SUB_TABS[platform].map(({ id, label, active }) =>
             active ? (
-              <span
+              <button
                 key={id}
-                className="px-4 py-1.5 rounded-lg text-sm font-semibold"
-                style={{ background: 'rgba(233,78,27,0.10)', color: '#F15A24', border: '1px solid rgba(233,78,27,0.25)' }}
+                onClick={() => { setSelectedSubTab(id); setSelectedZone(null) }}
+                className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
+                style={
+                  selectedSubTab === id
+                    ? { background: 'rgba(233,78,27,0.10)', color: '#F15A24', border: '1px solid rgba(233,78,27,0.25)' }
+                    : { background: '#fff', color: '#6b7280', border: '1px solid #e5e7eb' }
+                }
               >
                 {label}
-              </span>
+              </button>
             ) : (
               <span
                 key={id}

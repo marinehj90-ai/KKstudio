@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Download, ChevronUp, ChevronDown, Copy, Trash2, Undo2, Redo2,
   AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, RotateCw } from 'lucide-react'
+import { toPng, toJpeg } from 'html-to-image'
 
 // ── 상수 ──────────────────────────────────────────────────────
 const DW = 375
@@ -364,7 +365,16 @@ function getRawModuleLayout(mod) {
 function getModuleLayout(mod) {
   const raw = getRawModuleLayout(mod)
   const deleted = new Set(mod._deletedLayerIds || [])
-  return { ...raw, layers: raw.layers.filter(l => !deleted.has(l.id)).concat(mod._extraLayers || []) }
+  let layers = raw.layers.filter(l => !deleted.has(l.id))
+  let h = raw.h
+  if (mod._customH && mod._customH !== raw.h) {
+    h = mod._customH
+    // 배경 레이어만 높이에 맞게 늘림 (텍스트/이미지/도형은 유지)
+    layers = layers.map(l =>
+      (l.role === 'background' || l.id === 'bg' || l.id === 'bg_rect') ? { ...l, h } : l
+    )
+  }
+  return { h, layers: layers.concat(mod._extraLayers || []) }
 }
 
 // ── 색상 hex 변환 ──────────────────────────────────────────────
@@ -869,9 +879,20 @@ export default function CouponEditor({ onBack }) {
   const [canRedo, setCanRedo] = useState(false)
   const [addHint, setAddHint] = useState('')
 
+  const [dlFormat, setDlFormat] = useState('PNG')    // PNG | JPG | PDF
+  const [dlScale,  setDlScale]  = useState('x1')     // x1=등록용750px | x2=고화질1500px — 기본 등록용 750px
+  const [dlDropOpen, setDlDropOpen] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)  // export 중 선택 UI 숨김
+  // 스마트 가이드: { modId, showV: bool, showH: bool } | null
+  const [snapGuide, setSnapGuide] = useState(null)
+
   const dragRef        = useRef(null)
   const addImgRef      = useRef(null)
   const resizeRef      = useRef(null)
+  const modResizeRef   = useRef(null)  // 조각 높이 하단 드래그
+  const modHInputRef   = useRef(null)  // 조각 높이 H 입력 ref
+  const canvasRef      = useRef(null)  // 실제 캔버스 모듈 영역
   const cropBoxResizeRef = useRef(null)
   const cropBoxMoveRef   = useRef(null)
   const cropModeRef      = useRef(null)
@@ -958,10 +979,39 @@ export default function CouponEditor({ onBack }) {
   }, []) // eslint-disable-line
 
   useEffect(() => {
+    const SNAP_THRESHOLD = 7
     const onMove = (e) => {
       if (!dragRef.current) return
-      const { key, startX, startY, origDx, origDy } = dragRef.current
-      setLayerOffsets(prev => ({ ...prev, [key]: { dx: origDx + (e.clientX - startX), dy: origDy + (e.clientY - startY) } }))
+      const { key, modId, layerId, startX, startY, origDx, origDy } = dragRef.current
+      let dx = origDx + (e.clientX - startX)
+      let dy = origDy + (e.clientY - startY)
+
+      // 스마트 가이드 / 스냅 계산
+      const mod = modulesRef.current.find(m => m.id === modId)
+      let showV = false, showH = false
+      if (mod && layerId) {
+        const { layers } = getModuleLayout(mod)
+        const layer = layers.find(l => l.id === layerId)
+        if (layer) {
+          const modW = DW
+          const { h: modH } = getModuleLayout(mod)
+          const modCX = modW / 2
+          const modCY = modH / 2
+          const lCX = layer.x + dx + layer.w / 2
+          const lCY = layer.y + dy + layer.h / 2
+          if (Math.abs(lCX - modCX) < SNAP_THRESHOLD) {
+            dx = modCX - layer.x - layer.w / 2
+            showV = true
+          }
+          if (Math.abs(lCY - modCY) < SNAP_THRESHOLD) {
+            dy = modCY - layer.y - layer.h / 2
+            showH = true
+          }
+        }
+      }
+
+      setLayerOffsets(prev => ({ ...prev, [key]: { dx, dy } }))
+      setSnapGuide(showV || showH ? { modId, showV, showH } : null)
     }
     const onUp = () => {
       if (!dragRef.current) return
@@ -971,6 +1021,7 @@ export default function CouponEditor({ onBack }) {
         pushHistory(snapModules, snapOffsets)
       }
       dragRef.current = null
+      setSnapGuide(null)
     }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
@@ -1022,6 +1073,12 @@ export default function CouponEditor({ onBack }) {
           cropModeRef.current = next; setCropMode(next)
         }
       }
+      // 조각 높이 하단 드래그
+      if (modResizeRef.current) {
+        const { modId, startY, origH } = modResizeRef.current
+        const newH = Math.max(50, Math.min(5000, origH + (e.clientY - startY)))
+        setModules(prev => prev.map(m => m.id === modId ? { ...m, _customH: newH } : m))
+      }
     }
     const onUp = () => {
       if (resizeRef.current) {
@@ -1030,6 +1087,12 @@ export default function CouponEditor({ onBack }) {
         const lay = mod?._extraLayers?.find(l => l.id === layerId)
         if (lay && (lay.w !== origW || lay.h !== origH)) pushHistory(snapModules, snapOffsets)
         resizeRef.current = null
+      }
+      if (modResizeRef.current) {
+        const { snapModules, snapOffsets, origH, modId } = modResizeRef.current
+        const mod = modulesRef.current.find(m => m.id === modId)
+        if (mod && (mod._customH || origH) !== origH) pushHistory(snapModules, snapOffsets)
+        modResizeRef.current = null
       }
       if (cropBoxResizeRef.current) cropBoxResizeRef.current = null
       if (cropBoxMoveRef.current) cropBoxMoveRef.current = null
@@ -1067,20 +1130,22 @@ export default function CouponEditor({ onBack }) {
 
   const handleLayerDown = (e, modId, layerId) => {
     if (editLayerId) return
-    // cropMode 중엔 선택 상태 변경 금지 (이미지 클릭이 crop 상태를 덮어쓰지 않도록)
+    // cropMode 중엔 선택 상태 변경 금지
     if (cropModeRef.current) return
     e.preventDefault()
-    setSelectedId(modId); setSelLayerId(layerId)
-    // draggable: false 레이어는 선택만, 드래그 추적 스킵
+    setSelectedId(modId)
+    // 배경 레이어 클릭 = 모듈 선택으로 처리 (selLayerId 유지 안 함)
     const mod = modulesRef.current.find(m => m.id === modId)
-    if (mod) {
-      const { layers } = getModuleLayout(mod)
-      const layer = layers.find(l => l.id === layerId)
-      if (layer?.draggable === false) return
+    const layer = mod ? getModuleLayout(mod).layers.find(l => l.id === layerId) : null
+    if (layer?.role === 'background') {
+      setSelLayerId(null)
+      return
     }
+    setSelLayerId(layerId)
+    if (layer?.draggable === false) return
     const key = `${modId}_${layerId}`
     const orig = layerOffsets[key] || { dx:0, dy:0 }
-    dragRef.current = { key, startX:e.clientX, startY:e.clientY, origDx:orig.dx, origDy:orig.dy, snapModules: modulesRef.current, snapOffsets: layerOffsetsRef.current }
+    dragRef.current = { key, modId, layerId, startX:e.clientX, startY:e.clientY, origDx:orig.dx, origDy:orig.dy, snapModules: modulesRef.current, snapOffsets: layerOffsetsRef.current }
   }
 
   const handleDbl = (modId, layerId) => {
@@ -1285,6 +1350,25 @@ export default function CouponEditor({ onBack }) {
     imgEl.src = url
   }
 
+  const changeModuleHeight = (modId, newH) => {
+    const clamped = Math.max(50, Math.min(5000, Math.round(newH)))
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    setModules(prev => prev.map(m => m.id === modId ? { ...m, _customH: clamped } : m))
+  }
+
+  const resetModuleHeight = (modId) => {
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    setModules(prev => prev.map(m => m.id === modId ? { ...m, _customH: undefined } : m))
+  }
+
+  const handleModResizeStart = (e, modId) => {
+    e.stopPropagation(); e.preventDefault()
+    const mod = modulesRef.current.find(m => m.id === modId)
+    if (!mod) return
+    const { h } = getModuleLayout(mod)
+    modResizeRef.current = { modId, startY: e.clientY, origH: h, snapModules: modulesRef.current, snapOffsets: layerOffsetsRef.current }
+  }
+
   const addModule = (type) => {
     pushHistory(modulesRef.current, layerOffsetsRef.current)
     const m = makeModule(type)
@@ -1422,6 +1506,70 @@ export default function CouponEditor({ onBack }) {
     setSelectedId(null); setSelLayerId(null); setEditLayerId(null)
   }
 
+  // 드롭다운 외부 클릭 닫기
+  useEffect(() => {
+    if (!dlDropOpen) return
+    const close = (e) => {
+      if (!e.target.closest('[data-dl-dropdown]')) setDlDropOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [dlDropOpen])
+
+  const handleCouponDownload = async () => {
+    if (isDownloading || dlFormat === 'PDF') return
+    setIsDownloading(true)
+    setDlDropOpen(false)
+    // isExporting → 선택 UI 숨김, React 리렌더 대기
+    setIsExporting(true)
+    await new Promise(r => setTimeout(r, 60))
+    try {
+      await document.fonts.ready
+      const el = canvasRef.current
+      if (!el) throw new Error('canvas ref missing')
+      // 등록용750px=pixelRatio:2, 고화질1500px=pixelRatio:4
+      const COUPON_DEFAULT_EXPORT_SCALE = 2
+      const pixelRatio = dlScale === 'x2' ? 4 : COUPON_DEFAULT_EXPORT_SCALE
+      const selectedSizeLabel = dlScale === 'x2' ? '고화질 1500px' : '등록용 750px'
+      const exportWidth  = 375 * pixelRatio
+      const exportHeight = el.offsetHeight * pixelRatio
+      console.log('[coupon download]', {
+        selectedSizeLabel, exportScale: pixelRatio, exportWidth, exportHeight,
+      })
+      if (!el.offsetWidth || !el.offsetHeight) throw new Error('canvas has no dimensions')
+      // 이미지 로딩 대기
+      const imgs = Array.from(el.querySelectorAll('img'))
+      await Promise.all(imgs.map(img =>
+        img.complete ? Promise.resolve()
+          : new Promise(r => { img.onload = r; img.onerror = r })
+      ))
+      const now = new Date()
+      const ds = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`
+      let dataUrl, ext
+      const baseOpts = { pixelRatio, backgroundColor: '#ffffff' }
+      if (dlFormat === 'JPG') {
+        dataUrl = await toJpeg(el, { ...baseOpts, quality: 0.95 })
+        ext = 'jpg'
+      } else {
+        dataUrl = await toPng(el, baseOpts)
+        ext = 'png'
+      }
+      // 빈 이미지 검증
+      const b64 = dataUrl.split(',')[1] || ''
+      if (b64.length < 1000) throw new Error('export result is empty')
+      const link = document.createElement('a')
+      link.download = `coupon-promotion-${ds}.${ext}`
+      link.href = dataUrl
+      link.click()
+    } catch (err) {
+      console.error('Download error:', err)
+      alert('다운로드 이미지 생성에 실패했습니다. 캔버스를 다시 확인해주세요.')
+    } finally {
+      setIsExporting(false)
+      setIsDownloading(false)
+    }
+  }
+
   const groups = [...new Set(MODULE_DEFS.map(d => d.group))]
 
   return (
@@ -1446,9 +1594,61 @@ export default function CouponEditor({ onBack }) {
         <div style={{ flex:1 }} />
         <span style={{ fontSize:14, fontWeight:700, color:'#1E2023' }}>쿠폰 프로모션 에디터</span>
         <div style={{ flex:1 }} />
-        <button style={{ padding:'6px 16px', borderRadius:8, border:'none', background:'#1E2023', color:'#fff', fontSize:13, fontFamily:ff, cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}>
-          <Download size={14} /> 다운로드
-        </button>
+        {/* 다운로드 드롭다운 */}
+        <div data-dl-dropdown style={{ position:'relative' }}>
+          <button
+            onClick={() => setDlDropOpen(o => !o)}
+            disabled={isDownloading}
+            style={{ padding:'8px 18px', borderRadius:10, border:'none', background:'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color:'#fff', fontSize:13, fontWeight:600, fontFamily:ff, cursor:isDownloading?'wait':'pointer', display:'flex', alignItems:'center', gap:6, opacity:isDownloading?0.7:1, transition:'opacity 0.15s' }}>
+            <Download size={14} />
+            {isDownloading ? '다운로드 중...' : '이미지 다운로드'}
+            <ChevronDown size={13} style={{ transform: dlDropOpen ? 'rotate(180deg)' : 'none', transition:'transform 0.15s' }} />
+          </button>
+          {dlDropOpen && !isDownloading && (
+            <div onClick={e => e.stopPropagation()} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'#fff', border:'1px solid #e5e7eb', borderRadius:14, boxShadow:'0 8px 32px rgba(0,0,0,0.15)', padding:16, zIndex:1000, width:220, fontFamily:ff }}>
+              <p style={{ fontSize:11, fontWeight:700, color:'#6b7280', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>파일 형식</p>
+              <div style={{ display:'flex', gap:6, marginBottom:12 }}>
+                {['JPG','PNG','PDF'].map(fmt => (
+                  <button key={fmt}
+                    onClick={() => fmt !== 'PDF' && setDlFormat(fmt)}
+                    style={{ flex:1, minWidth:0, padding:'7px 0', borderRadius:8, fontSize:12, fontWeight:600,
+                      border: dlFormat===fmt ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb',
+                      background: dlFormat===fmt ? '#FFF0E5' : '#fff',
+                      color: dlFormat===fmt ? '#D44117' : fmt==='PDF' ? '#d1d5db' : '#6b7280',
+                      cursor: fmt==='PDF' ? 'default' : 'pointer', fontFamily:ff }}>
+                    {fmt}
+                  </button>
+                ))}
+              </div>
+              {dlFormat !== 'PDF' && (
+                <>
+                  <p style={{ fontSize:11, fontWeight:700, color:'#6b7280', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.05em' }}>해상도</p>
+                  <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+                    {[{v:'x1',label:'등록용 750px'},{v:'x2',label:'고화질 1500px'}].map(({v,label}) => (
+                      <button key={v}
+                        onClick={() => setDlScale(v)}
+                        style={{ flex:1, padding:'7px 0', borderRadius:8, fontSize:11, fontWeight:600,
+                          border: dlScale===v ? '1.5px solid #F15A24' : '1.5px solid #e5e7eb',
+                          background: dlScale===v ? '#FFF0E5' : '#fff',
+                          color: dlScale===v ? '#D44117' : '#6b7280',
+                          cursor:'pointer', fontFamily:ff }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {dlFormat === 'PDF' && (
+                <p style={{ fontSize:11, color:'#F15A24', marginBottom:14, textAlign:'center' }}>준비 중입니다</p>
+              )}
+              <button
+                onClick={handleCouponDownload}
+                style={{ width:'100%', padding:'10px 0', borderRadius:10, border:'none', background:'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', color:'#fff', fontSize:13, fontWeight:700, cursor: dlFormat==='PDF' ? 'default':'pointer', fontFamily:ff, display:'flex', alignItems:'center', justifyContent:'center', gap:6, opacity: dlFormat==='PDF' ? 0.5:1 }}>
+                <Download size={14} /> 다운로드
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
@@ -1481,6 +1681,44 @@ export default function CouponEditor({ onBack }) {
               )
             })}
           </div>
+
+          {/* 조각 높이 패널 (module 선택, 레이어 미선택 상태) */}
+          {selectedMod && !selLayerId && (() => {
+            const curH = selModLayout ? selModLayout.h : 0
+            const rawH = selectedMod._customH ? getRawModuleLayout(selectedMod).h : curH
+            return (
+              <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>조각 높이</div>
+                <div style={{ display:'flex', gap:6, marginBottom:8 }}>
+                  <label style={{ flex:1, fontSize:11, color:'#666' }}>W
+                    <input type="number" value={DW} readOnly
+                      style={{ display:'block', width:'100%', marginTop:2, padding:'3px 6px', border:'1px solid #E4E6EA', borderRadius:4, fontSize:11, background:'#F8F9FA', color:'#aaa' }} />
+                  </label>
+                  <label style={{ flex:1, fontSize:11, color:'#666' }}>H
+                    <input ref={modHInputRef} type="number" min={50} max={5000}
+                      defaultValue={curH}
+                      key={`h-${selectedId}-${curH}`}
+                      style={{ display:'block', width:'100%', marginTop:2, padding:'3px 6px', border:'1px solid #E4E6EA', borderRadius:4, fontSize:11 }}
+                      onKeyDown={e => { if (e.key === 'Enter') { const v = Number(e.target.value); if (v >= 50 && v <= 5000) changeModuleHeight(selectedId, v) } }}
+                    />
+                  </label>
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <button
+                    onClick={() => { const v = Number(modHInputRef.current?.value); if (v >= 50 && v <= 5000) changeModuleHeight(selectedId, v) }}
+                    style={{ flex:2, padding:'4px 8px', fontSize:11, borderRadius:4, border:'none', background:'#2F80ED', color:'#fff', cursor:'pointer', fontWeight:600 }}>
+                    적용
+                  </button>
+                  {selectedMod._customH && (
+                    <button onClick={() => resetModuleHeight(selectedId)}
+                      style={{ flex:1, padding:'4px 8px', fontSize:11, borderRadius:4, border:'1px solid #E4E6EA', background:'#F8F9FA', color:'#666', cursor:'pointer' }}>
+                      초기화
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
 
           {/* 선택 객체 패널 */}
           {resolvedSelLayer && resolvedSelLayer.selectable && (
@@ -1669,32 +1907,33 @@ export default function CouponEditor({ onBack }) {
           style={{ flex:1, overflowY:'auto', display:'flex', justifyContent:'center', padding:'32px 0 200px' }}
           onClick={() => { if (cropMode || editLayerId) return; setSelLayerId(null) }}
         >
-          <div style={{ width:DW }}>
+          <div ref={canvasRef} style={{ width:DW }}>
             {modules.map(mod => {
-              const isSel = mod.id === selectedId
-              const isHov = !isSel && mod.id === hoveredModId
+              const isSel = !isExporting && mod.id === selectedId
+              const isHov = !isExporting && !isSel && mod.id === hoveredModId
               return (
                 <div key={mod.id}
-                  style={{ position:'relative', cursor:'pointer' }}
+                  style={{ position:'relative', cursor:'pointer',
+                    zIndex: isSel ? 2 : 'auto' }}
                   onMouseEnter={() => setHoveredModId(mod.id)}
                   onMouseLeave={() => setHoveredModId(null)}
                   onClick={e => { e.stopPropagation(); if (cropMode && cropMode.modId === mod.id) return; setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
                 >
-                  {/* 모듈 hover 오버레이 (dashed orange) */}
+                  {/* 모듈 hover 오버레이 — export 중 숨김 */}
                   {isHov && (
                     <div style={{ position:'absolute', inset:0, border:'1px dashed #F15A24', pointerEvents:'none', zIndex:200, boxSizing:'border-box' }} />
                   )}
-                  {/* 모듈 선택 오버레이 (solid orange 2px) */}
+                  {/* 모듈 선택 오버레이 — export 중 숨김 */}
                   {isSel && (
                     <div style={{ position:'absolute', inset:0, border:'2px solid #F15A24', pointerEvents:'none', zIndex:200, boxSizing:'border-box' }} />
                   )}
-                  {/* 조각 선택 라벨 */}
+                  {/* 조각 선택 라벨 — export 중 숨김 */}
                   {isSel && !selLayerId && (
                     <div style={{ position:'absolute', top:-20, left:0, zIndex:210, background:'#F15A24', color:'#fff', fontSize:9, padding:'2px 6px', borderRadius:'4px 4px 0 0', fontFamily:ff, pointerEvents:'none', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>
                       조각 선택 중
                     </div>
                   )}
-                  {/* 요소 편집 라벨 */}
+                  {/* 요소 편집 라벨 — export 중 숨김 */}
                   {isSel && selLayerId && (
                     <div style={{ position:'absolute', top:-20, left:0, zIndex:210, background:'#2F80ED', color:'#fff', fontSize:9, padding:'2px 6px', borderRadius:'4px 4px 0 0', fontFamily:ff, pointerEvents:'none', letterSpacing:'0.04em', whiteSpace:'nowrap' }}>
                       요소 편집 중
@@ -1702,8 +1941,8 @@ export default function CouponEditor({ onBack }) {
                   )}
                   <UniversalModuleView
                     mod={mod}
-                    selLayerId={isSel ? selLayerId : null}
-                    editLayerId={isSel ? editLayerId : null}
+                    selLayerId={isExporting ? null : (isSel ? selLayerId : null)}
+                    editLayerId={isExporting ? null : (isSel ? editLayerId : null)}
                     onBgClick={e => { e.stopPropagation(); if (cropMode && cropMode.modId === mod.id) return; setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
                     onLayerDown={handleLayerDown}
                     onDbl={handleDbl}
@@ -1713,9 +1952,9 @@ export default function CouponEditor({ onBack }) {
                     onUpdateMod={updateModule}
                     onCopyLayer={copyLayer}
                     onDeleteLayer={deleteLayer}
-                    cropMode={cropMode && cropMode.modId === mod.id ? cropMode : null}
-                    onResizeStart={handleResizeStart}
-                    onEnterCrop={(modId, layerId) => enterCropMode(modId, layerId)}
+                    cropMode={isExporting ? null : (cropMode && cropMode.modId === mod.id ? cropMode : null)}
+                    onResizeStart={isExporting ? null : handleResizeStart}
+                    onEnterCrop={isExporting ? null : (modId, layerId) => enterCropMode(modId, layerId)}
                     onApplyCrop={applyCrop}
                     onCancelCrop={cancelCrop}
                     onCropImageScaleChange={updateCropImageScale}
@@ -1723,6 +1962,47 @@ export default function CouponEditor({ onBack }) {
                     onStartCropBoxResize={startCropBoxResize}
                     onStartCropBoxMove={startCropBoxMove}
                   />
+                  {/* 스마트 가이드라인 — 드래그 중, export 제외 */}
+                  {!isExporting && isSel && selLayerId && !cropMode && snapGuide?.modId === mod.id && (() => {
+                    const { h: modH } = getModuleLayout(mod)
+                    return (
+                      <>
+                        {snapGuide.showV && (
+                          <div style={{ position:'absolute', left:DW/2, top:0, width:0, height:modH,
+                            borderLeft:'1px dashed #2F80ED', pointerEvents:'none', zIndex:300, transform:'translateX(-0.5px)' }} />
+                        )}
+                        {snapGuide.showH && (
+                          <div style={{ position:'absolute', left:0, top:modH/2, width:DW, height:0,
+                            borderTop:'1px dashed #2F80ED', pointerEvents:'none', zIndex:300, transform:'translateY(-0.5px)' }} />
+                        )}
+                      </>
+                    )
+                  })()}
+                  {/* 조각 높이 하단 드래그 핸들 — export 중 숨김 */}
+                  {isSel && !selLayerId && !cropMode && (
+                    <div
+                      title="드래그해서 조각 높이 조절"
+                      style={{
+                        position:'absolute', bottom:-6, left:'50%',
+                        transform:'translateX(-50%)',
+                        width:64, height:12, borderRadius:999,
+                        background:'#F15A24',
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.22)',
+                        cursor:'ns-resize', zIndex:500,
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        gap:3,
+                        pointerEvents:'all',
+                      }}
+                      onMouseDown={e => handleModResizeStart(e, mod.id)}
+                      onClick={e => e.stopPropagation()}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#E94E1B' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#F15A24' }}
+                    >
+                      {[0,1,2].map(i => (
+                        <div key={i} style={{ width:2, height:5, background:'rgba(255,255,255,0.7)', borderRadius:2 }} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             })}

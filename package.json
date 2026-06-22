@@ -23,6 +23,7 @@
   "homepage": "https://github.com/marinehj90-ai/KKstudio#readme",
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
+    "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "lucide-react": "^1.8.0",

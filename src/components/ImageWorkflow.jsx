@@ -1420,7 +1420,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       return
     }
     // e1: 이미지 없이도 텍스트 레이어 즉시 초기화
-    const e1EarlyTemplates = selectedTemplateDetails.filter(t => t.id === 'e1' && !allLayers[t.id]?.length)
+    const e1EarlyTemplates = selectedTemplateDetails.filter(t => (t.id === 'e1' || t.id === 'ev1') && !allLayers[t.id]?.length)
     if (e1EarlyTemplates.length > 0) {
       const earlyInit = {}
       const earlyHistoryInit = {}
@@ -1440,7 +1440,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setAllHistory(prev => ({ ...prev, ...earlyHistoryInit }))
     }
     // e2: 이미지 없이도 기본 레이어 즉시 초기화 (Figma 6861-2359, 1000×512→1000×500)
-    const e2EarlyTemplates = selectedTemplateDetails.filter(t => t.id === 'e2' && !allLayers[t.id]?.length)
+    const e2EarlyTemplates = selectedTemplateDetails.filter(t => (t.id === 'e2' || t.id === 'ev2') && !allLayers[t.id]?.length)
     if (e2EarlyTemplates.length > 0) {
       const earlyInit = {}
       const earlyHistoryInit = {}
@@ -1462,7 +1462,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
       setAllHistory(prev => ({ ...prev, ...earlyHistoryInit }))
     }
     // e3: 이미지 없이도 기본 레이어 즉시 초기화 (Figma 6863-2665, 750×500)
-    const e3EarlyTemplates = selectedTemplateDetails.filter(t => t.id === 'e3' && !allLayers[t.id]?.length)
+    const e3EarlyTemplates = selectedTemplateDetails.filter(t => (t.id === 'e3' || t.id === 'ev3') && !allLayers[t.id]?.length)
     if (e3EarlyTemplates.length > 0) {
       const earlyInit = {}
       const earlyHistoryInit = {}
@@ -1555,14 +1555,14 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgH = Math.round(w / ratio)
             imgX = 0
             imgY = Math.round((h - imgH) / 2)
-          } else if (tmpl.id === 'e1') {
+          } else if (tmpl.id === 'e1' || tmpl.id === 'ev1') {
             // height 500 기준 fit, 비율 유지, 가로 중앙 정렬
             const ratio = img.naturalWidth / img.naturalHeight
             imgH = h
             imgW = Math.round(h * ratio)
             imgX = Math.round((w - imgW) / 2)
             imgY = 0
-          } else if (tmpl.id === 'e2') {
+          } else if (tmpl.id === 'e2' || tmpl.id === 'ev2') {
             // 우측 이미지 영역 (x=516, w=484) 기준, 높이 캔버스에 맞춤
             const E2_IMG_X = 516
             const E2_IMG_W = w - E2_IMG_X  // 484
@@ -1571,7 +1571,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
             imgW = Math.round(h * ratio)
             imgX = E2_IMG_X + Math.round((E2_IMG_W - imgW) / 2)
             imgY = 0
-          } else if (tmpl.id === 'e3') {
+          } else if (tmpl.id === 'e3' || tmpl.id === 'ev3') {
             // 우측 이미지 영역 (x=499, w=251) 기준, 높이 캔버스에 맞춤
             const E3_IMG_X = 499
             const E3_IMG_W = w - E3_IMG_X  // 251
@@ -1699,20 +1699,20 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         })() : []
 
         // e1 레퍼런스 + 텍스트 레이어 (Figma 5869:7386 기준, 캔버스 1440×500)
-        const e1RefLayer = tmpl.id === 'e1'
+        const e1RefLayer = (tmpl.id === 'e1' || tmpl.id === 'ev1')
           ? [{ id: 'e1-ref', name: '예시 이미지', type: 'image', src: '/guide/e1-reference.jpg', x: 0, y: 0, width: w, height: h, rotation: 0, opacity: 0.90, isReference: true }]
           : []
-        const e1TextLayers = tmpl.id === 'e1' ? [
+        const e1TextLayers = (tmpl.id === 'e1' || tmpl.id === 'ev1') ? [
           { id: 'e1-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 216, y: 163, width: 401, height: 114, rotation: 0, fontSize: 44, fontWeight: '700', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.3 },
           { id: 'e1-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드 에디션 런칭',          x: 216, y: 301, width: 334, height: 36,  rotation: 0, fontSize: 24,  fontWeight: '500', color: '#ffffff', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: 1.5 },
         ] : []
 
         // e2 기본 레이어 (Figma 6861-2359, 1000×512→캔버스 높이 기준)
         const e2BgImgLayer = []
-        const e2ObjectLayer = tmpl.id === 'e2'
+        const e2ObjectLayer = (tmpl.id === 'e2' || tmpl.id === 'ev2')
           ? [{ id: 'e2-object', name: '메인 오브제', type: 'image', src: '/guide/e2-object-fd4a39.png', x: -150, y: Math.round(-220 * h / 512), width: 1667, height: Math.round(758 * h / 512), rotation: 0 }]
           : []
-        const e2TextLayers = tmpl.id === 'e2' ? (() => {
+        const e2TextLayers = (tmpl.id === 'e2' || tmpl.id === 'ev2') ? (() => {
           const mainH = Math.round(44 * 1.3 * 2)
           const mainY = Math.round(169 * h / 512)
           return [
@@ -1723,8 +1723,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
         // e3 기본 레이어 (Figma 6863-2665, 750×500 — 좌표 1:1 대응)
         const e3BgImgLayer  = []
-        const e3ObjectLayer = tmpl.id === 'e3' ? [{ id: 'e3-object', name: '메인 오브제', type: 'image', src: '/guide/e2-object-fd4a39.png', x: -158, y: -96, width: 1313, height: 597, rotation: 0 }] : []
-        const e3TextLayers  = tmpl.id === 'e3' ? [
+        const e3ObjectLayer = (tmpl.id === 'e3' || tmpl.id === 'ev3') ? [{ id: 'e3-object', name: '메인 오브제', type: 'image', src: '/guide/e2-object-fd4a39.png', x: -158, y: -96, width: 1313, height: 597, rotation: 0 }] : []
+        const e3TextLayers  = (tmpl.id === 'e3' || tmpl.id === 'ev3') ? [
           { id: 'e3-main-title', name: '메인 타이틀', type: 'text', text: '연인을 위한\n샤넬 기프트 제안',    x: 54, y: 138, width: 401, height: 127, rotation: 0, fontSize: 50, fontWeight: '700', color: '#ffffff',              fontFamily: 'Pretendard', align: 'left', letterSpacing: -1, lineHeight: 1.21 },
           { id: 'e3-sub-title',  name: '서브 타이틀',  type: 'text', text: '홀리데이 리미티드\n에디션 런칭', x: 54, y: 289, width: 236, height: 85,  rotation: 0, fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.8)', fontFamily: 'Pretendard', align: 'left', letterSpacing: 0,  lineHeight: 1.3  },
         ] : []
@@ -2958,7 +2958,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && currentTemplateId !== 'e5' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && currentTemplateId !== 'ev2' && currentTemplateId !== 'ev3' && currentTemplateId !== 'e5' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -4064,11 +4064,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     )}
 
                     {/* 기획전 상단 비주얼 (PC) e2 가이드 오버레이 */}
-                    {showGuide && !isLogoTab && currentTemplateId === 'e2' && (
+                    {showGuide && !isLogoTab && (currentTemplateId === 'e2' || currentTemplateId === 'ev2') && (
                       <TemplateGuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
-                    {/* 기획전 상단 비주얼 (MO) e3 가이드 오버레이 */}
-                    {showGuide && !isLogoTab && currentTemplateId === 'e3' && (
+                    {/* 기획전/이벤트 상단 비주얼 (MO) e3/ev3 가이드 오버레이 */}
+                    {showGuide && !isLogoTab && (currentTemplateId === 'e3' || currentTemplateId === 'ev3') && (
                       <E3GuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}
                     {showGuide && !isLogoTab && currentTemplateId === 'e5' && (

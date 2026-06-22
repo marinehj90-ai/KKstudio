@@ -91,10 +91,10 @@ export const templateGroups = [
     dark: '#D44117',
     gradient: 'linear-gradient(135deg, #FFD58A 0%, #F6A23A 55%, #F15A24 100%)',
     templates: [
-      { id: 'ev1', name: '이벤트 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC',   preview: PV_WARM, heightResizable: true },
-      { id: 'ev2', name: '이벤트 상단 비주얼 (PC)',       size: '1000×500', device: 'PC',   preview: PV_STD,  heightResizable: true },
-      { id: 'ev3', name: '이벤트 상단 비주얼 (MO)',       size: '750×500',  device: 'MO',   preview: PV_RICH, heightResizable: true },
-      { id: 'ev4', name: '제휴 이벤트 공통 배너',         size: '750×750',  device: '공통', preview: PV_DEEP, heightResizable: true },
+      { id: 'ev5', name: '쿠폰 프로모션', size: '750×가변', device: 'MO', preview: PV_WARM, singleSelectOnly: true, editorMode: 'coupon', previewImage: '/assets/templates/previews/coupon-promotion-preview.png' },
+      { id: 'ev1', name: '이벤트 상단 비주얼 (PC와이드)', size: '1440×500', device: 'PC', preview: PV_DEEP, heightResizable: true },
+      { id: 'ev2', name: '이벤트 상단 비주얼 (PC)',       size: '1000×500', device: 'PC', preview: PV_STD,  heightResizable: true, previewImage: '/assets/templates/previews/e2-preview.png' },
+      { id: 'ev3', name: '이벤트 상단 비주얼 (MO)',       size: '750×500',  device: 'MO', preview: PV_RICH, heightResizable: true, previewImage: '/assets/templates/previews/e3-preview.png' },
     ],
   },
 ]

@@ -23,6 +23,28 @@ const PREVIEW_LAYERS = {
     { type: 'text', text: '연인을 위한\n샤넬 기프트 제안', x: 54, y: 138, width: 401, fontSize: 50, fontWeight: '700', color: '#ffffff', lineHeight: 1.21, letterSpacing: -1 },
     { type: 'text', text: '홀리데이 리미티드\n에디션 런칭', x: 54, y: 289, width: 236, fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 },
   ],
+  ev1: (w, h) => [
+    { type: 'background', color: '#ffffff' },
+    { type: 'image', src: '/guide/e1-reference.jpg', x: 0, y: 0, width: w, height: h, objectFit: 'cover', opacity: 0.9 },
+    { type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 216, y: 163, width: 401, fontSize: 44, fontWeight: '700', color: '#ffffff', lineHeight: 1.3, letterSpacing: -1 },
+    { type: 'text', text: '홀리데이 리미티드 에디션 런칭', x: 216, y: 301, width: 334, fontSize: 24, fontWeight: '500', color: '#ffffff', lineHeight: 1.5 },
+  ],
+  ev2: (w, h) => {
+    const mainH = Math.round(44 * 1.3 * 2)
+    const mainY = Math.round(169 * h / 512)
+    return [
+      { type: 'background', color: '#F6F1EA' },
+      { type: 'image', src: '/guide/e2-object-fd4a39.png', x: -150, y: Math.round(-220 * h / 512), width: 1667, height: Math.round(758 * h / 512), objectFit: 'fill' },
+      { type: 'text', text: '연인을 위한 싱그러움\n샤넬이 제안하는 기프트', x: 71, y: mainY, width: 445, fontSize: 44, fontWeight: '700', color: '#ffffff', lineHeight: 1.3, letterSpacing: -1 },
+      { type: 'text', text: '홀리데이 리미티드 에디션 런칭', x: 71, y: mainY + mainH + 24, width: 445, fontSize: 28, fontWeight: '700', color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 },
+    ]
+  },
+  ev3: (w, h) => [
+    { type: 'background', color: '#F6F1EA' },
+    { type: 'image', src: '/guide/e2-object-fd4a39.png', x: -158, y: -96, width: 1313, height: 597, objectFit: 'fill' },
+    { type: 'text', text: '연인을 위한\n샤넬 기프트 제안', x: 54, y: 138, width: 401, fontSize: 50, fontWeight: '700', color: '#ffffff', lineHeight: 1.21, letterSpacing: -1 },
+    { type: 'text', text: '홀리데이 리미티드\n에디션 런칭', x: 54, y: 289, width: 236, fontSize: 30, fontWeight: '700', color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 },
+  ],
   e5: (w, h) => {
     const productRows = [306, 442, 578, 714, 850].flatMap((iy, n) => [
       { type: 'image', src: '/assets/templates/e5/thumb.png', x: 756, y: iy, width: 106, height: 106, objectFit: 'cover', borderRadius: 10 },

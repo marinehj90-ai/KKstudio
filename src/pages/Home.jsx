@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { templateGroups as _templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
+import CouponEditor from '../components/CouponEditor'
 import { TemplateCardPreview, PREVIEW_LAYERS } from '../components/TemplateCardPreview'
 
 const GROUP_ORDER = ['banner', 'brand', 'exhibition', 'event', 'product', 'notice']
@@ -41,7 +42,7 @@ export default function Home() {
       if (prev.includes(id)) return prev.filter((t) => t !== id)
       const prevGroup = templateGroups.find(g => g.templates.some(t => t.id === prev[0]))
       if (prev.length > 0 && prevGroup?.id !== targetGroup?.id) return [id]
-      const SOLO_IDS = ['b10', 'b8', 'e5']
+      const SOLO_IDS = ['b10', 'b8', 'e5', 'ev5']
       if (SOLO_IDS.includes(id) && prev.length > 0) return [id]
       if (prev.some(p => SOLO_IDS.includes(p))) return [id]
       return [...prev, id]
@@ -57,8 +58,12 @@ export default function Home() {
     return matchSearch && matchDevice
   })
 
-  // 스텝 1: ImageWorkflow
+  // 스텝 1: 에디터
   if (step === 1) {
+    // 쿠폰 프로모션 전용 에디터
+    if (selectedTemplates.includes('ev5')) {
+      return <CouponEditor onBack={() => setStep(0)} />
+    }
     return (
       <div className="min-h-screen">
         <ImageWorkflow
@@ -278,7 +283,7 @@ export default function Home() {
           <div className="sticky bottom-6 flex justify-center">
             <button
               onClick={() => {
-                const SOLO_IDS = ['b10', 'b8', 'e5']
+                const SOLO_IDS = ['b10', 'b8', 'e5', 'ev5']
                 const hasSolo = selectedTemplates.some(id => SOLO_IDS.includes(id))
                 if (hasSolo && selectedTemplates.length > 1) {
                   const soloId = selectedTemplates.find(id => SOLO_IDS.includes(id))

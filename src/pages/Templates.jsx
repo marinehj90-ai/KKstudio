@@ -48,6 +48,7 @@ function NavigationGuardModal({ onProceed, onCancel }) {
 }
 import { templateGroups } from '../data/templateData'
 import ImageWorkflow from '../components/ImageWorkflow'
+import CouponEditor from '../components/CouponEditor'
 
 const allTemplates = templateGroups.flatMap((g) => g.templates)
 
@@ -97,7 +98,7 @@ export default function Templates() {
   }
 
   const toggleTemplate = (id) => {
-    const SOLO_IDS = ['b10', 'b8', 'e5']
+    const SOLO_IDS = ['b10', 'b8', 'e5', 'ev5']
     setSelectedTemplates((prev) => {
       if (prev.includes(id)) return prev.filter((t) => t !== id)
       if (SOLO_IDS.includes(id) && prev.length > 0) return [id]
@@ -115,6 +116,9 @@ export default function Templates() {
   const Icon = activeGroup.icon
 
   if (step === 1) {
+    if (selectedTemplates.includes('ev5')) {
+      return <CouponEditor onBack={() => setStep(0)} />
+    }
     return (
       <div className="min-h-screen">
         {pendingNavigation && (
@@ -336,7 +340,7 @@ export default function Templates() {
           <button
             onClick={() => {
               // 방어: singleSelectOnly 템플릿이 포함된 경우 반드시 단독 선택
-              const SOLO_IDS = ['b10', 'b8', 'e5']
+              const SOLO_IDS = ['b10', 'b8', 'e5', 'ev5']
               const hasSolo = selectedTemplates.some(id => SOLO_IDS.includes(id))
               if (hasSolo && selectedTemplates.length > 1) {
                 const soloId = selectedTemplates.find(id => SOLO_IDS.includes(id))

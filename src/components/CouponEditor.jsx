@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, Download, ChevronUp, ChevronDown, Copy, Trash2, Undo2, Redo2 } from 'lucide-react'
+import { ArrowLeft, Download, ChevronUp, ChevronDown, Copy, Trash2, Undo2, Redo2,
+  AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, RotateCw } from 'lucide-react'
 
 // ── 상수 ──────────────────────────────────────────────────────
 const DW = 375
@@ -163,7 +164,7 @@ function buildCouponUnitLayers(pfx, data, cpColor, x0, y0, couponPath) {
 function getCouponLayout(mod) {
   const cpColor = mod.couponColor || '#000000'
   const bgH = mod.type === 'coupon_3' ? 453 : mod.type === 'coupon_2' ? 314 : 175
-  const ls = [{ id: 'bg', type: 'shape', selectable: false, x: 0, y: 0, w: DW, h: bgH, fill: mod.bg || BG.white, dataKey: null }]
+  const ls = [{ id: 'bg', type: 'shape', selectable: true, draggable: false, role: 'background', x: 0, y: 0, w: DW, h: bgH, fill: mod.bg || BG.white, dataKey: null }]
   if (mod.type === 'coupon_1a' || mod.type === 'coupon_1b' || mod.type === 'coupon_1c') {
     ls.push(...buildCouponUnitLayers('c', mod, cpColor, L_CX, L_CY, null))
   } else if (mod.type === 'coupon_2') {
@@ -180,7 +181,7 @@ function getRawModuleLayout(mod) {
   const T  = (id, opts) => ({ id, type: 'text',  selectable: true,  ...opts })
   const S  = (id, opts) => ({ id, type: 'shape', selectable: true,  ...opts })
   const I  = (id, opts) => ({ id, type: 'image', selectable: true,  ...opts })
-  const bg = (fill, h) => ({ id: 'bg', type: 'shape', selectable: false, x: 0, y: 0, w: DW, h, fill })
+  const bg = (fill, h) => ({ id: 'bg', type: 'shape', selectable: true, draggable: false, role: 'background', x: 0, y: 0, w: DW, h, fill })
   const ao = (id, opts) => applyAo(id, opts, mod)
 
   switch (mod.type) {
@@ -376,7 +377,7 @@ function toHex(color) {
 }
 
 // ── 플로팅 툴바 ───────────────────────────────────────────────
-function FloatingToolbar({ layer, mod, onUpdateMod, onCopyLayer, onDeleteLayer }) {
+function FloatingToolbar({ layer, mod, onUpdateMod, onCopyLayer, onDeleteLayer, onEnterCrop }) {
   const fileRef = useRef(null)
   const toolbarH = 40
   const top  = (layer.y - toolbarH - 8) < 0 ? layer.y + layer.h + 8 : layer.y - toolbarH - 8
@@ -435,11 +436,36 @@ function FloatingToolbar({ layer, mod, onUpdateMod, onCopyLayer, onDeleteLayer }
           style={{ padding:'3px 10px', borderRadius:4, border:'none', background:'#4299E1', color:'#fff', fontSize:11, fontFamily:ff, cursor:'pointer' }}>
           이미지 교체
         </button>
-        <input ref={fileRef} type="file" accept="image/*" style={{ display:'none' }}
+        {onEnterCrop && (
+          <button onClick={onEnterCrop}
+            style={{ padding:'3px 10px', borderRadius:4, border:'none', background:'#3a3d42', color:'#ddd', fontSize:11, fontFamily:ff, cursor:'pointer' }}>
+            ✂ 크롭
+          </button>
+        )}
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png" style={{ display:'none' }}
           onChange={e => {
             const file = e.target.files?.[0]
             if (!file) return
-            onUpdateMod(getLayerUpdatePatch(mod, layer, URL.createObjectURL(file)))
+            e.target.value = ''
+            const url = URL.createObjectURL(file)
+            if (!layer.dataKey) {
+              // 사용자 추가 이미지: 자연 크기 계산 후 contain으로 교체
+              const imgEl = new window.Image()
+              imgEl.onload = () => {
+                const maxW = DW * 0.75
+                const ratio = imgEl.naturalWidth / imgEl.naturalHeight
+                let w = Math.min(imgEl.naturalWidth, maxW)
+                let h = Math.round(w / ratio)
+                onUpdateMod({ _extraLayers: (mod._extraLayers || []).map(l =>
+                  l.id === layer.id ? { ...l, value: url, w, h, objectFit: 'contain',
+                    naturalWidth: imgEl.naturalWidth, naturalHeight: imgEl.naturalHeight } : l
+                )})
+              }
+              imgEl.src = url
+            } else {
+              // 템플릿 슬롯: 기존 동작 유지
+              onUpdateMod(getLayerUpdatePatch(mod, layer, url))
+            }
           }} />
         {copyDeleteBtns}
       </div>
@@ -477,40 +503,128 @@ function LayerEl({ layer, isSelected, isEditing, offset = { dx:0, dy:0 }, onDown
   const base = {
     position:'absolute', left:x, top:y, width:layer.w, height:layer.h,
     boxSizing:'border-box', userSelect:'none',
-    cursor: layer.selectable ? (isSelected ? 'grab' : 'pointer') : 'default',
+    cursor: layer.selectable ? (layer.draggable === false ? 'pointer' : (isSelected ? 'grab' : 'pointer')) : 'default',
   }
 
   if (layer.type === 'dot') {
     return <div style={{ position:'absolute', left:layer.x, top:layer.y, width:0, height:layer.h, borderLeft:'1px dashed rgba(255,255,255,0.65)' }} />
   }
   if (layer.type === 'shape') {
+    const rot = layer.rotation ? `rotate(${layer.rotation}deg)` : undefined
+    const st = layer.shapeType
+    let bg = layer.fill || '#ccc'
+    let bdRadius = layer.borderRadius || 0
+    let shapeEl = null
+    if (st === 'ellipse') { bdRadius = '50%' }
+    else if (st === 'arrow') {
+      bg = 'transparent'
+      shapeEl = (
+        <svg width="100%" height="100%" style={{ position:'absolute', inset:0, overflow:'visible' }}>
+          <defs>
+            <marker id={`arh-${layer.id}`} markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto">
+              <polygon points="0 0, 8 3.5, 0 7" fill={layer.fill||'#374151'} />
+            </marker>
+          </defs>
+          <line x1={4} y1={layer.h/2} x2={layer.w-4} y2={layer.h/2} stroke={layer.fill||'#374151'} strokeWidth={3} markerEnd={`url(#arh-${layer.id})`} />
+        </svg>
+      )
+    } else if (st === 'polygon') {
+      bg = 'transparent'
+      shapeEl = (
+        <svg width="100%" height="100%" style={{ position:'absolute', inset:0 }}>
+          <polygon points={`${layer.w/2},0 ${layer.w},${layer.h} 0,${layer.h}`} fill={layer.fill||'#E5E7EB'} />
+        </svg>
+      )
+    } else if (st === 'star') {
+      bg = 'transparent'
+      const cx = layer.w/2, cy = layer.h/2, r1 = Math.min(cx,cy)*0.95, r2 = r1*0.4
+      const pts = Array.from({length:10}, (_,i) => {
+        const a = (Math.PI/5)*i - Math.PI/2, r = i%2===0?r1:r2
+        return `${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`
+      }).join(' ')
+      shapeEl = (
+        <svg width="100%" height="100%" style={{ position:'absolute', inset:0 }}>
+          <polygon points={pts} fill={layer.fill||'#FBBA4B'} />
+        </svg>
+      )
+    }
     return (
       <div
-        style={{ ...base, background:layer.fill||'#ccc', borderRadius:layer.borderRadius||0, border:layer.border||'none' }}
+        style={{ ...base, background:bg, borderRadius:bdRadius, border:layer.border||'none', transform:rot, transformOrigin:'center', overflow:'visible' }}
         onMouseDown={layer.selectable ? onDown : undefined}
         onMouseEnter={onHoverIn} onMouseLeave={onHoverOut}
         onClick={e => e.stopPropagation()}
-      />
+      >{shapeEl}</div>
     )
   }
   if (layer.type === 'image') {
+    const rot = layer.rotation ? `rotate(${layer.rotation}deg)` : undefined
+    const hasSavedCrop = layer.crop?.enabled
+    if (hasSavedCrop) {
+      const { origW, origH, boxX, boxY, boxW, boxH, image } = layer.crop
+      const imgScale = image?.scale || 1
+      const imgOffsetX = image?.offsetX || 0
+      const imgOffsetY = image?.offsetY || 0
+      // 리사이즈 후 crop 결과를 비율 유지로 확대/축소하기 위한 배율
+      const scaleX = boxW ? layer.w / boxW : 1
+      const scaleY = boxH ? layer.h / boxH : 1
+      // 원본 렌더 크기 (origW/origH 없으면 현재 layer 크기로 폴백)
+      const iW = origW || layer.w
+      const iH = origH || layer.h
+      const bX = boxX || 0
+      const bY = boxY || 0
+      return (
+        <div
+          style={{ position:'absolute', left: x, top: y, width: layer.w, height: layer.h,
+            overflow:'hidden', transform: rot, transformOrigin:'center', cursor: base.cursor,
+            borderRadius: layer.borderRadius || 0 }}
+          onMouseDown={layer.selectable ? onDown : undefined}
+          onMouseEnter={onHoverIn} onMouseLeave={onHoverOut}
+          onClick={e => e.stopPropagation()}
+        >
+          {layer.value
+            ? (
+              // scale-wrapper: crop 결과를 container 크기에 맞게 늘리거나 줄임
+              <div style={{
+                position:'absolute', width: iW, height: iH,
+                left: -bX, top: -bY,
+                transform: `scale(${scaleX}, ${scaleY})`,
+                transformOrigin: `${bX}px ${bY}px`,
+              }}>
+                <img src={layer.value} style={{
+                  width: iW, height: iH, objectFit: 'contain', display:'block',
+                  transform: `translate(${imgOffsetX}px, ${imgOffsetY}px) scale(${imgScale})`,
+                  transformOrigin: 'center', userSelect:'none', pointerEvents:'none',
+                }} alt="" />
+              </div>
+            )
+            : <span style={{ fontSize:11, color:'#999', fontFamily:ff }}>이미지</span>}
+        </div>
+      )
+    }
     return (
       <div
-        style={{ ...base, background:'#D8D8D8', borderRadius:layer.borderRadius||0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}
+        style={{ ...base, background:'#D8D8D8', borderRadius:layer.borderRadius||0, overflow:'hidden',
+          display:'flex', alignItems:'center', justifyContent:'center', transform:rot, transformOrigin:'center' }}
         onMouseDown={layer.selectable ? onDown : undefined}
         onMouseEnter={onHoverIn} onMouseLeave={onHoverOut}
         onClick={e => e.stopPropagation()}
       >
         {layer.value
-          ? <img src={layer.value} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
+          ? <img src={layer.value} style={{
+              width:'100%', height:'100%',
+              objectFit: layer.objectFit || 'cover',
+              display:'block', userSelect:'none', pointerEvents:'none',
+            }} alt="" />
           : <span style={{ fontSize:11, color:'#999', fontFamily:ff }}>이미지</span>}
       </div>
     )
   }
   if (layer.type === 'text') {
+    const rot = layer.rotation ? `rotate(${layer.rotation}deg)` : undefined
     return (
       <div
-        style={{ ...base, overflow:'hidden' }}
+        style={{ ...base, overflow:'hidden', transform:rot, transformOrigin:'center' }}
         onMouseDown={layer.selectable ? onDown : undefined}
         onDoubleClick={layer.selectable ? onDbl : undefined}
         onMouseEnter={onHoverIn} onMouseLeave={onHoverOut}
@@ -553,7 +667,8 @@ function LayerEl({ layer, isSelected, isEditing, offset = { dx:0, dy:0 }, onDown
 }
 
 // ── 유니버설 모듈 뷰 ─────────────────────────────────────────
-function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerDown, onDbl, onSave, onCancel, layerOffsets, onUpdateMod, onCopyLayer, onDeleteLayer }) {
+function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerDown, onDbl, onSave, onCancel, layerOffsets, onUpdateMod, onCopyLayer, onDeleteLayer,
+  cropMode, onResizeStart, onEnterCrop, onApplyCrop, onCancelCrop, onCropImageScaleChange, onResetCrop, onStartCropBoxResize, onStartCropBoxMove }) {
   const { layers, h } = getModuleLayout(mod)
   const [hoveredLayerId, setHoveredLayerId] = useState(null)
 
@@ -570,6 +685,8 @@ function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerD
   const hoveredLayer = hoveredLayerId && hoveredLayerId !== selLayerId
     ? layers.find(l => l.id === hoveredLayerId && l.selectable)
     : null
+
+  const cropModeForLayer = cropMode && cropMode.modId === mod.id && cropMode.layerId === selLayerId ? cropMode : null
 
   return (
     <div style={{ position:'relative', width:DW, height:h, flexShrink:0, overflow:'visible' }} onClick={onBgClick}>
@@ -594,22 +711,108 @@ function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerD
         )
       })}
       {/* 레이어 hover 오버레이 (dashed blue) */}
-      {hoveredLayer && (
+      {hoveredLayer && !cropModeForLayer && (
         <div style={{ position:'absolute', left:hoveredLayer.x, top:hoveredLayer.y, width:hoveredLayer.w, height:hoveredLayer.h,
           border:'1px dashed #2F80ED', borderRadius:2, pointerEvents:'none', boxSizing:'border-box', zIndex:100 }} />
       )}
       {/* 레이어 선택 오버레이 (solid blue) */}
-      {resolvedSelLayer && !editLayerId && (
+      {resolvedSelLayer && !editLayerId && !cropModeForLayer && (
         <div style={{ position:'absolute', left:resolvedSelLayer.x, top:resolvedSelLayer.y, width:resolvedSelLayer.w, height:resolvedSelLayer.h,
           border:'2px solid #2F80ED', borderRadius:2, pointerEvents:'none', boxSizing:'border-box', zIndex:101 }} />
       )}
-      {/* selectable layer에 플로팅 툴바 표시 */}
-      {resolvedSelLayer && !editLayerId && resolvedSelLayer.selectable && (
+      {/* 이미지 비율 고정 리사이즈 핸들 */}
+      {resolvedSelLayer && resolvedSelLayer.type === 'image' && resolvedSelLayer.selectable
+        && resolvedSelLayer.dataKey === null && !editLayerId && !cropModeForLayer && onResizeStart && (
+        <>
+          {[
+            { handle:'nw', cursor:'nwse-resize', l: resolvedSelLayer.x - 5,                       t: resolvedSelLayer.y - 5 },
+            { handle:'ne', cursor:'nesw-resize', l: resolvedSelLayer.x + resolvedSelLayer.w - 5,  t: resolvedSelLayer.y - 5 },
+            { handle:'sw', cursor:'nesw-resize', l: resolvedSelLayer.x - 5,                       t: resolvedSelLayer.y + resolvedSelLayer.h - 5 },
+            { handle:'se', cursor:'nwse-resize', l: resolvedSelLayer.x + resolvedSelLayer.w - 5,  t: resolvedSelLayer.y + resolvedSelLayer.h - 5 },
+          ].map(({ handle, cursor, l, t }) => (
+            <div key={handle} style={{
+              position:'absolute', left:l, top:t, width:10, height:10,
+              background:'#2F80ED', border:'2px solid #fff', borderRadius:2,
+              cursor, zIndex:102, pointerEvents:'all', boxSizing:'border-box',
+            }}
+            onMouseDown={e => { e.stopPropagation(); e.preventDefault(); onResizeStart(e, mod.id, resolvedSelLayer.id, handle) }}
+            />
+          ))}
+        </>
+      )}
+      {/* 크롭 모드 박스 UI */}
+      {cropModeForLayer && resolvedSelLayer && (() => {
+        const lx = resolvedSelLayer.x, ly = resolvedSelLayer.y
+        const lw = resolvedSelLayer.w, lh = resolvedSelLayer.h
+        const box = cropModeForLayer.box
+        const image = cropModeForLayer.image || { scale:1, offsetX:0, offsetY:0 }
+        return (
+          <>
+            {/* 어두운 오버레이 — box-shadow로 박스 외부만 어둡게 */}
+            <div style={{
+              position:'absolute', left: lx + box.x, top: ly + box.y, width: box.w, height: box.h,
+              boxShadow: `0 0 0 9999px rgba(0,0,0,0.5)`,
+              zIndex:102, pointerEvents:'all', boxSizing:'border-box',
+              border:'2px solid #F6A23A',
+              cursor:'move',
+            }}
+            onMouseDown={e => { e.stopPropagation(); e.preventDefault(); onStartCropBoxMove?.(e) }}
+            onClick={e => e.stopPropagation()}
+            />
+            {/* 4 코너 핸들 */}
+            {[
+              { handle:'nw', cursor:'nwse-resize', l: lx + box.x - 5,           t: ly + box.y - 5 },
+              { handle:'ne', cursor:'nesw-resize', l: lx + box.x + box.w - 5,   t: ly + box.y - 5 },
+              { handle:'sw', cursor:'nesw-resize', l: lx + box.x - 5,           t: ly + box.y + box.h - 5 },
+              { handle:'se', cursor:'nwse-resize', l: lx + box.x + box.w - 5,   t: ly + box.y + box.h - 5 },
+            ].map(({ handle, cursor, l, t }) => (
+              <div key={handle} style={{
+                position:'absolute', left:l, top:t, width:10, height:10,
+                background:'#F6A23A', border:'2px solid #fff', borderRadius:2,
+                cursor, zIndex:104, pointerEvents:'all', boxSizing:'border-box',
+              }}
+              onMouseDown={e => { e.stopPropagation(); e.preventDefault(); onStartCropBoxResize?.(e, handle) }}
+              onClick={e => e.stopPropagation()}
+              />
+            ))}
+            {/* 컨트롤 바 */}
+            <div style={{
+              position:'absolute',
+              left: Math.max(0, lx),
+              top: Math.max(0, ly + lh + 6),
+              background:'#1E2023', borderRadius:6, padding:'5px 10px',
+              display:'flex', alignItems:'center', gap:8,
+              zIndex:200, pointerEvents:'all', whiteSpace:'nowrap', boxShadow:'0 2px 8px rgba(0,0,0,0.4)',
+            }}
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+            >
+              <span style={{ color:'#aaa', fontSize:11 }}>확대</span>
+              <input type="range" min={0.5} max={3} step={0.02} value={image.scale}
+                style={{ width:80 }}
+                onChange={e => onCropImageScaleChange?.(Number(e.target.value))}
+                onMouseDown={e => e.stopPropagation()} />
+              <span style={{ color:'#fff', fontSize:11, minWidth:28 }}>{Math.round(image.scale * 100)}%</span>
+              <button onClick={onResetCrop}
+                style={{ padding:'3px 7px', borderRadius:4, border:'none', background:'#3a3d42', color:'#aaa', fontSize:11, cursor:'pointer' }}>초기화</button>
+              <button onClick={onApplyCrop}
+                style={{ padding:'3px 10px', borderRadius:4, border:'none', background:'#4299E1', color:'#fff', fontSize:11, cursor:'pointer', fontWeight:600 }}>적용</button>
+              <button onClick={onCancelCrop}
+                style={{ padding:'3px 8px', borderRadius:4, border:'none', background:'#3a3d42', color:'#ddd', fontSize:11, cursor:'pointer' }}>취소</button>
+            </div>
+          </>
+        )
+      })()}
+      {/* selectable layer에 플로팅 툴바 표시 (background role 제외, 크롭 모드 제외) */}
+      {resolvedSelLayer && !editLayerId && resolvedSelLayer.selectable && resolvedSelLayer.role !== 'background' && !cropModeForLayer && (
         <FloatingToolbar
           layer={resolvedSelLayer} mod={mod}
           onUpdateMod={patch => onUpdateMod(mod.id, patch)}
           onCopyLayer={() => onCopyLayer(mod.id, resolvedSelLayer.id)}
           onDeleteLayer={() => onDeleteLayer(mod.id, resolvedSelLayer.id)}
+          onEnterCrop={resolvedSelLayer.type === 'image' && resolvedSelLayer.dataKey === null && onEnterCrop
+            ? () => onEnterCrop(mod.id, resolvedSelLayer.id)
+            : null}
         />
       )}
     </div>
@@ -664,8 +867,16 @@ export default function CouponEditor({ onBack }) {
   const [hoveredModId, setHoveredModId] = useState(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+  const [addHint, setAddHint] = useState('')
 
   const dragRef        = useRef(null)
+  const addImgRef      = useRef(null)
+  const resizeRef      = useRef(null)
+  const cropBoxResizeRef = useRef(null)
+  const cropBoxMoveRef   = useRef(null)
+  const cropModeRef      = useRef(null)
+  const [cropMode, setCropMode] = useState(null)
+  // cropMode: { modId, layerId, box:{x,y,w,h}, image:{scale,offsetX,offsetY}, origCrop } | null
   const undoStack      = useRef([])
   const redoStack      = useRef([])
   const modulesRef     = useRef(modules)
@@ -766,15 +977,107 @@ export default function CouponEditor({ onBack }) {
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
   }, [])
 
+  // ── 리사이즈 + 크롭 드래그 effect ──────────────────────────────
+  useEffect(() => {
+    const onMove = (e) => {
+      // 이미지 비율 고정 리사이즈
+      if (resizeRef.current) {
+        const { modId, layerId, handle, startX, startY, origW, origH, origX, origY, aspectRatio } = resizeRef.current
+        const dx = e.clientX - startX
+        let newW = origW, newH = origH, newX = origX, newY = origY
+        if (handle === 'se') { newW = Math.max(30, origW + dx) }
+        else if (handle === 'sw') { newW = Math.max(30, origW - dx); newX = origX + origW - newW }
+        else if (handle === 'ne') { newW = Math.max(30, origW + dx) }
+        else if (handle === 'nw') { newW = Math.max(30, origW - dx); newX = origX + origW - newW }
+        if (aspectRatio) { newH = Math.round(newW / aspectRatio) }
+        if (handle === 'ne' || handle === 'nw') { newY = origY + origH - newH }
+        setModules(prev => prev.map(m => m.id !== modId ? m : {
+          ...m, _extraLayers: (m._extraLayers || []).map(l =>
+            l.id === layerId ? { ...l, x: newX, y: newY, w: newW, h: newH } : l)
+        }))
+      }
+      // 크롭 박스 리사이즈
+      if (cropBoxResizeRef.current) {
+        const { handle, startX, startY, origBox, layerW, layerH } = cropBoxResizeRef.current
+        const dx = e.clientX - startX, dy = e.clientY - startY
+        const MIN = 30
+        let { x, y, w, h } = origBox
+        if (handle === 'se') { w = Math.max(MIN, origBox.w + dx); h = Math.max(MIN, origBox.h + dy) }
+        else if (handle === 'sw') { w = Math.max(MIN, origBox.w - dx); x = origBox.x + origBox.w - w; h = Math.max(MIN, origBox.h + dy) }
+        else if (handle === 'ne') { w = Math.max(MIN, origBox.w + dx); h = Math.max(MIN, origBox.h - dy); y = origBox.y + origBox.h - h }
+        else if (handle === 'nw') { w = Math.max(MIN, origBox.w - dx); x = origBox.x + origBox.w - w; h = Math.max(MIN, origBox.h - dy); y = origBox.y + origBox.h - h }
+        x = Math.max(0, x); y = Math.max(0, y)
+        w = Math.min(w, layerW - x); h = Math.min(h, layerH - y)
+        const next = cropModeRef.current ? { ...cropModeRef.current, box: { x, y, w, h } } : null
+        cropModeRef.current = next; setCropMode(next)
+      }
+      // 크롭 박스 이동
+      if (cropBoxMoveRef.current) {
+        const { startX, startY, origBoxX, origBoxY, layerW, layerH } = cropBoxMoveRef.current
+        const cm = cropModeRef.current
+        if (cm) {
+          const nx = Math.max(0, Math.min(origBoxX + (e.clientX - startX), layerW - cm.box.w))
+          const ny = Math.max(0, Math.min(origBoxY + (e.clientY - startY), layerH - cm.box.h))
+          const next = { ...cm, box: { ...cm.box, x: nx, y: ny } }
+          cropModeRef.current = next; setCropMode(next)
+        }
+      }
+    }
+    const onUp = () => {
+      if (resizeRef.current) {
+        const { snapModules, snapOffsets, origW, origH, modId, layerId } = resizeRef.current
+        const mod = modulesRef.current.find(m => m.id === modId)
+        const lay = mod?._extraLayers?.find(l => l.id === layerId)
+        if (lay && (lay.w !== origW || lay.h !== origH)) pushHistory(snapModules, snapOffsets)
+        resizeRef.current = null
+      }
+      if (cropBoxResizeRef.current) cropBoxResizeRef.current = null
+      if (cropBoxMoveRef.current) cropBoxMoveRef.current = null
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, []) // eslint-disable-line
+
   const updateModule = (id, patch) => {
     pushHistory(modulesRef.current, layerOffsetsRef.current)
     setModules(prev => prev.map(m => m.id === id ? { ...m, ...patch } : m))
   }
 
+  // ── 색상 전용 업데이트 함수 (서로 격리) ────────────────────────
+  // 쿠폰 module 테마 색상만 변경 — layer.fill 절대 건드리지 않음
+  const updateCouponColor = (moduleId, color) => {
+    updateModule(moduleId, { couponColor: color })
+  }
+  const updateCouponCustomColor = (moduleId, color) => {
+    updateModule(moduleId, { couponColor: color, _customColor: color })
+  }
+  // 쿠폰 module 조각 배경색만 변경 — couponColor/couponTheme 절대 건드리지 않음
+  const updateModuleBackgroundColor = (moduleId, color) => {
+    updateModule(moduleId, { bg: color })
+  }
+  // 선택된 shape layer의 fill만 변경 — couponTheme/customColor 절대 건드리지 않음
+  const updateShapeFill = (color) => {
+    updateSelLayer({ fill: color })
+  }
+  // 선택된 text layer의 color만 변경
+  const updateTextColor = (color) => {
+    updateSelLayer({ color })
+  }
+
   const handleLayerDown = (e, modId, layerId) => {
     if (editLayerId) return
+    // cropMode 중엔 선택 상태 변경 금지 (이미지 클릭이 crop 상태를 덮어쓰지 않도록)
+    if (cropModeRef.current) return
     e.preventDefault()
     setSelectedId(modId); setSelLayerId(layerId)
+    // draggable: false 레이어는 선택만, 드래그 추적 스킵
+    const mod = modulesRef.current.find(m => m.id === modId)
+    if (mod) {
+      const { layers } = getModuleLayout(mod)
+      const layer = layers.find(l => l.id === layerId)
+      if (layer?.draggable === false) return
+    }
     const key = `${modId}_${layerId}`
     const orig = layerOffsets[key] || { dx:0, dy:0 }
     dragRef.current = { key, startX:e.clientX, startY:e.clientY, origDx:orig.dx, origDy:orig.dy, snapModules: modulesRef.current, snapOffsets: layerOffsetsRef.current }
@@ -811,7 +1114,7 @@ export default function CouponEditor({ onBack }) {
     if (!mod) return
     const { layers } = getModuleLayout(mod)
     const layer = layers.find(l => l.id === layerId)
-    if (!layer || !layer.selectable) return
+    if (!layer || !layer.selectable || layer.role === 'background') return
     pushHistory(modulesRef.current, layerOffsetsRef.current)
     const newId = uid()
     const newLayer = { ...layer, id: newId, x: layer.x + 12, y: layer.y + 12, dataKey: null }
@@ -827,7 +1130,7 @@ export default function CouponEditor({ onBack }) {
     if (!mod) return
     const { layers } = getModuleLayout(mod)
     const layer = layers.find(l => l.id === layerId)
-    if (!layer || !layer.selectable) return
+    if (!layer || !layer.selectable || layer.role === 'background') return
     pushHistory(modulesRef.current, layerOffsetsRef.current)
     const isExtra = (mod._extraLayers || []).some(l => l.id === layerId)
     if (isExtra) {
@@ -850,6 +1153,138 @@ export default function CouponEditor({ onBack }) {
   const selModLayout = selectedMod ? getModuleLayout(selectedMod) : null
   const selLayer = selModLayout && selLayerId ? selModLayout.layers.find(l => l.id === selLayerId) : null
 
+  // 선택 레이어 resolved (layerStyles + offset 적용)
+  const resolvedSelLayer = selLayer ? {
+    ...selLayer,
+    ...(selectedMod?._layerStyles?.[selLayerId] || {}),
+    x: selLayer.x + (layerOffsets[`${selectedId}_${selLayerId}`]?.dx || 0),
+    y: selLayer.y + (layerOffsets[`${selectedId}_${selLayerId}`]?.dy || 0),
+  } : null
+
+  // 선택 레이어 속성 업데이트 (extra or base)
+  const updateSelLayer = (props) => {
+    if (!selectedId || !selLayerId) return
+    const mod = modules.find(m => m.id === selectedId)
+    if (!mod) return
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    const isExtra = (mod._extraLayers || []).some(l => l.id === selLayerId)
+    if (isExtra) {
+      setModules(prev => prev.map(m => m.id === selectedId
+        ? { ...m, _extraLayers: (m._extraLayers || []).map(l => l.id === selLayerId ? { ...l, ...props } : l) }
+        : m
+      ))
+    } else {
+      setModules(prev => prev.map(m => {
+        if (m.id !== selectedId) return m
+        const styles = m._layerStyles || {}
+        return { ...m, _layerStyles: { ...styles, [selLayerId]: { ...(styles[selLayerId] || {}), ...props } } }
+      }))
+    }
+  }
+
+  // 정렬: offset 초기화 후 x/y 설정
+  const alignSelLayer = (xyProps) => {
+    if (!selectedId || !selLayerId) return
+    const key = `${selectedId}_${selLayerId}`
+    setLayerOffsets(prev => ({ ...prev, [key]: { dx:0, dy:0 } }))
+    updateSelLayer(xyProps)
+  }
+
+  // 그래픽 추가
+  const addGraphic = (shapeType) => {
+    const targetId = selectedId || modules[modules.length - 1]?.id
+    if (!targetId) return
+    const mod = modules.find(m => m.id === targetId)
+    if (!mod) return
+    const { h } = getModuleLayout(mod)
+    const cx = Math.round(DW / 2) - 50, cy = Math.round(h / 2) - 50
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    const newId = uid()
+    const tbl = {
+      rect:    { shapeType:'rect',    x:cx,  y:cy,                w:100,   h:100, fill:'#E5E7EB' },
+      ellipse: { shapeType:'ellipse', x:cx,  y:cy,                w:100,   h:100, fill:'#E5E7EB' },
+      line:    { shapeType:'line',    x:20,  y:Math.round(h/2),   w:DW-40, h:3,   fill:'#374151' },
+      arrow:   { shapeType:'arrow',   x:20,  y:Math.round(h/2)-10,w:DW-40, h:20,  fill:'#374151' },
+      polygon: { shapeType:'polygon', x:cx,  y:cy,                w:100,   h:87,  fill:'#E5E7EB' },
+      star:    { shapeType:'star',    x:cx,  y:cy,                w:100,   h:100, fill:'#FBBA4B' },
+    }
+    const cfg = tbl[shapeType]
+    if (!cfg) return
+    const newLayer = { id:newId, type:'shape', selectable:true, rotation:0, ...cfg }
+    setModules(prev => prev.map(m => m.id === targetId
+      ? { ...m, _extraLayers: [...(m._extraLayers || []), newLayer] }
+      : m
+    ))
+    setSelectedId(targetId)
+    setSelLayerId(newId)
+  }
+
+  const showHint = (msg) => { setAddHint(msg); setTimeout(() => setAddHint(''), 2500) }
+
+  // 텍스트 레이어 추가
+  const addTextLayer = () => {
+    const targetId = selectedId || modules[modules.length - 1]?.id
+    if (!targetId) { showHint('조각을 먼저 선택해주세요.'); return }
+    const mod = modules.find(m => m.id === targetId)
+    if (!mod) return
+    const { h } = getModuleLayout(mod)
+    const newId = uid()
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    const newLayer = {
+      id: newId, type: 'text', selectable: true, dataKey: null,
+      x: 40, y: Math.max(8, Math.round(h / 2) - 20),
+      w: DW - 80, h: 40,
+      text: '텍스트를 입력하세요',
+      fontSize: 20, fontWeight: 400, color: '#111111',
+      lineHeight: 1.3, textAlign: 'left', whiteSpace: 'normal', wordBreak: 'break-all',
+    }
+    setModules(prev => prev.map(m => m.id === targetId
+      ? { ...m, _extraLayers: [...(m._extraLayers || []), newLayer] }
+      : m
+    ))
+    setSelectedId(targetId)
+    setSelLayerId(newId)
+    setEditLayerId(newId)
+  }
+
+  // 이미지 레이어 추가 (원본 비율 유지, contain)
+  const addImageLayer = (file) => {
+    const targetId = selectedId || modules[modules.length - 1]?.id
+    if (!targetId) { showHint('조각을 먼저 선택해주세요.'); return }
+    const mod = modules.find(m => m.id === targetId)
+    if (!mod) return
+    if (COUPON_TYPES.has(mod.type)) { showHint('쿠폰 조각에는 이미지를 추가할 수 없습니다.'); return }
+    const url = URL.createObjectURL(file)
+    const imgEl = new window.Image()
+    imgEl.onload = () => {
+      const { h: modH } = getModuleLayout(modulesRef.current.find(m => m.id === targetId) || mod)
+      const maxW = Math.round(DW * 0.75)
+      const maxH = Math.round(modH * 0.75)
+      const ratio = imgEl.naturalWidth / imgEl.naturalHeight
+      let w = Math.min(imgEl.naturalWidth, maxW)
+      let h = Math.round(w / ratio)
+      if (h > maxH) { h = maxH; w = Math.round(h * ratio) }
+      const newId = uid()
+      pushHistory(modulesRef.current, layerOffsetsRef.current)
+      const newLayer = {
+        id: newId, type: 'image', selectable: true, dataKey: null,
+        x: Math.round((DW - w) / 2),
+        y: Math.max(8, Math.round((modH - h) / 2)),
+        w, h, value: url,
+        objectFit: 'contain',
+        naturalWidth: imgEl.naturalWidth,
+        naturalHeight: imgEl.naturalHeight,
+      }
+      setModules(prev => prev.map(m => m.id === targetId
+        ? { ...m, _extraLayers: [...(m._extraLayers || []), newLayer] }
+        : m
+      ))
+      setSelectedId(targetId)
+      setSelLayerId(newId)
+    }
+    imgEl.src = url
+  }
+
   const addModule = (type) => {
     pushHistory(modulesRef.current, layerOffsetsRef.current)
     const m = makeModule(type)
@@ -858,6 +1293,109 @@ export default function CouponEditor({ onBack }) {
       return [...prev, m]
     })
     setSelectedId(m.id); setSelLayerId(null)
+  }
+
+  // ── 이미지 리사이즈 / 크롭 함수 ───────────────────────────────
+  const handleResizeStart = (e, modId, layerId, handle) => {
+    const mod = modulesRef.current.find(m => m.id === modId)
+    if (!mod) return
+    const layer = (mod._extraLayers || []).find(l => l.id === layerId)
+    if (!layer) return
+    resizeRef.current = {
+      modId, layerId, handle,
+      startX: e.clientX, startY: e.clientY,
+      origW: layer.w, origH: layer.h, origX: layer.x, origY: layer.y,
+      // 크롭 적용 후에는 현재 layer 크기를 AR 기준으로 사용 (원본 naturalWidth/Height 아님)
+      aspectRatio: layer.crop?.enabled
+        ? layer.w / layer.h
+        : (layer.aspectRatio || (layer.naturalWidth && layer.naturalHeight ? layer.naturalWidth / layer.naturalHeight : null)),
+      snapModules: modulesRef.current, snapOffsets: layerOffsetsRef.current,
+    }
+  }
+
+  const enterCropMode = (modId, layerId) => {
+    const mod = modulesRef.current.find(m => m.id === modId)
+    const layer = (mod?._extraLayers || []).find(l => l.id === layerId)
+    if (!layer) return
+    // 항상 현재 layer 전체를 crop box 초기 영역으로 사용 (재편집 시 이전 box 좌표 오염 방지)
+    const box = { x: 0, y: 0, w: layer.w, h: layer.h }
+    const image = { scale: 1, offsetX: 0, offsetY: 0 }
+    const next = { modId, layerId, box, image, origCrop: layer.crop || null }
+    cropModeRef.current = next; setCropMode(next)
+  }
+
+  const applyCrop = () => {
+    if (!cropModeRef.current) return
+    const { modId, layerId, box, image } = cropModeRef.current
+    pushHistory(modulesRef.current, layerOffsetsRef.current)
+    setModules(prev => prev.map(m => m.id !== modId ? m : {
+      ...m, _extraLayers: (m._extraLayers || []).map(l => {
+        if (l.id !== layerId) return l
+        return {
+          ...l,
+          // crop 결과 영역을 layer 자체의 x/y/w/h로 재정의
+          x: l.x + box.x,
+          y: l.y + box.y,
+          w: box.w,
+          h: box.h,
+          objectFit: 'crop',
+          crop: {
+            enabled: true,
+            origW: l.w,    // 원본 layer width (렌더링용)
+            origH: l.h,    // 원본 layer height (렌더링용)
+            boxX: box.x,   // crop box가 원본에서 잘린 위치 (렌더링용)
+            boxY: box.y,
+            boxW: box.w,   // 최초 적용 시 crop box size (리사이즈 배율 계산용)
+            boxH: box.h,
+            image,
+          },
+        }
+      })
+    }))
+    cropModeRef.current = null; setCropMode(null)
+  }
+
+  const cancelCrop = () => { cropModeRef.current = null; setCropMode(null) }
+
+  const updateCropImageScale = (scale) => {
+    const cm = cropModeRef.current
+    if (!cm) return
+    const next = { ...cm, image: { ...cm.image, scale } }
+    cropModeRef.current = next; setCropMode(next)
+  }
+
+  const resetCrop = () => {
+    const cm = cropModeRef.current
+    if (!cm) return
+    const next = { ...cm, image: { scale: 1, offsetX: 0, offsetY: 0 } }
+    cropModeRef.current = next; setCropMode(next)
+  }
+
+  const startCropBoxResize = (e, handle) => {
+    const cm = cropModeRef.current
+    if (!cm) return
+    const mod = modulesRef.current.find(m => m.id === cm.modId)
+    const layer = (mod?._extraLayers || []).find(l => l.id === cm.layerId)
+    if (!layer) return
+    e.stopPropagation(); e.preventDefault()
+    cropBoxResizeRef.current = { handle, startX: e.clientX, startY: e.clientY, origBox: { ...cm.box }, layerW: layer.w, layerH: layer.h }
+  }
+
+  const startCropBoxMove = (e) => {
+    const cm = cropModeRef.current
+    if (!cm) return
+    const mod = modulesRef.current.find(m => m.id === cm.modId)
+    const layer = (mod?._extraLayers || []).find(l => l.id === cm.layerId)
+    if (!layer) return
+    e.stopPropagation(); e.preventDefault()
+    cropBoxMoveRef.current = { startX: e.clientX, startY: e.clientY, origBoxX: cm.box.x, origBoxY: cm.box.y, layerW: layer.w, layerH: layer.h }
+  }
+
+  const updateCropImageOffset = (dx, dy) => {
+    const cm = cropModeRef.current
+    if (!cm) return
+    const next = { ...cm, image: { ...cm.image, offsetX: (cm.image.offsetX || 0) + dx, offsetY: (cm.image.offsetY || 0) + dy } }
+    cropModeRef.current = next; setCropMode(next)
   }
 
   const moveUp = () => {
@@ -944,52 +1482,192 @@ export default function CouponEditor({ onBack }) {
             })}
           </div>
 
+          {/* 선택 객체 패널 */}
+          {resolvedSelLayer && resolvedSelLayer.selectable && (
+            <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>선택 객체</div>
+              {/* 정렬 6버튼 */}
+              <div style={{ display:'flex', gap:3, marginBottom:8 }}>
+                {[
+                  { label:'←', title:'왼쪽 정렬',   fn:()=>alignSelLayer({ x:0 }) },
+                  { label:'↔', title:'가로 중앙',    fn:()=>alignSelLayer({ x: Math.round((DW-(resolvedSelLayer.w||80))/2) }) },
+                  { label:'→', title:'오른쪽 정렬',  fn:()=>alignSelLayer({ x: DW-(resolvedSelLayer.w||80) }) },
+                  { label:'↑', title:'위 정렬',       fn:()=>alignSelLayer({ y:0 }) },
+                  { label:'↕', title:'세로 중앙',    fn:()=>{ const ml=selModLayout; alignSelLayer({ y: Math.round(((ml?ml.h:200)-(resolvedSelLayer.h||40))/2) }) } },
+                  { label:'↓', title:'아래 정렬',    fn:()=>{ const ml=selModLayout; alignSelLayer({ y: (ml?ml.h:200)-(resolvedSelLayer.h||40) }) } },
+                ].map(btn => (
+                  <button key={btn.label} title={btn.title} onClick={btn.fn}
+                    style={{ flex:1, height:26, borderRadius:4, border:'1px solid #E4E6EA', background:'#F8F9FA', cursor:'pointer', fontSize:12 }}>
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+              {/* 회전 슬라이더 */}
+              <div style={{ marginBottom:8 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+                  <span style={{ fontSize:11, color:'#666' }}>회전</span>
+                  <span style={{ fontSize:11, color:'#333', fontWeight:600 }}>{resolvedSelLayer.rotation||0}°</span>
+                </div>
+                <input type="range" min={-180} max={180} value={resolvedSelLayer.rotation||0}
+                  style={{ width:'100%' }}
+                  onChange={e => updateSelLayer({ rotation: Number(e.target.value) })} />
+              </div>
+              {/* W / H 입력 */}
+              <div style={{ display:'flex', gap:6 }}>
+                <label style={{ flex:1, fontSize:11, color:'#666' }}>W
+                  <input type="number" value={resolvedSelLayer.w||''} min={4}
+                    style={{ display:'block', width:'100%', marginTop:2, padding:'3px 6px', border:'1px solid #E4E6EA', borderRadius:4, fontSize:11 }}
+                    onChange={e => updateSelLayer({ w: Number(e.target.value) })} />
+                </label>
+                <label style={{ flex:1, fontSize:11, color:'#666' }}>H
+                  <input type="number" value={resolvedSelLayer.h||''} min={4}
+                    style={{ display:'block', width:'100%', marginTop:2, padding:'3px 6px', border:'1px solid #E4E6EA', borderRadius:4, fontSize:11 }}
+                    onChange={e => updateSelLayer({ h: Number(e.target.value) })} />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* A/B: 쿠폰 module 선택 시 → 쿠폰 색상 패널 (module 테마만 변경) */}
           {selectedMod && COUPON_TYPES.has(selectedMod.type) && (() => {
             const isCustom = selectedMod.couponColor && !COUPON_COLORS.find(cc => cc.v === selectedMod.couponColor)
             const customColor = isCustom ? selectedMod.couponColor : (selectedMod._customColor || '#FF6A00')
             return (
               <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
-                <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>쿠폰 색상</div>
+                <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:4, letterSpacing:'0.05em' }}>쿠폰 색상</div>
+                <div style={{ fontSize:10, color:'#aaa', marginBottom:8 }}>쿠폰 전체 컬러 테마를 변경합니다.</div>
                 <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
                   {COUPON_COLORS.map(cc => (
-                    <div key={cc.v} title={cc.name} onClick={() => updateModule(selectedId, { couponColor: cc.v })}
+                    <div key={cc.v} title={cc.name}
+                      onClick={() => updateCouponColor(selectedId, cc.v)}
                       style={{ width:26, height:26, borderRadius:6, background:cc.v, cursor:'pointer',
                         border: selectedMod.couponColor === cc.v ? '3px solid #2F80ED' : '2px solid rgba(0,0,0,0.1)' }} />
                   ))}
-                  {/* 커스텀 컬러칩 */}
                   <div style={{ position:'relative', width:26, height:26, flexShrink:0 }}>
                     <div title="직접 선택"
                       style={{ width:26, height:26, borderRadius:6, cursor:'pointer', boxSizing:'border-box',
-                        background: isCustom ? selectedMod.couponColor : 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+                        background: isCustom ? selectedMod.couponColor : 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)',
                         border: isCustom ? '3px solid #2F80ED' : '2px solid rgba(0,0,0,0.1)',
                         display:'flex', alignItems:'center', justifyContent:'center' }}
-                      onClick={() => document.getElementById(`custom-color-${selectedId}`)?.click()}
-                    >
+                      onClick={() => document.getElementById(`custom-color-${selectedId}`)?.click()}>
                       {!isCustom && <span style={{ fontSize:14, fontWeight:700, color:'#fff', textShadow:'0 0 2px rgba(0,0,0,0.5)', lineHeight:1 }}>+</span>}
                     </div>
                     <input id={`custom-color-${selectedId}`} type="color" value={customColor}
                       style={{ position:'absolute', inset:0, opacity:0, width:'100%', height:'100%', cursor:'pointer', padding:0, border:'none' }}
-                      onChange={e => updateModule(selectedId, { couponColor: e.target.value, _customColor: e.target.value })} />
+                      onChange={e => updateCouponCustomColor(selectedId, e.target.value)} />
                   </div>
                 </div>
               </div>
             )
           })()}
 
-          {selLayer && (
-            <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0', background:'#F8F9FA' }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'#555', marginBottom:4 }}>선택된 레이어</div>
-              <div style={{ fontSize:11, color:'#888' }}>
-                {selLayer.type === 'text' ? '텍스트 · 더블클릭 편집' : selLayer.type === 'image' ? '이미지' : '도형'}
+          {/* B-2: 쿠폰 module 선택 시 → 조각 배경색 패널 (mod.bg만 변경, couponColor 절대 건드리지 않음) */}
+          {selectedMod && COUPON_TYPES.has(selectedMod.type) && (() => {
+            const bgColor = selectedMod.bg || BG.white
+            return (
+              <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:4, letterSpacing:'0.05em' }}>배경색</div>
+                <div style={{ fontSize:10, color:'#aaa', marginBottom:8 }}>쿠폰 조각의 바깥 배경색을 변경합니다.</div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ width:28, height:28, borderRadius:6, border:'1px solid #E4E6EA', background: bgColor, flexShrink:0 }} />
+                  <input type="color" value={bgColor.startsWith('#') ? bgColor : '#FFFFFF'}
+                    style={{ flex:1, height:28, border:'1px solid #E4E6EA', borderRadius:4, cursor:'pointer', padding:0 }}
+                    onChange={e => updateModuleBackgroundColor(selectedId, e.target.value)} />
+                  <button title="흰색으로 초기화" onClick={() => updateModuleBackgroundColor(selectedId, '#FFFFFF')}
+                    style={{ padding:'3px 7px', fontSize:10, borderRadius:4, border:'1px solid #E4E6EA', background:'#F8F9FA', cursor:'pointer', color:'#666', whiteSpace:'nowrap' }}>
+                    초기화
+                  </button>
+                </div>
               </div>
+            )
+          })()}
+
+          {/* C: 일반 module의 selectable shape 선택 시 → 배경색 패널 (fill만 변경, 쿠폰 module 제외) */}
+          {resolvedSelLayer && resolvedSelLayer.selectable && resolvedSelLayer.type === 'shape'
+            && selectedMod && !COUPON_TYPES.has(selectedMod.type) && (() => {
+            const isBg = resolvedSelLayer.role === 'background'
+            const currentFill = resolvedSelLayer.fill || '#FFFFFF'
+            return (
+              <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+                <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:4, letterSpacing:'0.05em' }}>
+                  {isBg ? '배경색' : '도형 색상'}
+                </div>
+                <div style={{ fontSize:10, color:'#aaa', marginBottom:8 }}>
+                  {isBg ? '선택한 조각의 배경색을 변경합니다.' : '선택한 도형의 색상을 변경합니다.'}
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ width:28, height:28, borderRadius:6, border:'1px solid #E4E6EA',
+                    background: currentFill, flexShrink:0 }} />
+                  <input type="color" value={currentFill.startsWith('#') ? currentFill : '#E5E7EB'}
+                    style={{ flex:1, height:28, border:'1px solid #E4E6EA', borderRadius:4, cursor:'pointer', padding:0 }}
+                    onChange={e => updateShapeFill(e.target.value)} />
+                  {isBg && (
+                    <button title="초기화" onClick={() => updateShapeFill('#FFFFFF')}
+                      style={{ padding:'3px 7px', fontSize:10, borderRadius:4, border:'1px solid #E4E6EA', background:'#F8F9FA', cursor:'pointer', color:'#666', whiteSpace:'nowrap' }}>
+                      초기화
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* 레이어 추가 패널 */}
+          <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>레이어 추가</div>
+            <div style={{ display:'flex', gap:6, marginBottom: addHint ? 6 : 0 }}>
+              <button onClick={addTextLayer}
+                style={{ flex:1, padding:'6px 4px', fontSize:11, borderRadius:5, border:'1px solid #E4E6EA',
+                  background:'#F8F9FA', cursor:'pointer', fontWeight:600, color:'#333' }}>
+                T 텍스트
+              </button>
+              <button onClick={() => {
+                if (!selectedId && modules.length === 0) { showHint('조각을 먼저 선택해주세요.'); return }
+                const targetId = selectedId || modules[modules.length - 1]?.id
+                const mod = modules.find(m => m.id === targetId)
+                if (mod && COUPON_TYPES.has(mod.type)) { showHint('쿠폰 조각에는 이미지를 추가할 수 없습니다.'); return }
+                addImgRef.current?.click()
+              }}
+                style={{ flex:1, padding:'6px 4px', fontSize:11, borderRadius:5, border:'1px solid #E4E6EA',
+                  background:'#F8F9FA', cursor:'pointer', fontWeight:600, color:'#333' }}>
+                🖼 이미지
+              </button>
             </div>
-          )}
+            {addHint && (
+              <div style={{ fontSize:10, color:'#E53E3E', background:'#FFF5F5', borderRadius:4, padding:'4px 6px', lineHeight:1.4 }}>
+                {addHint}
+              </div>
+            )}
+            <input ref={addImgRef} type="file" accept="image/jpeg,image/png" style={{ display:'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) addImageLayer(f); e.target.value = '' }} />
+          </div>
+
+          {/* 그래픽 추가 패널 */}
+          <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>그래픽 추가</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
+              {[
+                { type:'rect',    label:'사각형' },
+                { type:'ellipse', label:'타원'   },
+                { type:'line',    label:'선'     },
+                { type:'arrow',   label:'화살표' },
+                { type:'polygon', label:'폴리곤' },
+                { type:'star',    label:'별'     },
+              ].map(g => (
+                <button key={g.type} onClick={() => addGraphic(g.type)}
+                  style={{ padding:'5px 4px', fontSize:11, borderRadius:5, border:'1px solid #E4E6EA',
+                    background:'#F8F9FA', cursor:'pointer', fontWeight:500, color:'#333' }}>
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 캔버스 */}
         <div
           style={{ flex:1, overflowY:'auto', display:'flex', justifyContent:'center', padding:'32px 0 200px' }}
-          onClick={() => { if (!editLayerId) setSelLayerId(null) }}
+          onClick={() => { if (cropMode || editLayerId) return; setSelLayerId(null) }}
         >
           <div style={{ width:DW }}>
             {modules.map(mod => {
@@ -1000,7 +1678,7 @@ export default function CouponEditor({ onBack }) {
                   style={{ position:'relative', cursor:'pointer' }}
                   onMouseEnter={() => setHoveredModId(mod.id)}
                   onMouseLeave={() => setHoveredModId(null)}
-                  onClick={e => { e.stopPropagation(); setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
+                  onClick={e => { e.stopPropagation(); if (cropMode && cropMode.modId === mod.id) return; setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
                 >
                   {/* 모듈 hover 오버레이 (dashed orange) */}
                   {isHov && (
@@ -1026,7 +1704,7 @@ export default function CouponEditor({ onBack }) {
                     mod={mod}
                     selLayerId={isSel ? selLayerId : null}
                     editLayerId={isSel ? editLayerId : null}
-                    onBgClick={e => { e.stopPropagation(); setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
+                    onBgClick={e => { e.stopPropagation(); if (cropMode && cropMode.modId === mod.id) return; setSelectedId(mod.id); setSelLayerId(null); setEditLayerId(null) }}
                     onLayerDown={handleLayerDown}
                     onDbl={handleDbl}
                     onSave={handleSave}
@@ -1035,6 +1713,15 @@ export default function CouponEditor({ onBack }) {
                     onUpdateMod={updateModule}
                     onCopyLayer={copyLayer}
                     onDeleteLayer={deleteLayer}
+                    cropMode={cropMode && cropMode.modId === mod.id ? cropMode : null}
+                    onResizeStart={handleResizeStart}
+                    onEnterCrop={(modId, layerId) => enterCropMode(modId, layerId)}
+                    onApplyCrop={applyCrop}
+                    onCancelCrop={cancelCrop}
+                    onCropImageScaleChange={updateCropImageScale}
+                    onResetCrop={resetCrop}
+                    onStartCropBoxResize={startCropBoxResize}
+                    onStartCropBoxMove={startCropBoxMove}
                   />
                 </div>
               )

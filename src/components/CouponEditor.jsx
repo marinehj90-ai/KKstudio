@@ -76,7 +76,7 @@ export function makeModule(type) {
   const tr5 = [...tr4, { condition: '$400이상 구매 시', amount: '120,000원' }]
   const dr  = ['온라인몰 회원 누구나', '발급일로부터 30일까지 (ID 당 1회 참여)', '온라인몰, 오프라인 전점', '$100 이상 구매 시']
   switch (type) {
-    case 'header':           return { id, type, image: null }
+    case 'header':           return { id, type, image: '/assets/templates/coupon/default-keyvisual.png' }
     case 'title_white':      return { id, type, bg: BG.white, flag: '진행중', headline: '페이지 헤드라인 텍스트\n페이지 헤드라인 텍스트', body: '본문 텍스트 본문 텍스트 본문 텍스트' }
     case 'title_blue':       return { id, type, bg: BG.blue,  flag: '진행중', headline: '페이지 헤드라인 텍스트\n페이지 헤드라인 텍스트', body: '본문 텍스트 본문 텍스트 본문 텍스트' }
     case 'title_dark':       return { id, type, bg: BG.dark,  flag: '진행중', headline: '페이지 헤드라인 텍스트\n페이지 헤드라인 텍스트', body: '본문 텍스트 본문 텍스트 본문 텍스트' }

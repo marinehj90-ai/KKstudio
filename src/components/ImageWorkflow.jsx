@@ -373,6 +373,69 @@ const B12GuideOverlay = memo(function B12GuideOverlay({ canvasW, canvasH }) {
 
 // 기획전 상단 비주얼 (PC) — 1000×500 — Figma node 6861-2359 기반
 // 텍스트 Safe Zone: x=71, y=169, w=445 / 메인 44px Bold 2줄 / 서브 28px Bold 1줄 / gap 24px
+// e1/ev1: 기획전·이벤트 상단 비주얼 (PC와이드) 1440×500 가이드 오버레이
+// 실제 레이어 좌표 기준: e1-main-title(x=216,y=163,w=401,h=114) / e1-sub-title(x=216,y=301,w=334,h=36)
+const E1GuideOverlay = memo(function E1GuideOverlay({ canvasW, canvasH }) {
+  const sc  = canvasW / 1440
+  const ysc = canvasH / 500
+
+  const LEFT_MARGIN = Math.round(216 * sc)
+  const TEXT_W      = Math.round(401 * sc)
+  const TEXT_Y      = Math.round(163 * ysc)
+  const MAIN_H      = Math.round(114 * ysc)
+  const GAP         = Math.round(24  * ysc)
+  const SUB_H       = Math.round(36  * ysc)
+  const TOTAL_H     = MAIN_H + GAP + SUB_H
+
+  // 오브제 영역: TemplateGuideOverlay와 동일한 비율 유지 (1000 기준 516px → 가이드 우측 영역 보존)
+  const IMG_X = Math.round(516 * canvasW / 1000)
+  const IMG_W = canvasW - IMG_X
+
+  const ORANGE = '#F15A24'
+  const DARK   = '#D44117'
+  const BLUE   = 'rgba(100,90,82,0.82)'
+
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: canvasW, height: canvasH, pointerEvents: 'none', zIndex: 90, overflow: 'hidden' }}>
+      {/* 좌측 여백 */}
+      <div style={{ position: 'absolute', left: 0, top: 0, width: LEFT_MARGIN, height: canvasH, background: 'rgba(243,140,92,0.1)', borderRight: '2px dashed rgba(243,140,92,0.6)' }} />
+      <div style={{ position: 'absolute', left: 0, top: 10, width: LEFT_MARGIN, textAlign: 'center', fontSize: 11, fontWeight: 700, color: DARK }}>← {LEFT_MARGIN}px →</div>
+
+      {/* 텍스트 영역 라벨 */}
+      <div style={{ position: 'absolute', left: LEFT_MARGIN, top: TEXT_Y - 24, fontSize: 11, fontWeight: 700, color: DARK, background: 'rgba(254,240,232,0.95)', padding: '2px 8px', borderRadius: 4, border: `1px solid ${ORANGE}`, whiteSpace: 'nowrap' }}>
+        텍스트 영역 {TEXT_W}px
+      </div>
+
+      {/* 텍스트 Safe Zone */}
+      <div style={{ position: 'absolute', left: LEFT_MARGIN, top: TEXT_Y, width: TEXT_W, height: TOTAL_H, border: `2px dashed ${ORANGE}`, borderRadius: 4 }}>
+        {/* 메인 타이틀 */}
+        <div style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: MAIN_H, background: 'rgba(243,140,92,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: DARK, background: 'rgba(255,255,255,0.82)', padding: '2px 8px', borderRadius: 4 }}>메인 타이틀 (44px Bold · 최대 2줄)</span>
+        </div>
+        {/* gap */}
+        <div style={{ position: 'absolute', left: 0, top: MAIN_H, width: '100%', height: GAP, background: 'rgba(243,140,92,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: ORANGE }}>gap {GAP}px</span>
+        </div>
+        {/* 서브 타이틀 */}
+        <div style={{ position: 'absolute', left: 0, top: MAIN_H + GAP, width: '100%', height: SUB_H, background: 'rgba(243,140,92,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: DARK, background: 'rgba(255,255,255,0.82)', padding: '2px 8px', borderRadius: 4 }}>서브 타이틀 (24px · 1줄)</span>
+        </div>
+      </div>
+
+      {/* 이미지 영역 */}
+      <div style={{ position: 'absolute', left: IMG_X, top: 0, width: IMG_W, height: canvasH, border: '3px solid rgba(59,130,246,0.8)', background: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+        <div style={{ background: BLUE, borderRadius: 8, padding: '10px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>메인 오브제 위치 영역</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>{IMG_W} × {canvasH}px</span>
+        </div>
+      </div>
+    </div>
+  )
+})
+
 const TemplateGuideOverlay = memo(function TemplateGuideOverlay({ canvasW, canvasH }) {
   // Figma 원본 기준: 1000×512
   const sc  = canvasW / 1000
@@ -2958,7 +3021,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                     ))}
                   </div>
                 )}
-                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && currentTemplateId !== 'ev2' && currentTemplateId !== 'ev3' && currentTemplateId !== 'e5' && (
+                {showGuide && !isLogoTab && currentTemplateId !== 'b6' && currentTemplateId !== 'b7' && !isB1Template && !isB2Template && currentTemplateId !== 'b3' && currentTemplateId !== 'b4' && currentTemplateId !== 'b5' && currentTemplateId !== 'b11' && currentTemplateId !== 'b12' && currentTemplateId !== 'ev4' && currentTemplateId !== 'e1' && currentTemplateId !== 'ev1' && currentTemplateId !== 'e2' && currentTemplateId !== 'e3' && currentTemplateId !== 'ev2' && currentTemplateId !== 'ev3' && currentTemplateId !== 'e5' && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 999, background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: '10px 14px' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#374151', cursor: 'pointer', position: 'relative', whiteSpace: 'nowrap' }}>
                       <div style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid #e5e7eb', background: guideTextColor, flexShrink: 0 }} />
@@ -4063,7 +4126,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                       </div>
                     )}
 
-                    {/* 기획전 상단 비주얼 (PC) e2 가이드 오버레이 */}
+                    {/* 기획전/이벤트 상단 비주얼 PC와이드(e1/ev1) 가이드 오버레이 — 실제 레이어 좌표 기준 */}
+                    {showGuide && !isLogoTab && (currentTemplateId === 'e1' || currentTemplateId === 'ev1') && (
+                      <E1GuideOverlay canvasW={canvasW} canvasH={canvasH} />
+                    )}
+                    {/* 기획전/이벤트 상단 비주얼 PC(e2/ev2) 가이드 오버레이 */}
                     {showGuide && !isLogoTab && (currentTemplateId === 'e2' || currentTemplateId === 'ev2') && (
                       <TemplateGuideOverlay canvasW={canvasW} canvasH={canvasH} />
                     )}

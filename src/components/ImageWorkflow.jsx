@@ -17,6 +17,30 @@ import btnCheckboxBg from '../assets/guide/btn-checkbox-bg.svg'
 import btnCheckIcon from '../assets/guide/btn-check-icon.svg'
 import btnCloseIcon from '../assets/guide/btn-close-icon.svg'
 
+// templateData group id / 기타 raw value → canonical category key
+function toCanonicalCategory(raw, templateId = '') {
+  const r = String(raw || '').trim().toLowerCase()
+  if (r === 'banner')       return 'banner'
+  if (r === 'brand')        return 'brandAsset'
+  if (r === 'brandasset')   return 'brandAsset'
+  if (r === 'exhibition')   return 'exhibition'
+  if (r === 'event')        return 'eventDetail'
+  if (r === 'eventdetail')  return 'eventDetail'
+  if (r === 'product')      return 'productImage'
+  if (r === 'productimage') return 'productImage'
+  if (r === 'notice' || r === 'mainpopup') return 'mainPopup'
+  if (r === 'customsize' || r === 'custom') return 'customSize'
+  // templateId prefix fallback
+  const tid = templateId.toLowerCase()
+  if (tid.startsWith('ev')) return 'eventDetail'
+  if (tid.startsWith('e5')) return 'exhibition'
+  if (tid.startsWith('e'))  return 'exhibition'
+  if (tid.startsWith('p'))  return 'productImage'
+  if (tid === 'b10')        return 'mainPopup'
+  if (tid.startsWith('b'))  return 'banner'
+  return 'banner'
+}
+
 const STEP_IMAGE = 0
 const STEP_EDITOR = 1
 const HS = 10
@@ -1097,7 +1121,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
         templateId: firstId,
         templateIds: [...templateOrder],
         templateName: firstTmpl?.name || firstId,
-        category,
+        category: toCanonicalCategory(category, firstId),
         editorType: 'standard',
         routePath,
         width: w,

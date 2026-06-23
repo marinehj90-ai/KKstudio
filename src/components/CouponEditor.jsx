@@ -914,7 +914,7 @@ export default function CouponEditor({ onBack, contentId: initContentId, initial
         templateId: 'ev5',
         templateIds: ['ev5'],
         templateName: '쿠폰 프로모션',
-        category,
+        category: 'eventDetail',
         editorType: 'coupon',
         routePath,
         width: EW,

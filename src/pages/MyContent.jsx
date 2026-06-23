@@ -1,23 +1,79 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Search, Grid3x3, List, Download, Edit3, Filter,
+  Search, Grid3x3, List, Download, Filter,
   Calendar, ChevronDown, Star, X, RotateCcw, Trash2,
   Layers, BookImage, CalendarRange, Sparkles, Image, BellDot, ChevronRight,
   Folder, FolderOpen, FolderPlus, MoreHorizontal, Pencil,
 } from 'lucide-react'
-import { getAllContents } from '../utils/contentStorage'
+import { getAllContents, updateContent } from '../utils/contentStorage'
 import { renderCouponToDataUrl } from '../utils/couponExport'
 import { renderStandardToDataUrl } from '../utils/standardExport'
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
-const CATEGORIES = ['전체', '배너', '브랜드애셋', '기획전', '이벤트·상세', '상품이미지', '메인공지팝업']
+// canonical key → 한글 표시명
+const CATEGORY_LABEL = {
+  all:         '전체',
+  banner:      '배너',
+  brandAsset:  '브랜드애셋',
+  exhibition:  '기획전',
+  eventDetail: '이벤트·상세',
+  productImage:'상품이미지',
+  mainPopup:   '메인공지팝업',
+  customSize:  '자유사이즈',
+}
+
+// 사이드바/필터에 노출할 순서 (canonical key 배열)
+const CATEGORY_KEYS = ['all', 'banner', 'brandAsset', 'exhibition', 'eventDetail', 'productImage', 'mainPopup']
+
+// 하위 호환: 한글·영문 혼용 raw value → canonical key
+function normalizeCategory(raw, rec = {}) {
+  if (!raw) raw = ''
+  const r = String(raw).trim().toLowerCase()
+
+  // templateData group id (영문 소문자 그대로 들어오는 경우)
+  if (r === 'banner')      return 'banner'
+  if (r === 'brand')       return 'brandAsset'
+  if (r === 'brandasset')  return 'brandAsset'
+  if (r === 'exhibition')  return 'exhibition'
+  if (r === 'event')       return 'eventDetail'
+  if (r === 'eventdetail') return 'eventDetail'
+  if (r === 'coupon' || r === 'couponpromotion') return 'eventDetail'
+  if (r === 'product')     return 'productImage'
+  if (r === 'productimage')return 'productImage'
+  if (r === 'notice' || r === 'mainpopup') return 'mainPopup'
+  if (r === 'customsize' || r === 'custom') return 'customSize'
+
+  // 한글 표시명으로 들어오는 경우
+  if (r === '배너')         return 'banner'
+  if (r === '브랜드애셋' || r === '브랜드어셋') return 'brandAsset'
+  if (r === '기획전')       return 'exhibition'
+  if (r === '이벤트·상세' || r === '이벤트/상세' || r === '이벤트') return 'eventDetail'
+  if (r === '상품이미지')   return 'productImage'
+  if (r === '메인공지팝업') return 'mainPopup'
+  if (r === '자유사이즈')   return 'customSize'
+
+  // editorType 기반 fallback
+  const et = String(rec.editorType || '').toLowerCase()
+  if (et === 'coupon') return 'eventDetail'
+  if (et === 'standard') {
+    const tid = String(rec.templateId || rec.templateIds?.[0] || '').toLowerCase()
+    if (tid.startsWith('b'))  return 'banner'
+    if (tid.startsWith('e5') || tid.startsWith('e')) return 'exhibition'
+    if (tid.startsWith('ev')) return 'eventDetail'
+    if (tid.startsWith('p'))  return 'productImage'
+    if (tid === 'b10')        return 'mainPopup'
+  }
+  if (et === 'customsize') return 'customSize'
+
+  return 'banner' // 최종 fallback
+}
+
 const FORMATS    = ['전체', 'JPG', 'PNG']
 const STATUSES   = ['전체', '완료', '편집중']
 const FAVORITES  = ['전체', '즐겨찾기만']
 const SORTS      = ['최신순', '오래된순', '이름순', '즐겨찾기순']
-
 
 const DATE_OPTIONS = [
   { label: '전체 기간', value: 'all' },
@@ -29,21 +85,22 @@ const DATE_OPTIONS = [
 ]
 
 const CATEGORY_ICONS = {
-  '배너':        Layers,
-  '브랜드애셋':  BookImage,
-  '기획전':      CalendarRange,
-  '이벤트·상세': Sparkles,
-  '상품이미지':  Image,
-  '메인공지팝업': BellDot,
+  banner:       Layers,
+  brandAsset:   BookImage,
+  exhibition:   CalendarRange,
+  eventDetail:  Sparkles,
+  productImage: Image,
+  mainPopup:    BellDot,
 }
 
 const CATEGORY_COLORS = {
-  '배너':        { hex: '#F15A24', light: '#FFF0E5' },
-  '브랜드애셋':  { hex: '#F6A23A', light: '#FFF7EF' },
-  '기획전':      { hex: '#F15A24', light: '#FFF0E5' },
-  '이벤트·상세': { hex: '#F6A23A', light: '#FFF7EF' },
-  '상품이미지':  { hex: '#F6A23A', light: '#FFF7EF' },
-  '메인공지팝업': { hex: '#F6A23A', light: '#FFF7EF' },
+  banner:       { hex: '#F15A24', light: '#FFF0E5' },
+  brandAsset:   { hex: '#F6A23A', light: '#FFF7EF' },
+  exhibition:   { hex: '#F15A24', light: '#FFF0E5' },
+  eventDetail:  { hex: '#F6A23A', light: '#FFF7EF' },
+  productImage: { hex: '#F6A23A', light: '#FFF7EF' },
+  mainPopup:    { hex: '#F6A23A', light: '#FFF7EF' },
+  customSize:   { hex: '#7C3AED', light: '#EDE9FE' },
 }
 
 // ─── 유틸 ────────────────────────────────────────────────────────────────────
@@ -387,7 +444,7 @@ function FilterPopover({ filters, onApply }) {
   useOutsideClick(ref, () => setOpen(false))
 
   const activeCount = [
-    filters.category !== '전체',
+    filters.category !== 'all',
     filters.format !== '전체',
     filters.status !== '전체',
     filters.favorite !== '전체',
@@ -397,11 +454,11 @@ function FilterPopover({ filters, onApply }) {
 
   function handleApply() { onApply(local); setOpen(false) }
   function handleReset() {
-    const reset = { category: '전체', format: '전체', status: '전체', favorite: '전체' }
+    const reset = { category: 'all', format: '전체', status: '전체', favorite: '전체' }
     setLocal(reset); onApply(reset); setOpen(false)
   }
 
-  const ChipGroup = ({ label, options, field }) => (
+  const ChipGroup = ({ label, options, field, labelMap }) => (
     <div>
       <p className="text-xs font-semibold text-gray-500 mb-2">{label}</p>
       <div className="flex flex-wrap gap-1.5">
@@ -415,7 +472,7 @@ function FilterPopover({ filters, onApply }) {
                 : 'bg-white text-gray-600 border-gray-200 hover:border-purple-300'
             }`}
           >
-            {opt}
+            {labelMap ? (labelMap[opt] ?? opt) : opt}
           </button>
         ))}
       </div>
@@ -446,7 +503,7 @@ function FilterPopover({ filters, onApply }) {
             <button onClick={() => setOpen(false)}><X className="w-4 h-4 text-gray-400" /></button>
           </div>
           <div className="p-4 space-y-4">
-            <ChipGroup label="카테고리" options={CATEGORIES} field="category" />
+            <ChipGroup label="카테고리" options={CATEGORY_KEYS} field="category" labelMap={CATEGORY_LABEL} />
             <ChipGroup label="파일 형식" options={FORMATS} field="format" />
             <ChipGroup label="상태" options={STATUSES} field="status" />
             <ChipGroup label="즐겨찾기" options={FAVORITES} field="favorite" />
@@ -575,8 +632,36 @@ function triggerAnchorDownload(url, filename) {
 
 // ─── 그리드 카드 ─────────────────────────────────────────────────────────────
 
-function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, onDownload, isDownloading }) {
+function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onRename, onDownload, isDownloading }) {
   const canDownload = !!(item._idbRecord?.editorState || item.downloadUrl)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]     = useState('')
+  const inputRef              = useRef(null)
+
+  function startEdit(e) {
+    e.stopPropagation()
+    setDraft(item.title)
+    setEditing(true)
+    setTimeout(() => { inputRef.current?.select() }, 0)
+  }
+
+  function commitEdit(e) {
+    e?.stopPropagation()
+    const trimmed = draft.trim()
+    if (!trimmed) { setEditing(false); return }
+    if (trimmed !== item.title) onRename(item, trimmed)
+    setEditing(false)
+  }
+
+  function cancelEdit(e) {
+    e?.stopPropagation()
+    setEditing(false)
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitEdit(e) }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(e) }
+  }
 
   return (
     <div
@@ -602,19 +687,6 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, 
         {/* 사이즈 배지 */}
         <SizeBadge width={item.width} height={item.height} />
 
-        {/* hover overlay — 편집하기만 */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/45 transition-all pointer-events-none">
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            <button
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-gray-800 text-sm font-semibold shadow-lg hover:bg-gray-50 transition-colors pointer-events-auto"
-              onClick={e => { e.stopPropagation(); onEdit(item) }}
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              편집하기
-            </button>
-          </div>
-        </div>
-
         {/* 즐겨찾기 */}
         <button
           onClick={e => { e.stopPropagation(); onToggleFavorite(item.id) }}
@@ -632,7 +704,48 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, 
 
       {/* 메타 */}
       <div className="p-3">
-        <p className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</p>
+        {/* 제목 + 연필 아이콘 */}
+        <div className="flex items-center gap-1 min-w-0" onClick={e => e.stopPropagation()}>
+          {editing ? (
+            <>
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={onKeyDown}
+                onBlur={commitEdit}
+                onClick={e => e.stopPropagation()}
+                className="flex-1 min-w-0 text-sm font-medium text-gray-900 border border-purple-300 rounded px-1.5 py-0.5 outline-none focus:border-purple-500"
+              />
+              <button
+                onMouseDown={e => { e.preventDefault(); commitEdit(e) }}
+                className="shrink-0 p-0.5 rounded text-purple-600 hover:bg-purple-50"
+                title="저장"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button
+                onMouseDown={e => { e.preventDefault(); cancelEdit(e) }}
+                className="shrink-0 p-0.5 rounded text-gray-400 hover:bg-gray-100"
+                title="취소"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="flex-1 min-w-0 text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</p>
+              <button
+                onClick={startEdit}
+                className="shrink-0 p-0.5 rounded opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-opacity"
+                title="이름 수정"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </>
+          )}
+        </div>
+
         <p className="text-xs text-gray-400 mt-0.5 truncate">{item.templateType || item.templateName || ''}</p>
         <div className="flex items-center justify-between mt-2">
           <span className="text-[10px] text-gray-400 tabular-nums">
@@ -662,8 +775,36 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, 
 
 // ─── 리스트 행 ───────────────────────────────────────────────────────────────
 
-function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, onDownload, isDownloading }) {
+function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onRename, onDownload, isDownloading }) {
   const canDownload = !!(item._idbRecord?.editorState || item.downloadUrl)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft]     = useState('')
+  const inputRef              = useRef(null)
+
+  function startEdit(e) {
+    e.stopPropagation()
+    setDraft(item.title)
+    setEditing(true)
+    setTimeout(() => { inputRef.current?.select() }, 0)
+  }
+
+  function commitEdit(e) {
+    e?.stopPropagation()
+    const trimmed = draft.trim()
+    if (!trimmed) { setEditing(false); return }
+    if (trimmed !== item.title) onRename(item, trimmed)
+    setEditing(false)
+  }
+
+  function cancelEdit(e) {
+    e?.stopPropagation()
+    setEditing(false)
+  }
+
+  function onKeyDown(e) {
+    if (e.key === 'Enter')  { e.preventDefault(); commitEdit(e) }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(e) }
+  }
 
   return (
     <tr
@@ -677,26 +818,58 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, o
         <Checkbox checked={isSelected} onChange={() => onToggleSelect(item.id)} />
       </td>
 
-      {/* 썸네일 (hover: 편집하기) */}
+      {/* 썸네일 */}
       <td className="px-2 py-3 w-16">
-        <div className="group/thumb w-12 h-12 rounded-lg overflow-hidden relative bg-gray-100 shrink-0">
+        <div className="w-12 h-12 rounded-lg overflow-hidden relative bg-gray-100 shrink-0">
           <Thumbnail item={item} className="absolute inset-0 w-full h-full" />
-          <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover/thumb:opacity-100">
-            <button
-              onClick={(e) => { e.stopPropagation(); onEdit(item) }}
-              className="p-1 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
-              title="편집하기"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </div>
       </td>
 
-      <td className="px-3 py-3">
-        <p className="text-sm font-medium text-gray-800 truncate max-w-[200px]">{item.title}</p>
-        <p className="text-xs text-gray-400 truncate">{item.id}</p>
+      {/* 제목 */}
+      <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+        <div className="group/title flex items-center gap-1 max-w-[200px]">
+          {editing ? (
+            <>
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                onKeyDown={onKeyDown}
+                onBlur={commitEdit}
+                onClick={e => e.stopPropagation()}
+                className="flex-1 min-w-0 text-sm font-medium text-gray-800 border border-purple-300 rounded px-1.5 py-0.5 outline-none focus:border-purple-500"
+              />
+              <button
+                onMouseDown={e => { e.preventDefault(); commitEdit(e) }}
+                className="shrink-0 p-0.5 rounded text-purple-600 hover:bg-purple-50"
+                title="저장"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button
+                onMouseDown={e => { e.preventDefault(); cancelEdit(e) }}
+                className="shrink-0 p-0.5 rounded text-gray-400 hover:bg-gray-100"
+                title="취소"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="flex-1 min-w-0 text-sm font-medium text-gray-800 truncate">{item.title}</p>
+              <button
+                onClick={startEdit}
+                className="shrink-0 p-0.5 rounded opacity-0 group-hover/title:opacity-100 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-opacity"
+                title="이름 수정"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+            </>
+          )}
+        </div>
+        <p className="text-xs text-gray-400 truncate max-w-[200px]">{item.id}</p>
       </td>
+
       <td className="px-3 py-3">
         <span
           className="text-xs px-2 py-1 rounded-full font-medium"
@@ -705,7 +878,7 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, o
             color: CATEGORY_COLORS[item.category]?.hex ?? '#6B7280',
           }}
         >
-          {item.category}
+          {CATEGORY_LABEL[item.category] ?? item.category}
         </span>
       </td>
       <td className="px-3 py-3 text-sm text-gray-600 truncate max-w-[160px]">{item.templateType || item.templateName || ''}</td>
@@ -737,10 +910,11 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, o
             <Download className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onEdit(item)}
-            className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
+            onClick={startEdit}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            title="이름 수정"
           >
-            <Edit3 className="w-4 h-4" />
+            <Pencil className="w-4 h-4" />
           </button>
         </div>
       </td>
@@ -811,15 +985,16 @@ function CategorySidebar({ selected, onChange, counts }) {
     <aside className="w-52 shrink-0 border-r border-gray-100 py-5 px-3">
       <p className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">카테고리</p>
       <nav className="space-y-0.5">
-        {CATEGORIES.map(cat => {
-          const isActive = selected === cat
-          const color    = CATEGORY_COLORS[cat]
-          const Icon     = CATEGORY_ICONS[cat]
-          const count    = counts[cat] ?? 0
+        {CATEGORY_KEYS.map(key => {
+          const isActive = selected === key
+          const color    = CATEGORY_COLORS[key]
+          const Icon     = CATEGORY_ICONS[key]
+          const count    = counts[key] ?? 0
+          const label    = CATEGORY_LABEL[key]
           return (
             <button
-              key={cat}
-              onClick={() => onChange(cat)}
+              key={key}
+              onClick={() => onChange(key)}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all"
               style={isActive && color ? { backgroundColor: color.light, color: color.hex, fontWeight: 600 } : { color: '#4B5563' }}
             >
@@ -827,7 +1002,7 @@ function CategorySidebar({ selected, onChange, counts }) {
                 ? <Icon className="w-4 h-4 shrink-0" style={isActive && color ? { color: color.hex } : { color: '#9CA3AF' }} />
                 : <div className="w-4 h-4" />
               }
-              <span className="flex-1 text-left truncate">{cat}</span>
+              <span className="flex-1 text-left truncate">{label}</span>
               <span className="text-xs tabular-nums" style={isActive && color ? { color: color.hex } : { color: '#9CA3AF' }}>
                 {count}
               </span>
@@ -850,25 +1025,46 @@ export default function MyContent() {
   // IndexedDB에서 실제 저장된 콘텐츠만 로드
   useEffect(() => {
     getAllContents().then(saved => {
-      const idbItems = saved.map(c => ({
+      // 디버그: category normalize 결과 확인
+      console.table(saved.map(c => ({
         id: c.id,
-        title: c.title || '제목 없음',
-        templateName: c.templateName || '',
-        templateType: c.templateName || c.editorType || '',
-        category: c.category || '',
-        size: `${c.width || 0}×${c.height || 0}`,
-        width: c.width || 0,
-        height: c.height || 0,
-        thumbnailUrl: c.thumbnailUrl || '',
-        status: c.status || 'draft',
-        isFavorite: false,
-        format: 'PNG',
-        folderId: c.folderId ?? null,
-        updatedAt: c.updatedAt,
-        createdAt: c.createdAt,
-        _idbRecord: c,
-      }))
+        title: c.title,
+        templateName: c.templateName,
+        editorType: c.editorType,
+        rawCategory: c.category,
+        normalizedCategory: normalizeCategory(c.category, c),
+      })))
+
+      const idbItems = saved.map(c => {
+        const normCat = normalizeCategory(c.category, c)
+        return {
+          id: c.id,
+          title: c.title || '제목 없음',
+          templateName: c.templateName || '',
+          templateType: c.templateName || c.editorType || '',
+          category: normCat,
+          size: `${c.width || 0}×${c.height || 0}`,
+          width: c.width || 0,
+          height: c.height || 0,
+          thumbnailUrl: c.thumbnailUrl || '',
+          status: c.status || 'draft',
+          isFavorite: false,
+          format: 'PNG',
+          folderId: c.folderId ?? null,
+          updatedAt: c.updatedAt,
+          createdAt: c.createdAt,
+          _idbRecord: c,
+        }
+      })
       setItems(idbItems)
+
+      // 기존 저장 데이터 category 정규화 (업데이트)
+      saved.forEach(c => {
+        const normCat = normalizeCategory(c.category, c)
+        if (normCat !== c.category) {
+          updateContent(c.id, { category: normCat }).catch(() => {})
+        }
+      })
     }).catch(() => { /* IndexedDB 미지원 환경 무시 */ })
   }, [])
 
@@ -944,24 +1140,18 @@ export default function MyContent() {
     }
   }
 
-  const handleEditItem = (item) => {
-    const rec = item._idbRecord
-    if (!rec) {
-      // mock 데이터 항목은 알림만
-      alert(`편집 화면으로 이동: ${item.title} (ID: ${item.id})`)
-      return
+  const handleRenameItem = async (item, newTitle) => {
+    const trimmed = newTitle.trim()
+    if (!trimmed) return
+    try {
+      await updateContent(item.id, { title: trimmed, updatedAt: new Date().toISOString() })
+      setItems(prev => prev.map(it =>
+        it.id === item.id ? { ...it, title: trimmed } : it
+      ))
+      setDownloadToast('이름이 변경되었습니다.')
+    } catch {
+      setDownloadToast('이름 변경 중 오류가 발생했습니다.')
     }
-    // IDB 저장 콘텐츠: 에디터로 이동
-    navigate(rec.routePath || '/templates/banner', {
-      state: {
-        contentId: rec.id,
-        initialState: rec.editorState,
-        selectedTemplateIds: rec.templateIds || [rec.templateId],
-        editorType: rec.editorType,
-        category: rec.category,
-        routePath: rec.routePath,
-      },
-    })
   }
   const [folders, setFolders]           = useState([])
   const [currentFolderId, setCurrentFolderId] = useState(null)   // null = 전체(루트)
@@ -970,8 +1160,8 @@ export default function MyContent() {
   const [searchQuery, setSearchQuery]   = useState('')
   const [dateFilter, setDateFilter]     = useState('all')
   const [sortBy, setSortBy]             = useState('최신순')
-  const [sidebarCategory, setSidebarCategory] = useState('전체')
-  const [filters, setFilters]           = useState({ category: '전체', format: '전체', status: '전체', favorite: '전체' })
+  const [sidebarCategory, setSidebarCategory] = useState('all')
+  const [filters, setFilters]           = useState({ category: 'all', format: '전체', status: '전체', favorite: '전체' })
   const [selectedIds, setSelectedIds]   = useState(new Set())
 
   // 필터/검색/폴더 변경 시 선택 초기화
@@ -1008,13 +1198,13 @@ export default function MyContent() {
     setSelectedIds(new Set())
   }
 
-  // 카테고리 카운트 (폴더 범위 기준)
+  // 카테고리 카운트 (canonical key 기준, 폴더 범위 기준)
   const categoryCounts = useMemo(() => {
     const base = currentFolderId !== null
       ? items.filter(it => it.folderId === currentFolderId)
       : items
-    const counts = { '전체': base.length }
-    CATEGORIES.slice(1).forEach(cat => { counts[cat] = base.filter(it => it.category === cat).length })
+    const counts = { all: base.length }
+    CATEGORY_KEYS.slice(1).forEach(key => { counts[key] = base.filter(it => it.category === key).length })
     return counts
   }, [items, currentFolderId])
 
@@ -1023,9 +1213,9 @@ export default function MyContent() {
     let result = [...items]
     // 1) 폴더 범위
     if (currentFolderId !== null) result = result.filter(it => it.folderId === currentFolderId)
-    // 2) 기존 필터들
-    if (sidebarCategory !== '전체') result = result.filter(it => it.category === sidebarCategory)
-    if (filters.category !== '전체') result = result.filter(it => it.category === filters.category)
+    // 2) 카테고리 필터 (canonical key 비교)
+    if (sidebarCategory !== 'all') result = result.filter(it => it.category === sidebarCategory)
+    if (filters.category !== 'all') result = result.filter(it => it.category === filters.category)
     if (filters.format   !== '전체') result = result.filter(it => it.format === filters.format)
     if (filters.status   !== '전체') {
       const map = { '완료': 'completed', '편집중': 'editing' }
@@ -1099,7 +1289,7 @@ export default function MyContent() {
   }
 
   const currentFolder   = folders.find(f => f.id === currentFolderId) ?? null
-  const hasActiveFilter = searchQuery || dateFilter !== 'all' || sidebarCategory !== '전체' || filters.category !== '전체' || filters.format !== '전체' || filters.status !== '전체' || filters.favorite !== '전체'
+  const hasActiveFilter = searchQuery || dateFilter !== 'all' || sidebarCategory !== 'all' || filters.category !== 'all' || filters.format !== '전체' || filters.status !== '전체' || filters.favorite !== '전체'
 
   // 다운로드 에러 토스트 자동 해제
   useEffect(() => {
@@ -1222,8 +1412,8 @@ export default function MyContent() {
           {hasActiveFilter && (
             <button
               onClick={() => {
-                setSearchQuery(''); setDateFilter('all'); setSidebarCategory('전체')
-                setFilters({ category: '전체', format: '전체', status: '전체', favorite: '전체' })
+                setSearchQuery(''); setDateFilter('all'); setSidebarCategory('all')
+                setFilters({ category: 'all', format: '전체', status: '전체', favorite: '전체' })
               }}
               className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
             >
@@ -1281,7 +1471,7 @@ export default function MyContent() {
                   isSelected={selectedIds.has(item.id)}
                   onToggleSelect={toggleSelect}
                   onToggleFavorite={toggleFavorite}
-                  onEdit={handleEditItem}
+                  onRename={handleRenameItem}
                   onDownload={handleDownloadContent}
                   isDownloading={downloadingId === item.id}
                 />
@@ -1313,7 +1503,7 @@ export default function MyContent() {
                       isSelected={selectedIds.has(item.id)}
                       onToggleSelect={toggleSelect}
                       onToggleFavorite={toggleFavorite}
-                      onEdit={handleEditItem}
+                      onRename={handleRenameItem}
                       onDownload={handleDownloadContent}
                       isDownloading={downloadingId === item.id}
                     />

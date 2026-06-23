@@ -6,9 +6,10 @@ import {
   AlignLeft, AlignCenter, AlignRight,
   AlignStartVertical, AlignCenterVertical, AlignEndVertical,
   AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  Bold, Underline, BringToFront, Crop, Eye, EyeOff,
+  Bold, Underline, BringToFront, Crop, Eye, EyeOff, Save,
 } from 'lucide-react'
 import { templateGroups } from '../data/templateData'
+import { saveContent, generateId } from '../utils/contentStorage'
 import jsPDF from 'jspdf'
 import JSZip from 'jszip'
 import { removeBackground } from '@imgly/background-removal'
@@ -639,17 +640,25 @@ function LogoGuideOverlay({ guide, canvasW, canvasH, margin, onClose }) {
   )
 }
 
-export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, onGoHome, toggleTemplate }) {
+export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBack, onGoHome, toggleTemplate, contentId: initContentId, initialState, category = 'banner', routePath = '/templates/banner' }) {
   const isNoImageTemplate = selectedTemplateIds.every(id => id === 'b10' || id === 'e5')
-  const [step, setStep] = useState(() => isNoImageTemplate ? STEP_EDITOR : STEP_IMAGE)
+  // 저장된 상태 복원 시 초기화 useEffect를 건너뜀
+  const isRestoringRef = useRef(!!(initialState?.allLayers && Object.keys(initialState.allLayers).length > 0))
+  const contentIdRef   = useRef(initContentId || null)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const [step, setStep] = useState(() => {
+    if (isRestoringRef.current) return STEP_EDITOR
+    return isNoImageTemplate ? STEP_EDITOR : STEP_IMAGE
+  })
   const [inputMode, setInputMode] = useState('upload')
   const [urlInput, setUrlInput] = useState('')
-  const [uploadedImage, setUploadedImage] = useState(null)
+  const [uploadedImage, setUploadedImage] = useState(() => initialState?.uploadedImage || null)
   const [activePreviewTab, setActivePreviewTab] = useState(0)
   const [zoom, setZoom] = useState(75)
-  const [allLayers, setAllLayers] = useState({})
+  const [allLayers, setAllLayers] = useState(() => initialState?.allLayers || {})
   const [allHistory, setAllHistory] = useState({})
-  const [allBgColors, setAllBgColors] = useState({})
+  const [allBgColors, setAllBgColors] = useState(() => initialState?.allBgColors || {})
   const [suggestedColors, setSuggestedColors] = useState([])
   const [isExtractingColors, setIsExtractingColors] = useState(false)
   const [editingTextId, setEditingTextId] = useState(null)
@@ -676,8 +685,8 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 })
   const [dragTplId, setDragTplId] = useState(null)
   const [dragOverTplId, setDragOverTplId] = useState(null)
-  const [templateOrder, setTemplateOrder] = useState(selectedTemplateIds)
-  const [customNames, setCustomNames] = useState({}) // { [templateId]: string }
+  const [templateOrder, setTemplateOrder] = useState(() => initialState?.templateOrder || selectedTemplateIds)
+  const [customNames, setCustomNames] = useState(() => initialState?.customNames || {}) // { [templateId]: string }
   const [editingNameId, setEditingNameId] = useState(null)
   const [bgChanged, setBgChanged] = useState(false)
   const [toast, setToast] = useState('')
@@ -697,7 +706,7 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
   const [logoPairs, setLogoPairs] = useState([])
   const [langSuggestions, setLangSuggestions] = useState({}) // { [langId]: [{ layerId, original, suggestions: [str] }] }
   const [guideTextColor, setGuideTextColor] = useState('#1E2023')
-  const [customHeights, setCustomHeights] = useState({}) // { [templateId]: number } — heightResizable 템플릿 전용
+  const [customHeights, setCustomHeights] = useState(() => initialState?.customHeights || {}) // { [templateId]: number } — heightResizable 템플릿 전용
   const [showFrameSizePopover, setShowFrameSizePopover] = useState(false)
   const [frameHInput, setFrameHInput] = useState('')
   const [cropLayerId, setCropLayerId] = useState(null)
@@ -1066,6 +1075,61 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
     return canvas
   }
 
+  const handleSaveContent = async () => {
+    if (isSaving) return
+    setIsSaving(true)
+    try {
+      // 현재 활성 템플릿으로 썸네일 생성
+      const firstId = templateOrder[0] || selectedTemplateIds[0]
+      let thumbnailUrl = ''
+      try {
+        const thumbCanvas = await renderToCanvas(firstId, 0.2)
+        if (thumbCanvas) thumbnailUrl = thumbCanvas.toDataURL('image/jpeg', 0.7)
+      } catch (_) { /* 썸네일 실패 시 무시 */ }
+
+      const firstTmpl = allTemplates.find(t => t.id === firstId)
+      const [w, h] = (firstTmpl?.size || '750×750').split('×').map(Number)
+      const now = new Date().toISOString()
+
+      const record = {
+        id: contentIdRef.current || generateId(),
+        title: customNames[firstId] || firstTmpl?.name || '내 배너',
+        templateId: firstId,
+        templateIds: [...templateOrder],
+        templateName: firstTmpl?.name || firstId,
+        category,
+        editorType: 'standard',
+        routePath,
+        width: w,
+        height: customHeights[firstId] || h,
+        thumbnailUrl,
+        editorState: {
+          allLayers: JSON.parse(JSON.stringify(allLayers)),
+          allBgColors: JSON.parse(JSON.stringify(allBgColors)),
+          uploadedImage,
+          templateOrder: [...templateOrder],
+          customNames: { ...customNames },
+          customHeights: { ...customHeights },
+        },
+        status: 'draft',
+        createdAt: now,
+        updatedAt: now,
+      }
+
+      const saved = await saveContent(record)
+      contentIdRef.current = saved.id
+
+      setToast('내 콘텐츠에 저장되었습니다.')
+      setTimeout(() => setToast(''), 3000)
+    } catch (err) {
+      console.error('[ImageWorkflow] save failed', err)
+      setToast('저장에 실패했습니다.')
+      setTimeout(() => setToast(''), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const drawB3PreviewOverlay = (ctx, cw, ch) => {
     const sc = cw / 375
     const PB = Math.round(32 * sc), PX = Math.round(24 * sc)
@@ -1363,6 +1427,11 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
 
   useEffect(() => {
     if (step !== STEP_EDITOR) return
+    // 저장된 상태 복원 중이면 초기화를 건너뜀
+    if (isRestoringRef.current) {
+      isRestoringRef.current = false
+      return
+    }
     // 이미지 불필요 템플릿(b10) 전용 초기화
     if (isNoImageTemplate) {
       const initAllLayers = {}
@@ -3032,6 +3101,16 @@ export default function ImageWorkflow({ selectedTemplateIds, allTemplates, onBac
                 )}
               </div>
               <div style={{ width: 1, height: 20, background: '#e5e7eb' }} />
+              {/* 저장하기 버튼 */}
+              <button
+                onClick={handleSaveContent}
+                disabled={isSaving}
+                title="내 콘텐츠에 저장"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-all disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? '저장 중...' : '저장하기'}
+              </button>
               {showMergeButton && (
                 <button onClick={handleDownloadMerged} className="flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 transition-all">
                   <Download className="w-4 h-4" /> 한장으로 다운로드

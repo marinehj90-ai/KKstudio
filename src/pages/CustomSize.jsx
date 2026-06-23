@@ -1,17 +1,99 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Ruler, ArrowRight } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Ruler, ArrowRight, AlertTriangle } from 'lucide-react'
 import ImageWorkflow from '../components/ImageWorkflow'
+
+function NavigationGuardModal({ onProceed, onCancel }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-6 pt-6 pb-4">
+          <div className="w-11 h-11 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500" />
+          </div>
+          <h3 className="text-base font-bold text-gray-900 leading-snug">
+            페이지를 나가기 전에 작업을 저장하세요
+          </h3>
+          <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+            현재 작업 중인 내용이 저장되지 않았을 수 있습니다. 페이지를 이동하기 전에 작업을 저장해주세요.
+          </p>
+          <p className="mt-1.5 text-xs text-gray-400 leading-relaxed">
+            저장하지 않고 이동하면 지금까지 편집한 내용이 사라질 수 있습니다.
+          </p>
+        </div>
+        <div className="px-6 pb-5 flex gap-2.5">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            계속 작업하기
+          </button>
+          {/* 추후 저장 기능 구현 시: <button onClick={onSaveAndProceed}>저장하고 이동</button> */}
+          <button
+            onClick={onProceed}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+            style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#E94E1B 55%,#D44117 100%)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
+          >
+            저장하지 않고 이동
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 const MIN = 50
 const MAX = 5000
 
 export default function CustomSize() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const locState = location.state || {}
+
   const [wInput, setWInput] = useState('')
   const [hInput, setHInput] = useState('')
   const [name, setName]     = useState('커스텀 사이즈')
-  const [step, setStep]     = useState(0) // 0: 사이즈 입력, 1: 에디터
+  const [step, setStep]     = useState(() => locState.selectedTemplateIds?.length > 0 ? 1 : 0)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
+  const stepRef = useRef(step)
+  useEffect(() => { stepRef.current = step }, [step])
+
+  // LNB 템플릿 카테고리 클릭 인터셉트 (step >= 1일 때만)
+  useEffect(() => {
+    function handleCapture(e) {
+      if (stepRef.current < 1) return
+      const anchor = e.target.closest('a[href]')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || !href.startsWith('/templates/')) return
+      if (href === window.location.pathname) return
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      setPendingNavigation(href)
+    }
+    document.addEventListener('click', handleCapture, true)
+    return () => document.removeEventListener('click', handleCapture, true)
+  }, [])
+
+  function handleGuardProceed() {
+    const target = pendingNavigation
+    setPendingNavigation(null)
+    setStep(0)
+    if (target) navigate(target)
+  }
+
+  function handleGuardCancel() {
+    setPendingNavigation(null)
+  }
 
   const w = parseInt(wInput, 10)
   const h = parseInt(hInput, 10)
@@ -30,13 +112,23 @@ export default function CustomSize() {
   if (step === 1) {
     return (
       <div className="min-h-screen">
+        {pendingNavigation && (
+          <NavigationGuardModal
+            onProceed={handleGuardProceed}
+            onCancel={handleGuardCancel}
+          />
+        )}
         <ImageWorkflow
-          selectedTemplateIds={['custom']}
+          selectedTemplateIds={locState.selectedTemplateIds || ['custom']}
           allTemplates={[customTemplate]}
           onBack={() => setStep(0)}
           onGoHome={() => navigate('/')}
           toggleTemplate={() => {}}
           color={{ hex: '#78716C', light: '#F5F4F2', dark: '#57534E', gradient: 'linear-gradient(135deg,#A8A29E 0%,#78716C 100%)' }}
+          contentId={locState.contentId}
+          initialState={locState.initialState}
+          category={locState.category || 'customSize'}
+          routePath={locState.routePath || '/custom-size'}
         />
       </div>
     )

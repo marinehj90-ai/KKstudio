@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, NavLink, useNavigate } from 'react-router-dom'
+import { useParams, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { Search, Check, ArrowRight, Monitor, Smartphone, Globe, AlertTriangle } from 'lucide-react'
 import { TemplateCardPreview, PREVIEW_LAYERS } from '../components/TemplateCardPreview'
 
@@ -11,7 +11,7 @@ function NavigationGuardModal({ onProceed, onCancel }) {
       onClick={onCancel}
     >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-[360px] overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl w-[400px] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 pt-6 pb-4">
@@ -19,10 +19,13 @@ function NavigationGuardModal({ onProceed, onCancel }) {
             <AlertTriangle className="w-5 h-5 text-amber-500" />
           </div>
           <h3 className="text-base font-bold text-gray-900 leading-snug">
-            작업을 중단하고 이동할까요?
+            페이지를 나가기 전에 작업을 저장하세요
           </h3>
           <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-            현재 입력 중인 이미지와 선택한 템플릿 정보가 초기화될 수 있습니다. 작업을 중단하고 다른 템플릿을 선택하시겠습니까?
+            현재 작업 중인 내용이 저장되지 않았을 수 있습니다. 페이지를 이동하기 전에 작업을 저장해주세요.
+          </p>
+          <p className="mt-1.5 text-xs text-gray-400 leading-relaxed">
+            저장하지 않고 이동하면 지금까지 편집한 내용이 사라질 수 있습니다.
           </p>
         </div>
         <div className="px-6 pb-5 flex gap-2.5">
@@ -30,8 +33,9 @@ function NavigationGuardModal({ onProceed, onCancel }) {
             onClick={onCancel}
             className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
           >
-            취소
+            계속 작업하기
           </button>
+          {/* 추후 저장 기능 구현 시: <button onClick={onSaveAndProceed}>저장하고 이동</button> */}
           <button
             onClick={onProceed}
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
@@ -39,7 +43,7 @@ function NavigationGuardModal({ onProceed, onCancel }) {
             onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#E94E1B 55%,#D44117 100%)' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)' }}
           >
-            템플릿 선택하기
+            저장하지 않고 이동
           </button>
         </div>
       </div>
@@ -55,12 +59,14 @@ const allTemplates = templateGroups.flatMap((g) => g.templates)
 export default function Templates() {
   const { categoryId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const locState = location.state || {}
 
   const activeGroup = templateGroups.find((g) => g.id === categoryId) ?? templateGroups[0]
-  const c = activeGroup // 색상 쇼트컷: c.hex, c.light, c.dark
+  const c = activeGroup
 
-  const [step, setStep] = useState(0)
-  const [selectedTemplates, setSelectedTemplates] = useState([])
+  const [step, setStep] = useState(() => locState.selectedTemplateIds?.length > 0 ? 1 : 0)
+  const [selectedTemplates, setSelectedTemplates] = useState(() => locState.selectedTemplateIds || [])
   const [searchQuery, setSearchQuery] = useState('')
   const [deviceFilter, setDeviceFilter] = useState('전체')
   const [pendingNavigation, setPendingNavigation] = useState(null) // 이동 대기 경로
@@ -117,7 +123,23 @@ export default function Templates() {
 
   if (step === 1) {
     if (selectedTemplates.includes('ev5')) {
-      return <CouponEditor onBack={() => setStep(0)} />
+      return (
+        <>
+          {pendingNavigation && (
+            <NavigationGuardModal
+              onProceed={handleGuardProceed}
+              onCancel={handleGuardCancel}
+            />
+          )}
+          <CouponEditor
+            onBack={() => setStep(0)}
+            contentId={locState.contentId}
+            initialState={locState.initialState}
+            category={locState.category || categoryId}
+            routePath={locState.routePath || `/templates/${categoryId}`}
+          />
+        </>
+      )
     }
     return (
       <div className="min-h-screen">
@@ -134,6 +156,10 @@ export default function Templates() {
           onGoHome={() => navigate('/')}
           toggleTemplate={toggleTemplate}
           color={c}
+          contentId={locState.contentId}
+          initialState={locState.initialState}
+          category={locState.category || categoryId}
+          routePath={locState.routePath || `/templates/${categoryId}`}
         />
       </div>
     )

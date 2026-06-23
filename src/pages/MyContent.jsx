@@ -1,11 +1,14 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Search, Grid3x3, List, Download, Edit3, Filter,
   Calendar, ChevronDown, Star, X, RotateCcw, Trash2,
   Layers, BookImage, CalendarRange, Sparkles, Image, BellDot, ChevronRight,
   Folder, FolderOpen, FolderPlus, MoreHorizontal, Pencil,
 } from 'lucide-react'
-import { mockImages } from '../data/myImagesMockData'
+import { getAllContents } from '../utils/contentStorage'
+import { renderCouponToDataUrl } from '../utils/couponExport'
+import { renderStandardToDataUrl } from '../utils/standardExport'
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
@@ -15,23 +18,6 @@ const STATUSES   = ['전체', '완료', '편집중']
 const FAVORITES  = ['전체', '즐겨찾기만']
 const SORTS      = ['최신순', '오래된순', '이름순', '즐겨찾기순']
 
-// ─── 폴더 초기 데이터 ─────────────────────────────────────────────────────────
-
-const INITIAL_FOLDERS = [
-  { id: 'f1', name: '여름 시즌' },
-  { id: 'f2', name: '플라이퀀시' },
-  { id: 'f3', name: '브랜드 자료' },
-]
-
-// item.id → folderId 매핑 (초기 폴더 배치)
-const INITIAL_FOLDER_MAP = {
-  '696847': 'f1', // 제목없음 01:21 PM
-  '689449': 'f1', // 키워드 배너
-  '668932': 'f2', // 플라이퀀시 기본대배너
-  '668928': 'f2', // 플라이퀀시 탑업
-  '687721': 'f3', // 카카오페이 메뉴수정
-  '676140': 'f3', // 브랜드 할인
-}
 
 const DATE_OPTIONS = [
   { label: '전체 기간', value: 'all' },
@@ -82,11 +68,7 @@ function statusLabel(s) {
   return s === 'editing' ? '편집중' : '완료'
 }
 
-// 나중에 실제 편집 라우트(/editor/:id)가 생기면 여기서 navigate로 교체
-function handleEditItem(item) {
-  console.log('편집하기:', item.id, `→ /editor/${item.id}`)
-  alert(`편집 화면으로 이동: ${item.title} (ID: ${item.id})`)
-}
+// handleEditItem은 MyContent 컴포넌트 내부로 이동 (useNavigate 사용)
 
 // ─── 훅 ──────────────────────────────────────────────────────────────────────
 
@@ -572,18 +554,29 @@ function StatusBadge({ status }) {
   )
 }
 
-// ─── 다운로드 핸들러 ─────────────────────────────────────────────────────────
+// ─── 다운로드 유틸 ───────────────────────────────────────────────────────────
 
-function handleDownloadItem(item) {
-  const filename = `${item.title}_${item.width}x${item.height}.${item.format.toLowerCase()}`
-  console.log('다운로드:', item.downloadUrl, '→', filename)
-  alert(`다운로드: ${filename}\n(downloadUrl: ${item.downloadUrl})`)
+function makeFilename(item) {
+  const now   = new Date()
+  const pad   = n => String(n).padStart(2, '0')
+  const stamp = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`
+  const safe  = (item.title || '제목없음').replace(/[\\/:*?"<>|]/g, '_')
+  return `${safe}-${stamp}.png`
+}
+
+function triggerAnchorDownload(url, filename) {
+  const a  = document.createElement('a')
+  a.href   = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 // ─── 그리드 카드 ─────────────────────────────────────────────────────────────
 
-function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite }) {
-  const isCompleted = item.status === 'completed'
+function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, onDownload, isDownloading }) {
+  const canDownload = !!(item._idbRecord?.editorState || item.downloadUrl)
 
   return (
     <div
@@ -614,7 +607,7 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite }) {
           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             <button
               className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white text-gray-800 text-sm font-semibold shadow-lg hover:bg-gray-50 transition-colors pointer-events-auto"
-              onClick={e => { e.stopPropagation(); handleEditItem(item) }}
+              onClick={e => { e.stopPropagation(); onEdit(item) }}
             >
               <Edit3 className="w-3.5 h-3.5" />
               편집하기
@@ -640,7 +633,7 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite }) {
       {/* 메타 */}
       <div className="p-3">
         <p className="text-sm font-medium text-gray-900 truncate leading-tight">{item.title}</p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">{item.templateType}</p>
+        <p className="text-xs text-gray-400 mt-0.5 truncate">{item.templateType || item.templateName || ''}</p>
         <div className="flex items-center justify-between mt-2">
           <span className="text-[10px] text-gray-400 tabular-nums">
             {new Date(item.createdAt).toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })}
@@ -653,14 +646,14 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite }) {
           </div>
         </div>
         <button
-          disabled={!isCompleted}
-          onClick={e => { e.stopPropagation(); if (isCompleted) handleDownloadItem(item) }}
+          disabled={!canDownload || isDownloading}
+          onClick={e => { e.stopPropagation(); if (canDownload && !isDownloading) onDownload(item) }}
           className={`mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-            isCompleted ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+            canDownload ? 'bg-purple-50 text-purple-700 hover:bg-purple-100' : 'bg-gray-50 text-gray-400 cursor-not-allowed'
           }`}
         >
           <Download className="w-3 h-3" />
-          다운로드
+          {isDownloading ? '다운로드 중...' : '다운로드'}
         </button>
       </div>
     </div>
@@ -669,8 +662,8 @@ function GridCard({ item, isSelected, onToggleSelect, onToggleFavorite }) {
 
 // ─── 리스트 행 ───────────────────────────────────────────────────────────────
 
-function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite }) {
-  const isCompleted = item.status === 'completed'
+function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite, onEdit, onDownload, isDownloading }) {
+  const canDownload = !!(item._idbRecord?.editorState || item.downloadUrl)
 
   return (
     <tr
@@ -690,7 +683,7 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite }) {
           <Thumbnail item={item} className="absolute inset-0 w-full h-full" />
           <div className="absolute inset-0 bg-black/0 group-hover/thumb:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover/thumb:opacity-100">
             <button
-              onClick={(e) => { e.stopPropagation(); handleEditItem(item) }}
+              onClick={(e) => { e.stopPropagation(); onEdit(item) }}
               className="p-1 rounded-full bg-white text-gray-700 shadow-sm hover:bg-gray-50 transition-colors"
               title="편집하기"
             >
@@ -715,8 +708,8 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite }) {
           {item.category}
         </span>
       </td>
-      <td className="px-3 py-3 text-sm text-gray-600 truncate max-w-[160px]">{item.templateType}</td>
-      <td className="px-3 py-3 text-xs text-gray-500 font-mono whitespace-nowrap">{item.size}</td>
+      <td className="px-3 py-3 text-sm text-gray-600 truncate max-w-[160px]">{item.templateType || item.templateName || ''}</td>
+      <td className="px-3 py-3 text-xs text-gray-500 font-mono whitespace-nowrap">{item.size || `${item.width}×${item.height}`}</td>
       <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">
         {new Date(item.createdAt).toLocaleDateString('ko-KR')}
       </td>
@@ -736,14 +729,15 @@ function ListRow({ item, isSelected, onToggleSelect, onToggleFavorite }) {
             <Star className="w-4 h-4" style={item.isFavorite ? { fill: '#FBBA4B', color: '#FBBA4B' } : { color: '#D1D5DB' }} />
           </button>
           <button
-            disabled={!isCompleted}
-            onClick={() => isCompleted && handleDownloadItem(item)}
-            className={`p-1.5 rounded-lg transition-colors ${isCompleted ? 'hover:bg-purple-50 text-gray-400 hover:text-purple-600' : 'text-gray-200 cursor-not-allowed'}`}
+            disabled={!canDownload || isDownloading}
+            onClick={() => canDownload && !isDownloading && onDownload(item)}
+            title={isDownloading ? '다운로드 중...' : '다운로드'}
+            className={`p-1.5 rounded-lg transition-colors ${canDownload ? 'hover:bg-purple-50 text-gray-400 hover:text-purple-600' : 'text-gray-200 cursor-not-allowed'}`}
           >
             <Download className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleEditItem(item)}
+            onClick={() => onEdit(item)}
             className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
           >
             <Edit3 className="w-4 h-4" />
@@ -849,10 +843,127 @@ function CategorySidebar({ selected, onChange, counts }) {
 // ─── 메인 페이지 ─────────────────────────────────────────────────────────────
 
 export default function MyContent() {
-  const [items, setItems] = useState(() =>
-    mockImages.map(img => ({ ...img, folderId: INITIAL_FOLDER_MAP[img.id] ?? null }))
-  )
-  const [folders, setFolders]           = useState(INITIAL_FOLDERS)
+  const navigate = useNavigate()
+
+  const [items, setItems] = useState([])
+
+  // IndexedDB에서 실제 저장된 콘텐츠만 로드
+  useEffect(() => {
+    getAllContents().then(saved => {
+      const idbItems = saved.map(c => ({
+        id: c.id,
+        title: c.title || '제목 없음',
+        templateName: c.templateName || '',
+        templateType: c.templateName || c.editorType || '',
+        category: c.category || '',
+        size: `${c.width || 0}×${c.height || 0}`,
+        width: c.width || 0,
+        height: c.height || 0,
+        thumbnailUrl: c.thumbnailUrl || '',
+        status: c.status || 'draft',
+        isFavorite: false,
+        format: 'PNG',
+        folderId: c.folderId ?? null,
+        updatedAt: c.updatedAt,
+        createdAt: c.createdAt,
+        _idbRecord: c,
+      }))
+      setItems(idbItems)
+    }).catch(() => { /* IndexedDB 미지원 환경 무시 */ })
+  }, [])
+
+  const [downloadingId, setDownloadingId] = useState(null)
+  const [downloadToast, setDownloadToast] = useState('')
+
+  async function handleDownloadContent(item) {
+    if (downloadingId) return
+    setDownloadingId(item.id)
+    const rec = item._idbRecord
+    try {
+      const filename = makeFilename(item)
+
+      // 우선순위 1: 완성 파일 URL
+      if (item.downloadUrl) {
+        triggerAnchorDownload(item.downloadUrl, filename)
+        return
+      }
+
+      // 우선순위 2: editorState 기반 원본 크기 export
+      if (rec?.editorState) {
+        const { editorType, editorState, width, height } = rec
+        const templateId = rec.templateId || (rec.templateIds || [])[0]
+
+        console.log('[my-content download route]', {
+          id: rec.id, editorType, width, height,
+          hasEditorState: true,
+          hasDownloadUrl: !!item.downloadUrl,
+          hasThumbnailUrl: !!rec.thumbnailUrl,
+          route: 'editorState-export',
+        })
+
+        let dataUrl = null
+
+        if (editorType === 'coupon') {
+          // 등록용 750px (pixelRatio:2 × DW:375 = 750px)
+          dataUrl = await renderCouponToDataUrl(
+            editorState.modules,
+            editorState.layerOffsets || {},
+            { pixelRatio: 2 }
+          )
+        } else if (editorType === 'standard' || editorType === 'customSize') {
+          // multiplier=1 → 원본 크기 (width×height)
+          dataUrl = await renderStandardToDataUrl(templateId, editorState, { multiplier: 1 })
+        }
+        // mdRecommend → 향후 구현 예정
+
+        if (dataUrl) {
+          triggerAnchorDownload(dataUrl, filename)
+          return
+        }
+        // editorType 미지원이면 아래 fallback으로
+        console.warn('[my-content download] editorType not supported yet:', editorType)
+      }
+
+      // 우선순위 3 (fallback — editorState 없는 경우만)
+      const thumbUrl = rec?.thumbnailUrl || item.thumbnailUrl
+      if (thumbUrl) {
+        console.warn('[my-content download route]', {
+          id: item.id, route: 'thumbnail-fallback',
+          reason: 'no editorState and no downloadUrl',
+        })
+        triggerAnchorDownload(thumbUrl, filename)
+        return
+      }
+
+      setDownloadToast('다운로드 중 오류가 발생했습니다. 다시 시도해주세요.')
+    } catch (err) {
+      console.error('[my-content download] failed', err)
+      setDownloadToast('다운로드 중 오류가 발생했습니다. 다시 시도해주세요.')
+    } finally {
+      setDownloadingId(null)
+    }
+  }
+
+  const handleEditItem = (item) => {
+    const rec = item._idbRecord
+    if (!rec) {
+      // mock 데이터 항목은 알림만
+      alert(`편집 화면으로 이동: ${item.title} (ID: ${item.id})`)
+      return
+    }
+    // IDB 저장 콘텐츠: 에디터로 이동
+    navigate(rec.routePath || '/templates/banner', {
+      state: {
+        contentId: rec.id,
+        initialState: rec.editorState,
+        selectedTemplateIds: rec.templateIds || [rec.templateId],
+        editorType: rec.editorType,
+        category: rec.category,
+        routePath: rec.routePath,
+      },
+    })
+  }
+  const [folders, setFolders]           = useState([])
   const [currentFolderId, setCurrentFolderId] = useState(null)   // null = 전체(루트)
   const [deleteModal, setDeleteModal]   = useState(null)         // null | { ids: Set }
   const [viewMode, setViewMode]         = useState('grid')
@@ -927,7 +1038,7 @@ export default function MyContent() {
       const q = searchQuery.trim().toLowerCase()
       result = result.filter(it =>
         it.title.toLowerCase().includes(q) || it.id.includes(q) ||
-        it.category.toLowerCase().includes(q) || it.templateType.toLowerCase().includes(q)
+        (it.category || '').toLowerCase().includes(q) || (it.templateType || '').toLowerCase().includes(q)
       )
     }
     if (sortBy === '최신순')    result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -990,8 +1101,21 @@ export default function MyContent() {
   const currentFolder   = folders.find(f => f.id === currentFolderId) ?? null
   const hasActiveFilter = searchQuery || dateFilter !== 'all' || sidebarCategory !== '전체' || filters.category !== '전체' || filters.format !== '전체' || filters.status !== '전체' || filters.favorite !== '전체'
 
+  // 다운로드 에러 토스트 자동 해제
+  useEffect(() => {
+    if (!downloadToast) return
+    const t = setTimeout(() => setDownloadToast(''), 3500)
+    return () => clearTimeout(t)
+  }, [downloadToast])
+
   return (
     <div className="flex h-full">
+      {/* 다운로드 오류 토스트 */}
+      {downloadToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl bg-red-600 text-white text-sm font-medium shadow-xl pointer-events-none">
+          {downloadToast}
+        </div>
+      )}
       {/* 삭제 확인 모달 */}
       {deleteModal && (
         <DeleteConfirmModal
@@ -1124,11 +1248,30 @@ export default function MyContent() {
         {/* 목록 */}
         <div className="flex-1 overflow-y-auto px-6 pb-6">
           {filteredItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-              <Search className="w-10 h-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">검색 결과가 없습니다</p>
-              <p className="text-xs mt-1">다른 검색어나 필터를 시도해보세요</p>
-            </div>
+            items.length === 0 ? (
+              /* 전체 저장 콘텐츠 없음 — 빈 상태 UI */
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                <div className="w-16 h-16 mb-4 rounded-2xl bg-gray-100 flex items-center justify-center">
+                  <BookImage className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-sm font-semibold text-gray-700 mb-1">저장된 콘텐츠가 없습니다</p>
+                <p className="text-xs text-gray-400 mb-5">에디터에서 작업물을 저장하면 이곳에 표시됩니다.</p>
+                <button
+                  onClick={() => navigate('/templates/banner')}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg,#F6A23A 0%,#F15A24 55%,#E94E1B 100%)', boxShadow: '0 4px 16px rgba(233,78,27,0.3)' }}
+                >
+                  템플릿 만들러 가기
+                </button>
+              </div>
+            ) : (
+              /* 필터 결과 없음 */
+              <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                <Search className="w-10 h-10 mb-3 opacity-30" />
+                <p className="text-sm font-medium">검색 결과가 없습니다</p>
+                <p className="text-xs mt-1">다른 검색어나 필터를 시도해보세요</p>
+              </div>
+            )
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {filteredItems.map(item => (
@@ -1138,6 +1281,9 @@ export default function MyContent() {
                   isSelected={selectedIds.has(item.id)}
                   onToggleSelect={toggleSelect}
                   onToggleFavorite={toggleFavorite}
+                  onEdit={handleEditItem}
+                  onDownload={handleDownloadContent}
+                  isDownloading={downloadingId === item.id}
                 />
               ))}
             </div>
@@ -1167,6 +1313,9 @@ export default function MyContent() {
                       isSelected={selectedIds.has(item.id)}
                       onToggleSelect={toggleSelect}
                       onToggleFavorite={toggleFavorite}
+                      onEdit={handleEditItem}
+                      onDownload={handleDownloadContent}
+                      isDownloading={downloadingId === item.id}
                     />
                   ))}
                 </tbody>

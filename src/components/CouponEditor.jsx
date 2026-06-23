@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { ArrowLeft, Download, ChevronUp, ChevronDown, Copy, Trash2, Undo2, Redo2,
-  AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, RotateCw } from 'lucide-react'
+  AlignLeft, AlignCenter, AlignRight, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, RotateCw, Save } from 'lucide-react'
 import { toPng, toJpeg } from 'html-to-image'
+import { saveContent, updateContent, generateId } from '../utils/contentStorage'
 
 // ── 상수 ──────────────────────────────────────────────────────
 const DW = 375
@@ -362,7 +363,7 @@ function getRawModuleLayout(mod) {
   }
 }
 
-function getModuleLayout(mod) {
+export function getModuleLayout(mod) {
   const raw = getRawModuleLayout(mod)
   const deleted = new Set(mod._deletedLayerIds || [])
   let layers = raw.layers.filter(l => !deleted.has(l.id))
@@ -677,7 +678,7 @@ function LayerEl({ layer, isSelected, isEditing, offset = { dx:0, dy:0 }, onDown
 }
 
 // ── 유니버설 모듈 뷰 ─────────────────────────────────────────
-function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerDown, onDbl, onSave, onCancel, layerOffsets, onUpdateMod, onCopyLayer, onDeleteLayer,
+export function UniversalModuleView({ mod, selLayerId, editLayerId, onBgClick, onLayerDown, onDbl, onSave, onCancel, layerOffsets, onUpdateMod, onCopyLayer, onDeleteLayer,
   cropMode, onResizeStart, onEnterCrop, onApplyCrop, onCancelCrop, onCropImageScaleChange, onResetCrop, onStartCropBoxResize, onStartCropBoxMove }) {
   const { layers, h } = getModuleLayout(mod)
   const [hoveredLayerId, setHoveredLayerId] = useState(null)
@@ -864,16 +865,18 @@ function CtrlBtn({ icon: Icon, label, onClick, danger }) {
 const COUPON_TYPES = new Set(['coupon_1a','coupon_1b','coupon_1c','coupon_2','coupon_3'])
 
 // ── 메인 에디터 ───────────────────────────────────────────────
-export default function CouponEditor({ onBack }) {
-  const [modules, setModules] = useState([
-    makeModule('header'),
-    makeModule('title_white'),
-    makeModule('coupon_1a'),
-  ])
+export default function CouponEditor({ onBack, contentId: initContentId, initialState, category = 'event', routePath = '/templates/event' }) {
+  const [modules, setModules] = useState(() =>
+    initialState?.modules || [
+      makeModule('header'),
+      makeModule('title_white'),
+      makeModule('coupon_1a'),
+    ]
+  )
   const [selectedId,  setSelectedId]  = useState(null)
   const [selLayerId,  setSelLayerId]  = useState(null)
   const [editLayerId, setEditLayerId] = useState(null)
-  const [layerOffsets, setLayerOffsets] = useState({})
+  const [layerOffsets, setLayerOffsets] = useState(() => initialState?.layerOffsets || {})
   const [hoveredModId, setHoveredModId] = useState(null)
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
@@ -886,6 +889,59 @@ export default function CouponEditor({ onBack }) {
   const [isExporting, setIsExporting] = useState(false)  // export 중 선택 UI 숨김
   // 스마트 가이드: { modId, showV: bool, showH: bool } | null
   const [snapGuide, setSnapGuide] = useState(null)
+
+  const contentIdRef = useRef(initContentId || null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveToast, setSaveToast] = useState('')
+
+  const handleSaveContent = async () => {
+    if (isSaving || !canvasRef.current) return
+    setIsSaving(true)
+    try {
+      // 썸네일 생성 (작은 pixelRatio)
+      let thumbnailUrl = ''
+      try {
+        thumbnailUrl = await toJpeg(canvasRef.current, { pixelRatio: 0.25, backgroundColor: '#fff', quality: 0.7 })
+      } catch (_) { /* 썸네일 실패 시 무시 */ }
+
+      const firstMod = modules[0]
+      const totalH = modules.reduce((sum, m) => sum + getModuleLayout(m).h, 0)
+      const now = new Date().toISOString()
+
+      const record = {
+        id: contentIdRef.current || generateId(),
+        title: '쿠폰 프로모션',
+        templateId: 'ev5',
+        templateIds: ['ev5'],
+        templateName: '쿠폰 프로모션',
+        category,
+        editorType: 'coupon',
+        routePath,
+        width: EW,
+        height: totalH * 2, // EW 기준 실제 px
+        thumbnailUrl,
+        editorState: {
+          modules: JSON.parse(JSON.stringify(modules)),
+          layerOffsets: JSON.parse(JSON.stringify(layerOffsets)),
+        },
+        status: 'draft',
+        createdAt: now,
+        updatedAt: now,
+      }
+
+      const saved = await saveContent(record)
+      contentIdRef.current = saved.id
+
+      setSaveToast('내 콘텐츠에 저장되었습니다.')
+      setTimeout(() => setSaveToast(''), 3000)
+    } catch (err) {
+      console.error('[CouponEditor] save failed', err)
+      setSaveToast('저장에 실패했습니다.')
+      setTimeout(() => setSaveToast(''), 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   const dragRef        = useRef(null)
   const addImgRef      = useRef(null)
@@ -1576,6 +1632,14 @@ export default function CouponEditor({ onBack }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'#F0F2F5', fontFamily:ff }}>
+      {/* 저장 토스트 */}
+      {saveToast && (
+        <div style={{ position:'fixed', bottom:32, left:'50%', transform:'translateX(-50%)', zIndex:9999,
+          background:'#1E2023', color:'#fff', fontSize:13, fontWeight:500, padding:'10px 20px',
+          borderRadius:10, boxShadow:'0 4px 16px rgba(0,0,0,0.25)', pointerEvents:'none', whiteSpace:'nowrap' }}>
+          {saveToast}
+        </div>
+      )}
       {/* 헤더 */}
       <div style={{ height:52, background:'#fff', borderBottom:'1px solid #E4E6EA', display:'flex', alignItems:'center', padding:'0 16px', gap:12, flexShrink:0 }}>
         <button onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', color:'#555', display:'flex', alignItems:'center', gap:6, fontSize:13, fontFamily:ff }}>
@@ -1596,6 +1660,15 @@ export default function CouponEditor({ onBack }) {
         <div style={{ flex:1 }} />
         <span style={{ fontSize:14, fontWeight:700, color:'#1E2023' }}>쿠폰 프로모션 에디터</span>
         <div style={{ flex:1 }} />
+        {/* 저장하기 버튼 */}
+        <button
+          onClick={handleSaveContent}
+          disabled={isSaving}
+          title="내 콘텐츠에 저장"
+          style={{ padding:'8px 14px', borderRadius:10, border:'1.5px solid #E4E6EA', background:'#fff', color:'#333', fontSize:13, fontWeight:600, fontFamily:ff, cursor:isSaving?'wait':'pointer', display:'flex', alignItems:'center', gap:6, opacity:isSaving?0.6:1 }}>
+          <Save size={14} />
+          {isSaving ? '저장 중...' : '저장하기'}
+        </button>
         {/* 다운로드 드롭다운 */}
         <div data-dl-dropdown style={{ position:'relative' }}>
           <button

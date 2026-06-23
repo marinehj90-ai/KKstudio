@@ -188,7 +188,7 @@ function getRawModuleLayout(mod) {
   switch (mod.type) {
     case 'header': return { h: 240, layers: [
       S('bg_rect', { x:0, y:0, w:DW, h:240, fill:'#717171', selectable:false }),
-      I('img', { x:0, y:0, w:DW, h:240, value:mod.image, dataKey:'image' }),
+      I('img', { x:0, y:0, w:DW, h:240, value:mod.image, dataKey:'image', resizesWithModule: true }),
     ]}
 
     case 'title_white': case 'title_blue': case 'title_dark': {
@@ -371,7 +371,7 @@ function getModuleLayout(mod) {
     h = mod._customH
     // 배경 레이어만 높이에 맞게 늘림 (텍스트/이미지/도형은 유지)
     layers = layers.map(l =>
-      (l.role === 'background' || l.id === 'bg' || l.id === 'bg_rect') ? { ...l, h } : l
+      (l.role === 'background' || l.id === 'bg' || l.id === 'bg_rect' || l.resizesWithModule) ? { ...l, h } : l
     )
   }
   return { h, layers: layers.concat(mod._extraLayers || []) }
@@ -1217,6 +1217,8 @@ export default function CouponEditor({ onBack }) {
   const selIdx = modules.findIndex(m => m.id === selectedId)
   const selModLayout = selectedMod ? getModuleLayout(selectedMod) : null
   const selLayer = selModLayout && selLayerId ? selModLayout.layers.find(l => l.id === selLayerId) : null
+  // 선택 레이어가 module 높이와 함께 리사이즈되는 레이어인 경우 → 이미지 선택 중에도 height handle 표시
+  const selLayerResizesWithMod = !!(selLayer?.resizesWithModule)
 
   // 선택 레이어 resolved (layerStyles + offset 적용)
   const resolvedSelLayer = selLayer ? {
@@ -1962,7 +1964,7 @@ export default function CouponEditor({ onBack }) {
                     )
                   })()}
                   {/* 조각 높이 하단 드래그 핸들 — export 중 숨김 */}
-                  {isSel && !selLayerId && !cropMode && (
+                  {isSel && (!selLayerId || selLayerResizesWithMod) && !cropMode && (
                     <div
                       title="드래그해서 조각 높이 조절"
                       style={{

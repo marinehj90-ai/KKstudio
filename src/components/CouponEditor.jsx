@@ -1723,23 +1723,6 @@ export default function CouponEditor({ onBack }) {
           {/* 선택 객체 패널 */}
           {resolvedSelLayer && resolvedSelLayer.selectable && (
             <div style={{ padding:'10px 14px', borderTop:'1px solid #F0F0F0' }}>
-              <div style={{ fontSize:11, fontWeight:700, color:'#888', marginBottom:8, letterSpacing:'0.05em' }}>선택 객체</div>
-              {/* 정렬 6버튼 */}
-              <div style={{ display:'flex', gap:3, marginBottom:8 }}>
-                {[
-                  { label:'←', title:'왼쪽 정렬',   fn:()=>alignSelLayer({ x:0 }) },
-                  { label:'↔', title:'가로 중앙',    fn:()=>alignSelLayer({ x: Math.round((DW-(resolvedSelLayer.w||80))/2) }) },
-                  { label:'→', title:'오른쪽 정렬',  fn:()=>alignSelLayer({ x: DW-(resolvedSelLayer.w||80) }) },
-                  { label:'↑', title:'위 정렬',       fn:()=>alignSelLayer({ y:0 }) },
-                  { label:'↕', title:'세로 중앙',    fn:()=>{ const ml=selModLayout; alignSelLayer({ y: Math.round(((ml?ml.h:200)-(resolvedSelLayer.h||40))/2) }) } },
-                  { label:'↓', title:'아래 정렬',    fn:()=>{ const ml=selModLayout; alignSelLayer({ y: (ml?ml.h:200)-(resolvedSelLayer.h||40) }) } },
-                ].map(btn => (
-                  <button key={btn.label} title={btn.title} onClick={btn.fn}
-                    style={{ flex:1, height:26, borderRadius:4, border:'1px solid #E4E6EA', background:'#F8F9FA', cursor:'pointer', fontSize:12 }}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
               {/* 회전 슬라이더 */}
               <div style={{ marginBottom:8 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>

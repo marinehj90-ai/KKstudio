@@ -33,7 +33,8 @@ export const pcExhibitionConfig = {
 export const siteMapConfig = {
   PC: {
     image: '/guide/pc-main.webp',
-    pxFrame: { width: 1318, height: 4378 },
+    // 실제 이미지 크기 1230×4096 기준 — 퍼센트 오버레이로 비율 변환됨
+    pxFrame: { width: 1230, height: 4096 },
     label: 'PC 메인',
     zones: [
       {
@@ -44,7 +45,7 @@ export const siteMapConfig = {
         templateId: 'b4',
         comingSoon: true,
         color: '#F15A24',
-        pos: { top: 86, left: 1167, width: 138, height: 275 },
+        pos: { top: 80, left: 1089, width: 129, height: 257 },
       },
       {
         id: 'pc-strip',
@@ -53,7 +54,7 @@ export const siteMapConfig = {
         size: '1712×80',
         templateId: 'b1',
         color: '#D44117',
-        pos: { top: 0, left: 164, width: 986, height: 55 },
+        pos: { top: 0, left: 153, width: 920, height: 52 },
       },
       {
         id: 'pc-main-banner',
@@ -62,7 +63,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b3',
         color: '#F15A24',
-        pos: { top: 159, left: 164, width: 986, height: 328 },
+        pos: { top: 149, left: 153, width: 920, height: 307 },
       },
       {
         id: 'pc-quick',
@@ -71,7 +72,7 @@ export const siteMapConfig = {
         size: '300×300',
         templateId: 'b12',
         color: '#F6A23A',
-        pos: { top: 517, left: 165, width: 985, height: 125 },
+        pos: { top: 484, left: 154, width: 919, height: 117 },
       },
       {
         id: 'pc-text',
@@ -81,7 +82,7 @@ export const siteMapConfig = {
         templateId: null,
         noCreate: true,
         color: '#6B7280',
-        pos: { top: 668, left: 165, width: 985, height: 38 },
+        pos: { top: 625, left: 154, width: 919, height: 36 },
       },
       {
         id: 'pc-brand-solo',
@@ -90,7 +91,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F15A24',
-        pos: { top: 768, left: 165, width: 985, height: 202 },
+        pos: { top: 719, left: 154, width: 919, height: 189 },
       },
       {
         id: 'pc-payment',
@@ -99,7 +100,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#D44117',
-        pos: { top: 1006, left: 165, width: 985, height: 170 },
+        pos: { top: 941, left: 154, width: 919, height: 159 },
       },
       {
         id: 'pc-brand-discount',
@@ -108,7 +109,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F15A24',
-        pos: { top: 1213, left: 165, width: 985, height: 274 },
+        pos: { top: 1135, left: 154, width: 919, height: 256 },
       },
       {
         id: 'pc-brand-suggest',
@@ -117,7 +118,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F6A23A',
-        pos: { top: 1546, left: 165, width: 985, height: 390 },
+        pos: { top: 1447, left: 154, width: 919, height: 365 },
       },
       {
         id: 'pc-main-strip',
@@ -126,7 +127,7 @@ export const siteMapConfig = {
         size: '1520×130',
         templateId: 'b7',
         color: '#D44117',
-        pos: { top: 1957, left: 165, width: 985, height: 94 },
+        pos: { top: 1831, left: 154, width: 919, height: 88 },
       },
       {
         id: 'pc-keyword',
@@ -136,7 +137,7 @@ export const siteMapConfig = {
         templateId: 'b3',
         comingSoon: true,
         color: '#F15A24',
-        pos: { top: 2074, left: 165, width: 985, height: 261 },
+        pos: { top: 1941, left: 154, width: 919, height: 244 },
       },
       {
         id: 'pc-new-brand',
@@ -145,7 +146,7 @@ export const siteMapConfig = {
         size: '1000×600',
         templateId: 'b9r',
         color: '#3B82F6',
-        pos: { top: 2433, left: 165, width: 985, height: 337 },
+        pos: { top: 2276, left: 154, width: 919, height: 315 },
       },
       {
         id: 'pc-affiliate',
@@ -154,7 +155,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F15A24',
-        pos: { top: 2816, left: 165, width: 985, height: 273 },
+        pos: { top: 2634, left: 154, width: 919, height: 255 },
       },
       {
         id: 'pc-review',
@@ -163,7 +164,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'e4',
         color: '#D44117',
-        pos: { top: 3144, left: 165, width: 985, height: 222 },
+        pos: { top: 2941, left: 154, width: 919, height: 208 },
       },
       {
         id: 'pc-offline',
@@ -172,14 +173,17 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'e4',
         color: '#F6A23A',
-        pos: { top: 3407, left: 165, width: 985, height: 276 },
+        pos: { top: 3188, left: 154, width: 919, height: 258 },
       },
     ],
   },
   MO: {
-    // Figma frame: kkstudio_MOmain_mcp (375×4232) — px 좌표 직접 반영
+    // 이미지: mo-figma.png 756×8632 (2x), 렌더 375×4282px 기준 % 변환
+    // 좌표 기준: 이미지 원본 (image y = Figma y - 15 보정 포함)
+    // → 이미지 y=0 = Figma 프레임 y=15에 해당 (이미지 뷰포트가 15px 위에서 시작)
+    // mobileMainGlobalOffsetY: 0 (별도 전역 오프셋 없음 — 좌표에 직접 반영됨)
     image: '/guide/mo-figma.png?v=3',
-    pxFrame: { width: 375, height: 4232 },
+    pxFrame: { width: 375, height: 4282 },
     label: 'MO 메인',
     zones: [
       {
@@ -190,7 +194,7 @@ export const siteMapConfig = {
         templateId: 'b3',
         comingSoon: true,
         color: '#F15A24',
-        pos: { top: 54, left: 0, width: 375, height: 174 },
+        pos: { top: 39, left: 0, width: 375, height: 174 },
       },
       {
         id: 'mo-strip',
@@ -200,7 +204,7 @@ export const siteMapConfig = {
         templateId: 'b2',
         comingSoon: true,
         color: '#D44117',
-        pos: { top: 228, left: 0, width: 375, height: 70 },
+        pos: { top: 213, left: 0, width: 375, height: 70 },
       },
       {
         id: 'mo-main',
@@ -209,7 +213,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b3',
         color: '#F15A24',
-        pos: { top: 398, left: 0, width: 375, height: 375 },
+        pos: { top: 383, left: 0, width: 375, height: 375 },
       },
       {
         id: 'mo-quick',
@@ -218,7 +222,7 @@ export const siteMapConfig = {
         size: '300×300',
         templateId: 'b12',
         color: '#F6A23A',
-        pos: { top: 763, left: 0, width: 375, height: 216 },
+        pos: { top: 758, left: 0, width: 375, height: 216 },
       },
       {
         id: 'mo-text',
@@ -228,7 +232,7 @@ export const siteMapConfig = {
         templateId: null,
         noCreate: true,
         color: '#6B7280',
-        pos: { top: 990, left: 0, width: 375, height: 92 },
+        pos: { top: 975, left: 0, width: 375, height: 92 },
       },
       {
         id: 'mo-payment',
@@ -237,7 +241,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#D44117',
-        pos: { top: 1122, left: 0, width: 375, height: 200 },
+        pos: { top: 1107, left: 0, width: 375, height: 200 },
       },
       {
         id: 'mo-gift',
@@ -246,7 +250,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F15A24',
-        pos: { top: 1362, left: 0, width: 375, height: 364 },
+        pos: { top: 1347, left: 0, width: 375, height: 364 },
       },
       {
         id: 'mo-exclusive1',
@@ -255,7 +259,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b9',
         color: '#5A1A80',
-        pos: { top: 1766, left: 0, width: 375, height: 304 },
+        pos: { top: 1751, left: 0, width: 375, height: 304 },
       },
       {
         id: 'mo-exclusive2',
@@ -264,7 +268,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b9',
         color: '#D44117',
-        pos: { top: 2104, left: 0, width: 375, height: 416 },
+        pos: { top: 2089, left: 0, width: 375, height: 416 },
       },
       {
         id: 'mo-video',
@@ -274,7 +278,7 @@ export const siteMapConfig = {
         templateId: null,
         comingSoon: true,
         color: '#6B7280',
-        pos: { top: 2560, left: 0, width: 375, height: 252 },
+        pos: { top: 2545, left: 0, width: 375, height: 252 },
       },
       {
         id: 'mo-shorts',
@@ -284,7 +288,7 @@ export const siteMapConfig = {
         templateId: null,
         comingSoon: true,
         color: '#6B7280',
-        pos: { top: 2852, left: 0, width: 375, height: 368 },
+        pos: { top: 2837, left: 0, width: 375, height: 368 },
       },
       {
         id: 'mo-member',
@@ -293,7 +297,7 @@ export const siteMapConfig = {
         size: '750×750',
         templateId: 'b5',
         color: '#F15A24',
-        pos: { top: 3245, left: 0, width: 375, height: 230 },
+        pos: { top: 3230, left: 0, width: 375, height: 230 },
       },
       {
         id: 'mo-html',
@@ -303,7 +307,7 @@ export const siteMapConfig = {
         templateId: null,
         comingSoon: true,
         color: '#6B7280',
-        pos: { top: 3515, left: 0, width: 375, height: 164 },
+        pos: { top: 3500, left: 0, width: 375, height: 164 },
       },
       {
         id: 'mo-fashion',
@@ -313,7 +317,7 @@ export const siteMapConfig = {
         templateId: null,
         comingSoon: true,
         color: '#3B82F6',
-        pos: { top: 3719, left: 0, width: 375, height: 280 },
+        pos: { top: 3704, left: 0, width: 375, height: 280 },
       },
       {
         id: 'mo-fill1',
@@ -322,7 +326,7 @@ export const siteMapConfig = {
         size: '750×140',
         templateId: 'b6',
         color: '#F15A24',
-        pos: { top: 4039, left: 0, width: 375, height: 110 },
+        pos: { top: 4024, left: 0, width: 375, height: 110 },
       },
       {
         id: 'mo-fill2',
@@ -331,7 +335,7 @@ export const siteMapConfig = {
         size: '750×140',
         templateId: 'b6',
         color: '#D44117',
-        pos: { top: 4189, left: 0, width: 375, height: 110 },
+        pos: { top: 4174, left: 0, width: 375, height: 110 },
       },
     ],
   },

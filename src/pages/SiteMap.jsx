@@ -146,7 +146,7 @@ export default function SiteMap() {
               className="sitemap-card rounded-2xl shadow-lg border border-gray-200"
               style={{ background: '#fff', overflowX: 'auto' }}
             >
-              <div className="sitemap-inner" style={{ position: 'relative', width: config.pxFrame ? config.pxFrame.width : '100%' }}>
+              <div className="sitemap-inner" style={{ position: 'relative', width: (config.pxFrame && platform === 'MO') ? config.pxFrame.width : '100%' }}>
                 {/* 가이드 이미지 */}
                 <img
                   src={config.image}
@@ -171,6 +171,20 @@ export default function SiteMap() {
                 {config.zones.map((zone) => {
                   const isSelected = selectedZone?.id === zone.id
                   const isHovered = hoveredZone === zone.id
+                  // PC/MO: pxFrame 기준 퍼센트 변환 / APP: 문자열 퍼센트 그대로
+                  const pf = config.pxFrame
+                  const usePercent = pf && typeof zone.pos.top === 'number'
+                  const posStyle = usePercent ? {
+                    top: `${(zone.pos.top / pf.height) * 100}%`,
+                    left: `${(zone.pos.left / pf.width) * 100}%`,
+                    width: `${(zone.pos.width / pf.width) * 100}%`,
+                    height: `${(zone.pos.height / pf.height) * 100}%`,
+                  } : {
+                    top: zone.pos.top,
+                    left: zone.pos.left,
+                    width: zone.pos.width,
+                    height: zone.pos.height,
+                  }
                   return (
                     <div
                       key={zone.id}
@@ -179,10 +193,7 @@ export default function SiteMap() {
                       onMouseLeave={() => setHoveredZone(null)}
                       style={{
                         position: 'absolute',
-                        top: typeof zone.pos.top === 'number' ? zone.pos.top - (platform === 'MO' ? 15 : 0) : zone.pos.top,
-                        left: zone.pos.left,
-                        width: zone.pos.width,
-                        height: zone.pos.height,
+                        ...posStyle,
                         border: `2px solid ${zone.color}`,
                         background: isSelected
                           ? `${zone.color}35`

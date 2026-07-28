@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin, BookImage, BellDot, Ruler } from 'lucide-react'
+import GuestBadge from './GuestBadge'
 
 const navItems = [
   { to: '/', icon: Home, label: '홈' },
@@ -102,20 +103,8 @@ export default function Layout() {
           </div>
         </nav>
 
-        {/* Pro Status */}
-        <div className="p-4 mx-3 mb-3 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFF7EF 0%, #FFF0E5 100%)', border: '1px solid #FECBA8' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4" style={{ color: HOME_COLOR }} />
-            <span className="text-sm font-semibold" style={{ color: '#B33612' }}>Pro Account</span>
-          </div>
-          <div className="w-full h-2 bg-white rounded-full overflow-hidden">
-            <div
-              className="h-full w-3/4 rounded-full"
-              style={{ background: 'linear-gradient(90deg, #F6A23A 0%, #E94E1B 100%)' }}
-            />
-          </div>
-          <p className="mt-1.5 text-xs font-medium" style={{ color: HOME_COLOR }}>750 / 1,000 AI 생성 남음</p>
-        </div>
+        {/* 게스트 사용자 배지 */}
+        <GuestBadge />
       </aside>
 
       {/* Main */}

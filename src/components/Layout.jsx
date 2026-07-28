@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Home, FolderOpen, Settings, Layers, Image, CalendarRange, Sparkles, ChevronRight, MapPin, BookImage, BellDot, Ruler } from 'lucide-react'
 import GuestBadge from './GuestBadge'
 
@@ -25,13 +25,24 @@ const HOME_LIGHT = '#FFF0E5'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  function onLogoClick() {
+    if (location.pathname === '/') return
+    const confirmed = window.confirm('홈 화면으로 이동하시겠습니까?\n저장되지 않은 작업이 있다면 사라질 수 있습니다.')
+    if (confirmed) {
+      navigate('/')
+    }
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-100 flex flex-col shrink-0">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-100">
+        <div
+          className="h-16 flex items-center px-6 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={onLogoClick}
+        >
           <div className="flex items-center gap-2">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center"

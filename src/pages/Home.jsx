@@ -95,25 +95,6 @@ export default function Home() {
               사진을 업로드하시거나, URL 분석으로 배너, 기획전, 이벤트, 상세페이지까지 제작할 수 있어요.<br />템플릿을 선택하고 이미지를 올리면 끝!
             </p>
           </div>
-          {/* Right: brand logo — hidden on mobile */}
-          <div
-            className="hidden md:flex shrink-0 items-center justify-center"
-            style={{
-              width: 200,
-              padding: '16px 20px',
-              borderRadius: 14,
-              background: 'rgba(255,255,255,0.10)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.22)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-            }}
-          >
-            <img
-              src="/assets/logos/shinsegae-dutyfree-logo.png"
-              alt="SHINSEGAE DUTY FREE"
-              style={{ display: 'block', width: '100%', maxWidth: 180, height: 'auto', objectFit: 'contain', margin: '0 auto', opacity: 1, filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))', transform: 'translateY(-11px)' }}
-            />
-          </div>
         </div>
       </div>
 

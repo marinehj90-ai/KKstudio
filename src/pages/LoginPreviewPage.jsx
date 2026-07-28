@@ -32,9 +32,10 @@ export default function LoginPreviewPage() {
       {/* 카드 위 — 신세계면세점 BI */}
       <div className="text-center mb-6">
         <img
-          src="/assets/logos/shinsegae-dutyfree-logo.png"
+          src="/assets/logos/BI_Black.png"
           alt="신세계면세점"
-          className="h-9 object-contain mx-auto"
+          className="object-contain mx-auto"
+            style={{ height: '2.425rem' }}
         />
       </div>
 
